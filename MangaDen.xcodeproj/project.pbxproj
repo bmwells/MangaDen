@@ -1,0 +1,593 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		271345C22E5D07B000BC7435 /* MangaDenApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271345C12E5D07B000BC7435 /* MangaDenApp.swift */; };
+		271345C42E5D07B000BC7435 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271345C32E5D07B000BC7435 /* ContentView.swift */; };
+		271345C62E5D07B100BC7435 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 271345C52E5D07B100BC7435 /* Assets.xcassets */; };
+		271345C92E5D07B100BC7435 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 271345C82E5D07B100BC7435 /* Preview Assets.xcassets */; };
+		271345D32E5D07B200BC7435 /* MangaDenTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271345D22E5D07B200BC7435 /* MangaDenTests.swift */; };
+		271345DD2E5D07B200BC7435 /* MangaDenUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271345DC2E5D07B200BC7435 /* MangaDenUITests.swift */; };
+		271345DF2E5D07B200BC7435 /* MangaDenUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271345DE2E5D07B200BC7435 /* MangaDenUITestsLaunchTests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		271345CF2E5D07B200BC7435 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 271345B62E5D07B000BC7435 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 271345BD2E5D07B000BC7435;
+			remoteInfo = MangaDen;
+		};
+		271345D92E5D07B200BC7435 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 271345B62E5D07B000BC7435 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 271345BD2E5D07B000BC7435;
+			remoteInfo = MangaDen;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		271345BE2E5D07B000BC7435 /* MangaDen.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MangaDen.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		271345C12E5D07B000BC7435 /* MangaDenApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MangaDenApp.swift; sourceTree = "<group>"; };
+		271345C32E5D07B000BC7435 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		271345C52E5D07B100BC7435 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		271345C82E5D07B100BC7435 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		271345CE2E5D07B200BC7435 /* MangaDenTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MangaDenTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		271345D22E5D07B200BC7435 /* MangaDenTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MangaDenTests.swift; sourceTree = "<group>"; };
+		271345D82E5D07B200BC7435 /* MangaDenUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MangaDenUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		271345DC2E5D07B200BC7435 /* MangaDenUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MangaDenUITests.swift; sourceTree = "<group>"; };
+		271345DE2E5D07B200BC7435 /* MangaDenUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MangaDenUITestsLaunchTests.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		271345BB2E5D07B000BC7435 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		271345CB2E5D07B200BC7435 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		271345D52E5D07B200BC7435 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		271345B52E5D07B000BC7435 = {
+			isa = PBXGroup;
+			children = (
+				271345C02E5D07B000BC7435 /* MangaDen */,
+				271345D12E5D07B200BC7435 /* MangaDenTests */,
+				271345DB2E5D07B200BC7435 /* MangaDenUITests */,
+				271345BF2E5D07B000BC7435 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		271345BF2E5D07B000BC7435 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				271345BE2E5D07B000BC7435 /* MangaDen.app */,
+				271345CE2E5D07B200BC7435 /* MangaDenTests.xctest */,
+				271345D82E5D07B200BC7435 /* MangaDenUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		271345C02E5D07B000BC7435 /* MangaDen */ = {
+			isa = PBXGroup;
+			children = (
+				271345C12E5D07B000BC7435 /* MangaDenApp.swift */,
+				271345C32E5D07B000BC7435 /* ContentView.swift */,
+				271345C52E5D07B100BC7435 /* Assets.xcassets */,
+				271345C72E5D07B100BC7435 /* Preview Content */,
+			);
+			path = MangaDen;
+			sourceTree = "<group>";
+		};
+		271345C72E5D07B100BC7435 /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				271345C82E5D07B100BC7435 /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		271345D12E5D07B200BC7435 /* MangaDenTests */ = {
+			isa = PBXGroup;
+			children = (
+				271345D22E5D07B200BC7435 /* MangaDenTests.swift */,
+			);
+			path = MangaDenTests;
+			sourceTree = "<group>";
+		};
+		271345DB2E5D07B200BC7435 /* MangaDenUITests */ = {
+			isa = PBXGroup;
+			children = (
+				271345DC2E5D07B200BC7435 /* MangaDenUITests.swift */,
+				271345DE2E5D07B200BC7435 /* MangaDenUITestsLaunchTests.swift */,
+			);
+			path = MangaDenUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		271345BD2E5D07B000BC7435 /* MangaDen */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 271345E22E5D07B200BC7435 /* Build configuration list for PBXNativeTarget "MangaDen" */;
+			buildPhases = (
+				271345BA2E5D07B000BC7435 /* Sources */,
+				271345BB2E5D07B000BC7435 /* Frameworks */,
+				271345BC2E5D07B000BC7435 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MangaDen;
+			productName = MangaDen;
+			productReference = 271345BE2E5D07B000BC7435 /* MangaDen.app */;
+			productType = "com.apple.product-type.application";
+		};
+		271345CD2E5D07B200BC7435 /* MangaDenTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 271345E52E5D07B200BC7435 /* Build configuration list for PBXNativeTarget "MangaDenTests" */;
+			buildPhases = (
+				271345CA2E5D07B200BC7435 /* Sources */,
+				271345CB2E5D07B200BC7435 /* Frameworks */,
+				271345CC2E5D07B200BC7435 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				271345D02E5D07B200BC7435 /* PBXTargetDependency */,
+			);
+			name = MangaDenTests;
+			productName = MangaDenTests;
+			productReference = 271345CE2E5D07B200BC7435 /* MangaDenTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		271345D72E5D07B200BC7435 /* MangaDenUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 271345E82E5D07B200BC7435 /* Build configuration list for PBXNativeTarget "MangaDenUITests" */;
+			buildPhases = (
+				271345D42E5D07B200BC7435 /* Sources */,
+				271345D52E5D07B200BC7435 /* Frameworks */,
+				271345D62E5D07B200BC7435 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				271345DA2E5D07B200BC7435 /* PBXTargetDependency */,
+			);
+			name = MangaDenUITests;
+			productName = MangaDenUITests;
+			productReference = 271345D82E5D07B200BC7435 /* MangaDenUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		271345B62E5D07B000BC7435 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1540;
+				LastUpgradeCheck = 1540;
+				TargetAttributes = {
+					271345BD2E5D07B000BC7435 = {
+						CreatedOnToolsVersion = 15.4;
+					};
+					271345CD2E5D07B200BC7435 = {
+						CreatedOnToolsVersion = 15.4;
+						TestTargetID = 271345BD2E5D07B000BC7435;
+					};
+					271345D72E5D07B200BC7435 = {
+						CreatedOnToolsVersion = 15.4;
+						TestTargetID = 271345BD2E5D07B000BC7435;
+					};
+				};
+			};
+			buildConfigurationList = 271345B92E5D07B000BC7435 /* Build configuration list for PBXProject "MangaDen" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 271345B52E5D07B000BC7435;
+			productRefGroup = 271345BF2E5D07B000BC7435 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				271345BD2E5D07B000BC7435 /* MangaDen */,
+				271345CD2E5D07B200BC7435 /* MangaDenTests */,
+				271345D72E5D07B200BC7435 /* MangaDenUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		271345BC2E5D07B000BC7435 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				271345C92E5D07B100BC7435 /* Preview Assets.xcassets in Resources */,
+				271345C62E5D07B100BC7435 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		271345CC2E5D07B200BC7435 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		271345D62E5D07B200BC7435 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		271345BA2E5D07B000BC7435 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				271345C42E5D07B000BC7435 /* ContentView.swift in Sources */,
+				271345C22E5D07B000BC7435 /* MangaDenApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		271345CA2E5D07B200BC7435 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				271345D32E5D07B200BC7435 /* MangaDenTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		271345D42E5D07B200BC7435 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				271345DF2E5D07B200BC7435 /* MangaDenUITestsLaunchTests.swift in Sources */,
+				271345DD2E5D07B200BC7435 /* MangaDenUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		271345D02E5D07B200BC7435 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 271345BD2E5D07B000BC7435 /* MangaDen */;
+			targetProxy = 271345CF2E5D07B200BC7435 /* PBXContainerItemProxy */;
+		};
+		271345DA2E5D07B200BC7435 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 271345BD2E5D07B000BC7435 /* MangaDen */;
+			targetProxy = 271345D92E5D07B200BC7435 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		271345E02E5D07B200BC7435 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		271345E12E5D07B200BC7435 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		271345E32E5D07B200BC7435 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"MangaDen/Preview Content\"";
+				DEVELOPMENT_TEAM = 6N92947F99;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = bWells.MangaDen;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		271345E42E5D07B200BC7435 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"MangaDen/Preview Content\"";
+				DEVELOPMENT_TEAM = 6N92947F99;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = bWells.MangaDen;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		271345E62E5D07B200BC7435 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6N92947F99;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = bWells.MangaDenTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MangaDen.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/MangaDen";
+			};
+			name = Debug;
+		};
+		271345E72E5D07B200BC7435 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6N92947F99;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = bWells.MangaDenTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MangaDen.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/MangaDen";
+			};
+			name = Release;
+		};
+		271345E92E5D07B200BC7435 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6N92947F99;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = bWells.MangaDenUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = MangaDen;
+			};
+			name = Debug;
+		};
+		271345EA2E5D07B200BC7435 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6N92947F99;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = bWells.MangaDenUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = MangaDen;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		271345B92E5D07B000BC7435 /* Build configuration list for PBXProject "MangaDen" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				271345E02E5D07B200BC7435 /* Debug */,
+				271345E12E5D07B200BC7435 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		271345E22E5D07B200BC7435 /* Build configuration list for PBXNativeTarget "MangaDen" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				271345E32E5D07B200BC7435 /* Debug */,
+				271345E42E5D07B200BC7435 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		271345E52E5D07B200BC7435 /* Build configuration list for PBXNativeTarget "MangaDenTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				271345E62E5D07B200BC7435 /* Debug */,
+				271345E72E5D07B200BC7435 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		271345E82E5D07B200BC7435 /* Build configuration list for PBXNativeTarget "MangaDenUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				271345E92E5D07B200BC7435 /* Debug */,
+				271345EA2E5D07B200BC7435 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 271345B62E5D07B000BC7435 /* Project object */;
+}
