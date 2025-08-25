@@ -14,6 +14,10 @@
 		271345D32E5D07B200BC7435 /* MangaDenTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271345D22E5D07B200BC7435 /* MangaDenTests.swift */; };
 		271345DD2E5D07B200BC7435 /* MangaDenUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271345DC2E5D07B200BC7435 /* MangaDenUITests.swift */; };
 		271345DF2E5D07B200BC7435 /* MangaDenUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271345DE2E5D07B200BC7435 /* MangaDenUITestsLaunchTests.swift */; };
+		271345EC2E5D283700BC7435 /* LibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271345EB2E5D283700BC7435 /* LibraryView.swift */; };
+		271345EE2E5D28A500BC7435 /* AddMangaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271345ED2E5D28A500BC7435 /* AddMangaView.swift */; };
+		271345F02E5D28C200BC7435 /* DownloadsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271345EF2E5D28C200BC7435 /* DownloadsView.swift */; };
+		271345F22E5D28D800BC7435 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271345F12E5D28D800BC7435 /* SettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -44,6 +48,10 @@
 		271345D82E5D07B200BC7435 /* MangaDenUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MangaDenUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		271345DC2E5D07B200BC7435 /* MangaDenUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MangaDenUITests.swift; sourceTree = "<group>"; };
 		271345DE2E5D07B200BC7435 /* MangaDenUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MangaDenUITestsLaunchTests.swift; sourceTree = "<group>"; };
+		271345EB2E5D283700BC7435 /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
+		271345ED2E5D28A500BC7435 /* AddMangaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddMangaView.swift; sourceTree = "<group>"; };
+		271345EF2E5D28C200BC7435 /* DownloadsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadsView.swift; sourceTree = "<group>"; };
+		271345F12E5D28D800BC7435 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -96,6 +104,10 @@
 			children = (
 				271345C12E5D07B000BC7435 /* MangaDenApp.swift */,
 				271345C32E5D07B000BC7435 /* ContentView.swift */,
+				271345EB2E5D283700BC7435 /* LibraryView.swift */,
+				271345ED2E5D28A500BC7435 /* AddMangaView.swift */,
+				271345F12E5D28D800BC7435 /* SettingsView.swift */,
+				271345EF2E5D28C200BC7435 /* DownloadsView.swift */,
 				271345C52E5D07B100BC7435 /* Assets.xcassets */,
 				271345C72E5D07B100BC7435 /* Preview Content */,
 			);
@@ -258,6 +270,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				271345C42E5D07B000BC7435 /* ContentView.swift in Sources */,
+				271345F02E5D28C200BC7435 /* DownloadsView.swift in Sources */,
+				271345EE2E5D28A500BC7435 /* AddMangaView.swift in Sources */,
+				271345F22E5D28D800BC7435 /* SettingsView.swift in Sources */,
+				271345EC2E5D283700BC7435 /* LibraryView.swift in Sources */,
 				271345C22E5D07B000BC7435 /* MangaDenApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
