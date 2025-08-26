@@ -21,7 +21,7 @@ struct BrowserView: View {
         let coord = WebViewCoordinator()
         self.coordinator = coord
         webView.navigationDelegate = coord
-        coord.attachObservers(to: webView) // 👈 start observing nav state
+        coord.attachObservers(to: webView) // observe nav state
     }
 
     var body: some View {
@@ -73,29 +73,29 @@ struct BrowserView: View {
             .padding(.horizontal)
             .padding(.vertical, 6)
             .background(Color(.systemGray6))
+            
+            // Add Title
+            Rectangle()
+                .fill(Color(.systemGray5))
+                .frame(height: 40)
+                .overlay(
+                    Text("Add Title")
+                        .foregroundColor(.red)
+                        .font(.system(size: 16, weight: .semibold))
+                )
 
             Divider()
 
             // MARK: WebView
-            DLWebView(
-                url: Binding(
-                    get: { URL(string: urlString) },
-                    set: { newURL in
-                        urlString = newURL?.absoluteString ?? "https://www.google.com"
-                    }
-                ),
-                webView: webView
-            )
-            .edgesIgnoringSafeArea(.bottom)
+            WebViewWrapper(webView: webView)
+                .edgesIgnoringSafeArea(.bottom)
         }
         .onAppear { loadURL() }
         .onReceive(NotificationCenter.default.publisher(for: .didUpdateWebViewNav)) { notification in
             if let info = notification.userInfo as? [String: Any] {
                 canGoBack = info["canGoBack"] as? Bool ?? false
                 canGoForward = info["canGoForward"] as? Bool ?? false
-                if let newURL = info["currentURL"] as? URL {
-                    urlString = newURL.absoluteString
-                }
+                // don’t overwrite urlString every time — let google.com forms work
             }
         }
     }
@@ -110,6 +110,19 @@ struct BrowserView: View {
             webView.load(URLRequest(url: url))
         }
         isURLFieldFocused = false
+    }
+}
+
+// MARK: WebView Wrapper
+struct WebViewWrapper: UIViewRepresentable {
+    let webView: WKWebView
+
+    func makeUIView(context: Context) -> WKWebView {
+        return webView
+    }
+
+    func updateUIView(_ uiView: WKWebView, context: Context) {
+        // nothing — don’t reload every SwiftUI update
     }
 }
 
