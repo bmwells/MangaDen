@@ -5,62 +5,47 @@
 //  Created by Brody Wells on 8/25/25.
 //
 
-import Foundation
 import SwiftUI
-import SafariServices
 
 struct AddMangaView: View {
-    @Environment(\.dismiss) var dismiss
     @State private var urlText: String = ""
-    @State private var showBrowser: Bool = false
+    @State private var showBrowser = false
     
     var body: some View {
         NavigationView {
             VStack(spacing: 20) {
+                Text("Add Manga")
+                    .font(.title)
+                    .padding(.top, 30)
+                
                 TextField("Paste Manga URL", text: $urlText)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .padding(.horizontal)
                 
-                Button(action: { showBrowser = true }) {
-                    HStack {
-                        Image(systemName: "safari")
-                        Text("Open in App Browser")
-                    }
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .background(Color.blue.opacity(0.2))
-                    .cornerRadius(10)
-                    .padding(.horizontal)
+                Button(action: {
+                    showBrowser = true
+                }) {
+                    Label("Open In-App Browser", systemImage: "safari")
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                        .padding(.horizontal)
                 }
                 
                 Spacer()
             }
-            .navigationTitle("Add Manga")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") { dismiss() }
-                }
-            }
-            .sheet(isPresented: $showBrowser) {
-                if let url = URL(string: urlText), !urlText.isEmpty {
-                    SafariView(url: url)
-                } else {
-                    Text("Invalid URL")
-                }
-            }
+            .navigationBarTitle("Add Manga", displayMode: .inline)
         }
-        // Forces iPhone-style navigation on iPad
-        .navigationViewStyle(StackNavigationViewStyle())
+        .sheet(isPresented: $showBrowser) {
+            BrowserView()
+        }
     }
 }
 
-struct SafariView: UIViewControllerRepresentable {
-    let url: URL
-    
-    func makeUIViewController(context: Context) -> SFSafariViewController {
-        SFSafariViewController(url: url)
+struct AddMangaView_Previews: PreviewProvider {
+    static var previews: some View {
+        AddMangaView()
     }
-    
-    func updateUIViewController(_ uiViewController: SFSafariViewController, context: Context) {}
 }
-

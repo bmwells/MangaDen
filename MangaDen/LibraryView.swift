@@ -5,9 +5,9 @@
 //  Created by Brody Wells on 8/25/25.
 //
 
-import Foundation
 import SwiftUI
 
+    // MARK: Manga File Struct
 struct Manga: Identifiable {
     let id = UUID()
     let title: String
@@ -15,6 +15,8 @@ struct Manga: Identifiable {
     let isArchived: Bool
 }
 
+
+    // MARK: Library Screen
 struct LibraryView: View {
     @State private var selectedTab: LibraryTab = .reading
     @State private var showAddManga: Bool = false
@@ -27,12 +29,14 @@ struct LibraryView: View {
         Manga(title: "Berserk", isDownloaded: false, isArchived: true)
     ]
     
+        // Tabs (Reading, Downloads, Archive)
     enum LibraryTab: String, CaseIterable {
         case reading = "Reading"
         case downloads = "Downloads"
         case archive = "Archive"
     }
     
+        // Tab Filters 
     var filteredMangas: [Manga] {
         switch selectedTab {
         case .reading: return mangas.filter { !$0.isArchived }
