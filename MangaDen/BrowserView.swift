@@ -16,6 +16,7 @@ struct BrowserView: View {
     @State private var lastLoadTime = Date.distantPast
     @State private var showError = false
     @State private var errorMessage = ""
+    @State private var containsChapter = false // New boolean for chapter detection
     @FocusState private var isURLFieldFocused: Bool
 
     private let webView = WKWebView()
@@ -84,6 +85,25 @@ struct BrowserView: View {
             .padding(.vertical, 6)
             .background(Color(.systemGray6))
 
+            // Chapter indicator
+            HStack {
+                Text("chapter")
+                    .font(.system(size: 12, weight: .semibold))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(containsChapter ? Color.green.opacity(0.2) : Color.red.opacity(0.2))
+                    .foregroundColor(containsChapter ? .green : .red)
+                    .cornerRadius(4)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 4)
+                            .stroke(containsChapter ? Color.green : Color.red, lineWidth: 1)
+                    )
+                
+                Spacer()
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 4)
+
             // Error message
             if showError {
                 Text(errorMessage)
@@ -132,25 +152,32 @@ struct BrowserView: View {
                 }
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .didFindChapterWord)) { notification in
+            if let containsChapter = notification.userInfo?["containsChapter"] as? Bool {
+                self.containsChapter = containsChapter
+            }
+        }
     }
 
     private func loadURL() {
         // Prevent rapid successive loads (debounce)
-            let now = Date()
-            if now.timeIntervalSince(lastLoadTime) < 0.5 { // 500ms debounce
-                return
-            }
-            lastLoadTime = now
-            
-            showError = false
-            let input = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
-            
-            // Handle empty input
-            if input.isEmpty {
-                errorMessage = "Please enter a URL or search terms"
-                showError = true
-                return
-            }
+        let now = Date()
+        if now.timeIntervalSince(lastLoadTime) < 0.5 { // 500ms debounce
+            return
+        }
+        lastLoadTime = now
+        
+        showError = false
+        containsChapter = false // Reset chapter detection when loading new URL
+        
+        let input = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Handle empty input
+        if input.isEmpty {
+            errorMessage = "Please enter a URL or search terms"
+            showError = true
+            return
+        }
         
         // Check if it's a valid URL
         if let url = URL(string: input), UIApplication.shared.canOpenURL(url) {
@@ -189,7 +216,7 @@ struct WebViewWrapper: UIViewRepresentable {
     }
 }
 
-// MARK: Coordinator
+// MARK: Coordinator with Chapter Detection
 class WebViewCoordinator: NSObject, WKNavigationDelegate {
     private var backObserver: NSKeyValueObservation?
     private var forwardObserver: NSKeyValueObservation?
@@ -235,6 +262,8 @@ class WebViewCoordinator: NSObject, WKNavigationDelegate {
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         postNavigationUpdate(webView: webView)
+        // Check for chapter word when page finishes loading
+        checkForChapterWord(in: webView)
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
@@ -261,6 +290,49 @@ class WebViewCoordinator: NSObject, WKNavigationDelegate {
         }
     }
     
+    // Function to check for chapter word
+    private func checkForChapterWord(in webView: WKWebView) {
+        let javascript = """
+        // Check if document body exists and has content
+        if (document.body && document.body.innerText) {
+            document.body.innerText.toLowerCase().includes('chapter');
+        } else {
+            false;
+        }
+        """
+        
+        webView.evaluateJavaScript(javascript) { result, error in
+            DispatchQueue.main.async {
+                if let error = error {
+                    print("Error checking for chapter: \(error.localizedDescription)")
+                    // Send notification that no chapter was found
+                    NotificationCenter.default.post(
+                        name: .didFindChapterWord,
+                        object: nil,
+                        userInfo: ["containsChapter": false]
+                    )
+                    return
+                }
+                
+                if let containsChapter = result as? Bool {
+                    // Send notification with the result
+                    NotificationCenter.default.post(
+                        name: .didFindChapterWord,
+                        object: nil,
+                        userInfo: ["containsChapter": containsChapter]
+                    )
+                } else {
+                    // Send notification that no chapter was found
+                    NotificationCenter.default.post(
+                        name: .didFindChapterWord,
+                        object: nil,
+                        userInfo: ["containsChapter": false]
+                    )
+                }
+            }
+        }
+    }
+    
     // Optional: Handle navigation decisions to prevent some cancellations
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         // Allow all navigation by default
@@ -270,4 +342,5 @@ class WebViewCoordinator: NSObject, WKNavigationDelegate {
 
 extension Notification.Name {
     static let didUpdateWebViewNav = Notification.Name("didUpdateWebViewNav")
+    static let didFindChapterWord = Notification.Name("didFindChapterWord")
 }
