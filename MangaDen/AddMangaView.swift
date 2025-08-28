@@ -41,6 +41,13 @@ struct AddMangaView: View {
                 }
                 .padding(.horizontal)
                 
+                
+                // Add from URL paste  - currently does nothing
+                Button("Add") {
+                }
+                .buttonStyle(.bordered)
+                
+                
                 // OR divider
                 Text("OR")
                     .font(.headline)
@@ -60,7 +67,7 @@ struct AddMangaView: View {
                 }
                 
                 // Add extra space before Help button
-                                Spacer(minLength: 60)
+                Spacer(minLength: 60)
 
                 // Help Button
                 Button(action: {

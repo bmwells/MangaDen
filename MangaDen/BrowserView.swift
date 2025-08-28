@@ -9,9 +9,13 @@ import SwiftUI
 import WebKit
 
 struct BrowserView: View {
-    @State private var urlString: String = "https://www.google.com"
+    @State private var urlString: String = ""
     @State private var canGoBack = false
     @State private var canGoForward = false
+    @State private var isLoading = false
+    @State private var lastLoadTime = Date.distantPast
+    @State private var showError = false
+    @State private var errorMessage = ""
     @FocusState private var isURLFieldFocused: Bool
 
     private let webView = WKWebView()
@@ -21,7 +25,7 @@ struct BrowserView: View {
         let coord = WebViewCoordinator()
         self.coordinator = coord
         webView.navigationDelegate = coord
-        coord.attachObservers(to: webView) // observe nav state
+        coord.attachObservers(to: webView)
     }
 
     var body: some View {
@@ -38,9 +42,14 @@ struct BrowserView: View {
 
                 // Refresh Button
                 Button(action: { webView.reload() }) {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 20))
-                        .foregroundColor(.blue)
+                    if isLoading {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                    } else {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 20))
+                            .foregroundColor(.blue)
+                    }
                 }
 
                 // Forward Button
@@ -52,7 +61,7 @@ struct BrowserView: View {
                 .disabled(!canGoForward)
 
                 // URL Bar
-                TextField("Enter URL", text: $urlString, onCommit: {
+                TextField("Enter URL or search terms", text: $urlString, onCommit: {
                     loadURL()
                 })
                 .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -60,6 +69,7 @@ struct BrowserView: View {
                 .autocapitalization(.none)
                 .disableAutocorrection(true)
                 .focused($isURLFieldFocused)
+                .submitLabel(.go)
 
                 // Go Button
                 Button(action: {
@@ -73,16 +83,16 @@ struct BrowserView: View {
             .padding(.horizontal)
             .padding(.vertical, 6)
             .background(Color(.systemGray6))
-            
-            // Add Title
-            Rectangle()
-                .fill(Color(.systemGray5))
-                .frame(height: 40)
-                .overlay(
-                    Text("Add Title")
-                        .foregroundColor(.red)
-                        .font(.system(size: 16, weight: .semibold))
-                )
+
+            // Error message
+            if showError {
+                Text(errorMessage)
+                    .font(.caption)
+                    .foregroundColor(.red)
+                    .padding(.horizontal)
+                    .padding(.vertical, 4)
+                    .background(Color.red.opacity(0.1))
+            }
 
             Divider()
 
@@ -90,25 +100,78 @@ struct BrowserView: View {
             WebViewWrapper(webView: webView)
                 .edgesIgnoringSafeArea(.bottom)
         }
-        .onAppear { loadURL() }
+        .onAppear {
+            // Load a default page if no URL is specified
+            if urlString.isEmpty {
+                urlString = "https://www.google.com"
+                loadURL()
+            }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .didUpdateWebViewNav)) { notification in
             if let info = notification.userInfo as? [String: Any] {
                 canGoBack = info["canGoBack"] as? Bool ?? false
                 canGoForward = info["canGoForward"] as? Bool ?? false
-                // don’t overwrite urlString every time — let google.com forms work
+                
+                if let currentURL = info["currentURL"] as? URL, !isURLFieldFocused {
+                    urlString = currentURL.absoluteString
+                }
+                
+                isLoading = info["isLoading"] as? Bool ?? false
+                
+                // Only show errors that aren't the cancelled error (-999)
+                if let error = info["error"] as? String {
+                    // Check if it's the cancelled error (we don't want to show this to users)
+                    if !error.contains("cancelled") && !error.contains("-999") {
+                        errorMessage = error
+                        showError = true
+                    } else {
+                        showError = false
+                    }
+                } else {
+                    showError = false
+                }
             }
         }
     }
 
     private func loadURL() {
-        var formatted = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !formatted.hasPrefix("http://") && !formatted.hasPrefix("https://") {
-            formatted = "https://" + formatted
-        }
-        urlString = formatted
-        if let url = URL(string: formatted) {
+        // Prevent rapid successive loads (debounce)
+            let now = Date()
+            if now.timeIntervalSince(lastLoadTime) < 0.5 { // 500ms debounce
+                return
+            }
+            lastLoadTime = now
+            
+            showError = false
+            let input = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            // Handle empty input
+            if input.isEmpty {
+                errorMessage = "Please enter a URL or search terms"
+                showError = true
+                return
+            }
+        
+        // Check if it's a valid URL
+        if let url = URL(string: input), UIApplication.shared.canOpenURL(url) {
+            // It's a valid URL with scheme
             webView.load(URLRequest(url: url))
+        } else if let url = URL(string: "https://" + input), UIApplication.shared.canOpenURL(url) {
+            // Try adding https:// prefix
+            urlString = "https://" + input
+            webView.load(URLRequest(url: url))
+        } else {
+            // Treat as search query - use Google search
+            let searchQuery = input.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? input
+            if let searchURL = URL(string: "https://www.google.com/search?q=\(searchQuery)") {
+                urlString = searchURL.absoluteString
+                webView.load(URLRequest(url: searchURL))
+            } else {
+                errorMessage = "Invalid URL or search terms"
+                showError = true
+            }
         }
+        
         isURLFieldFocused = false
     }
 }
@@ -122,7 +185,7 @@ struct WebViewWrapper: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: WKWebView, context: Context) {
-        // nothing — don’t reload every SwiftUI update
+        // No need to reload on update
     }
 }
 
@@ -130,42 +193,78 @@ struct WebViewWrapper: UIViewRepresentable {
 class WebViewCoordinator: NSObject, WKNavigationDelegate {
     private var backObserver: NSKeyValueObservation?
     private var forwardObserver: NSKeyValueObservation?
+    private var loadingObserver: NSKeyValueObservation?
 
     func attachObservers(to webView: WKWebView) {
+        // Observe navigation state
         backObserver = webView.observe(\.canGoBack, options: [.new]) { webView, _ in
-            NotificationCenter.default.post(
-                name: .didUpdateWebViewNav,
-                object: nil,
-                userInfo: [
-                    "canGoBack": webView.canGoBack,
-                    "canGoForward": webView.canGoForward,
-                    "currentURL": webView.url as Any
-                ]
-            )
+            self.postNavigationUpdate(webView: webView)
         }
+        
         forwardObserver = webView.observe(\.canGoForward, options: [.new]) { webView, _ in
-            NotificationCenter.default.post(
-                name: .didUpdateWebViewNav,
-                object: nil,
-                userInfo: [
-                    "canGoBack": webView.canGoBack,
-                    "canGoForward": webView.canGoForward,
-                    "currentURL": webView.url as Any
-                ]
-            )
+            self.postNavigationUpdate(webView: webView)
+        }
+        
+        loadingObserver = webView.observe(\.isLoading, options: [.new]) { webView, _ in
+            self.postNavigationUpdate(webView: webView)
         }
     }
 
-    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+    private func postNavigationUpdate(webView: WKWebView, error: String? = nil) {
+        var userInfo: [String: Any] = [
+            "canGoBack": webView.canGoBack,
+            "canGoForward": webView.canGoForward,
+            "currentURL": webView.url as Any,
+            "isLoading": webView.isLoading
+        ]
+        
+        if let error = error {
+            userInfo["error"] = error
+        }
+        
         NotificationCenter.default.post(
             name: .didUpdateWebViewNav,
             object: nil,
-            userInfo: [
-                "canGoBack": webView.canGoBack,
-                "canGoForward": webView.canGoForward,
-                "currentURL": webView.url as Any
-            ]
+            userInfo: userInfo
         )
+    }
+
+    func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+        postNavigationUpdate(webView: webView)
+    }
+
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        postNavigationUpdate(webView: webView)
+    }
+
+    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        // Handle error -999 (cancelled navigation) gracefully
+        let nsError = error as NSError
+        if nsError.domain == NSURLErrorDomain && nsError.code == -999 {
+            // This is a cancelled request, not a real error - just update navigation state
+            postNavigationUpdate(webView: webView)
+        } else {
+            // This is a real error that should be shown to the user
+            postNavigationUpdate(webView: webView, error: error.localizedDescription)
+        }
+    }
+
+    func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+        // Handle error -999 (cancelled navigation) gracefully
+        let nsError = error as NSError
+        if nsError.domain == NSURLErrorDomain && nsError.code == -999 {
+            // This is a cancelled request, not a real error
+            postNavigationUpdate(webView: webView)
+        } else {
+            // This is a real error that should be shown to the user
+            postNavigationUpdate(webView: webView, error: error.localizedDescription)
+        }
+    }
+    
+    // Optional: Handle navigation decisions to prevent some cancellations
+    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+        // Allow all navigation by default
+        decisionHandler(.allow)
     }
 }
 
