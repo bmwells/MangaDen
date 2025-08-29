@@ -39,7 +39,7 @@ class AddMangaJAVA {
     }
     
     
-    // Function to find chapter links with specific numbering patterns
+    // Function to find chapter title, link URL and upload date with specific numbering patterns
     static func findChapterLinks(in webView: WKWebView, completion: @escaping ([String: [String: String]]?) -> Void) {
         let javascript = """
             (function() {
@@ -47,6 +47,17 @@ class AddMangaJAVA {
                 const links = document.getElementsByTagName('a');
                 const chapterLinks = {};
                 const chapterPattern = /chapter\\s*[\\d\\.]+/i;
+                
+                // Common date patterns
+                const datePatterns = [
+                    /(\\d{1,2}[\\/\\-]\\d{1,2}[\\/\\-]\\d{2,4})/, // MM/DD/YYYY, MM-DD-YYYY
+                    /(\\d{4}[\\/\\-]\\d{1,2}[\\/\\-]\\d{1,2})/, // YYYY/MM/DD, YYYY-MM-DD
+                    /(\\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\\s+\\d{1,2},?\\s+\\d{4}\\b)/i, // Month DD, YYYY
+                    /(\\b\\d{1,2}\\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\\s+\\d{4}\\b)/i, // DD Month YYYY
+                    /(\\d{1,2}[\\/\\-]\\d{1,2}[\\/\\-]\\d{2})/, // MM/DD/YY, MM-DD-YY
+                    /(\\d{2}:\\d{2}(?::\\d{2})?)/, // Time patterns
+                    /(\\b(?:today|yesterday)\\b)/i // Relative dates
+                ];
                 
                 for (let i = 0; i < links.length; i++) {
                     const link = links[i];
@@ -57,14 +68,82 @@ class AddMangaJAVA {
                         // Extract the chapter number
                         const match = text.match(/(\\d+(?:\\.\\d+)?)/);
                         if (match && match[1]) {
-                            // Clean up the title (remove extra whitespace, trim)
-                            const cleanTitle = text.trim().replace(/\\s+/g, ' ');
-                            chapterLinks[match[1]] = {
+                            // Store the original full text as title
+                            let fullTitle = text.trim().replace(/\\s+/g, ' ');
+                            let uploadDate = null;
+                            
+                            // Try to find and extract date from the text
+                            for (const pattern of datePatterns) {
+                                const dateMatch = fullTitle.match(pattern);
+                                if (dateMatch) {
+                                    uploadDate = dateMatch[0].trim();
+                                    // Remove the date from the title
+                                    fullTitle = fullTitle.replace(pattern, '').trim();
+                                    // Clean up any leftover punctuation or extra spaces
+                                    fullTitle = fullTitle.replace(/^[\\s\\.,;:-]+|[\\s\\.,;:-]+$/g, '').trim();
+                                    break;
+                                }
+                            }
+                            
+                            // If no date found, check parent elements or sibling elements for dates
+                            if (!uploadDate) {
+                                uploadDate = findDateInNearbyElements(link);
+                            }
+                            
+                            const chapterData = {
                                 "url": href,
-                                "title": cleanTitle
+                                "title": fullTitle  // Keep the full title including "Chapter X"
                             };
+                            
+                            if (uploadDate) {
+                                chapterData["upload_date"] = uploadDate;
+                            }
+                            
+                            // Use just the number as the key (e.g., "4" instead of "Chapter 4")
+                            chapterLinks[match[1]] = chapterData;
                         }
                     }
+                }
+                
+                // Helper function to find dates in nearby elements
+                function findDateInNearbyElements(element) {
+                    // Check parent element
+                    if (element.parentElement) {
+                        const parentText = element.parentElement.textContent || element.parentElement.innerText;
+                        for (const pattern of datePatterns) {
+                            const dateMatch = parentText.match(pattern);
+                            if (dateMatch && !parentText.includes(element.textContent)) {
+                                return dateMatch[0].trim();
+                            }
+                        }
+                    }
+                    
+                    // Check previous and next siblings
+                    let sibling = element.previousElementSibling;
+                    while (sibling) {
+                        const siblingText = sibling.textContent || sibling.innerText;
+                        for (const pattern of datePatterns) {
+                            const dateMatch = siblingText.match(pattern);
+                            if (dateMatch) {
+                                return dateMatch[0].trim();
+                            }
+                        }
+                        sibling = sibling.previousElementSibling;
+                    }
+                    
+                    sibling = element.nextElementSibling;
+                    while (sibling) {
+                        const siblingText = sibling.textContent || sibling.innerText;
+                        for (const pattern of datePatterns) {
+                            const dateMatch = siblingText.match(pattern);
+                            if (dateMatch) {
+                                return dateMatch[0].trim();
+                            }
+                        }
+                        sibling = sibling.nextElementSibling;
+                    }
+                    
+                    return null;
                 }
                 
                 return Object.keys(chapterLinks).length > 0 ? chapterLinks : null;
@@ -242,6 +321,4 @@ class AddMangaJAVA {
         let foundSet = Set(foundChapters)
         return expectedChapters.filter { !foundSet.contains($0) }
     }
-    
-    
 } // AddMangaJAVA

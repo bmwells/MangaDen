@@ -26,7 +26,7 @@ struct JSONViewerView: View {
                     List(chapters) { chapter in
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
-                                Text("Chapter \(chapter.formattedChapterNumber)")
+                                Text(chapter.formattedChapterNumber)
                                     .font(.headline)
                                     .foregroundColor(.primary)
                                 
@@ -44,6 +44,17 @@ struct JSONViewerView: View {
                                 Text(title)
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
+                            }
+                            
+                            if let uploadDate = chapter.uploadDate, !uploadDate.isEmpty {
+                                HStack {
+                                    Image(systemName: "calendar")
+                                        .font(.caption2)
+                                        .foregroundColor(.gray)
+                                    Text(uploadDate)
+                                        .font(.caption)
+                                        .foregroundColor(.gray)
+                                }
                             }
                             
                             Text(chapter.url)
@@ -141,6 +152,7 @@ struct Chapter: Identifiable {
     let chapterNumber: Double
     let url: String
     let title: String?
+    let uploadDate: String?
     
     var formattedChapterNumber: String {
         // Remove trailing .0 if it's a whole number
@@ -160,6 +172,7 @@ struct Chapter: Identifiable {
         self.chapterNumber = chapterNumber
         self.url = url
         self.title = dict["title"] as? String
+        self.uploadDate = dict["upload_date"] as? String
     }
 }
 
