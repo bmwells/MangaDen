@@ -9,6 +9,9 @@ import SwiftUI
 import WebKit
 
 struct BrowserView: View {
+    
+    @State private var showJSONViewer = false
+    
     @State private var urlString: String = ""
     @State private var canGoBack = false
     @State private var canGoForward = false
@@ -16,7 +19,8 @@ struct BrowserView: View {
     @State private var lastLoadTime = Date.distantPast
     @State private var showError = false
     @State private var errorMessage = ""
-    @State private var containsChapter = false // New boolean for chapter detection
+    @State private var containsChapter = false
+    @State private var chapterRange: String = "0-0-0"
     @FocusState private var isURLFieldFocused: Bool
 
     private let webView = WKWebView()
@@ -85,21 +89,43 @@ struct BrowserView: View {
             .padding(.vertical, 6)
             .background(Color(.systemGray6))
 
-            // Chapter indicator
+            // Chapter indicator with range
             HStack {
-                Text("chapter")
-                    .font(.system(size: 12, weight: .semibold))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(containsChapter ? Color.green.opacity(0.2) : Color.red.opacity(0.2))
-                    .foregroundColor(containsChapter ? .green : .red)
-                    .cornerRadius(4)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 4)
-                            .stroke(containsChapter ? Color.green : Color.red, lineWidth: 1)
-                    )
+                HStack(spacing: 8) {
+                    Text("chapter")
+                        .font(.system(size: 12, weight: .semibold))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(containsChapter ? Color.green.opacity(0.2) : Color.red.opacity(0.2))
+                        .foregroundColor(containsChapter ? .green : .red)
+                        .cornerRadius(4)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 4)
+                                .stroke(containsChapter ? Color.green : Color.red, lineWidth: 1)
+                        )
+                    
+                    Text(chapterRange)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.gray.opacity(0.1))
+                        .cornerRadius(3)
+                }
                 
                 Spacer()
+                
+                // Optional: Add a button to manually trigger chapter search
+                Button(action: {
+                    showJSONViewer.toggle()
+                }) {
+                    Image(systemName: "doc.text")
+                        .font(.system(size: 12))
+                        .foregroundColor(.blue)
+                }
+                
+                
+                
             }
             .padding(.horizontal)
             .padding(.vertical, 4)
@@ -126,6 +152,8 @@ struct BrowserView: View {
                 urlString = "https://www.google.com"
                 loadURL()
             }
+            // Load existing chapter data if available
+            loadChapterRange()
         }
         .onReceive(NotificationCenter.default.publisher(for: .didUpdateWebViewNav)) { notification in
             if let info = notification.userInfo as? [String: Any] {
@@ -155,7 +183,20 @@ struct BrowserView: View {
         .onReceive(NotificationCenter.default.publisher(for: .didFindChapterWord)) { notification in
             if let containsChapter = notification.userInfo?["containsChapter"] as? Bool {
                 self.containsChapter = containsChapter
+                // If chapter is found, automatically search for chapter links
+                if containsChapter {
+                    findChapters()
+                }
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .didUpdateChapterRange)) { notification in
+            if let range = notification.userInfo?["chapterRange"] as? String {
+                self.chapterRange = range
+            }
+        }
+        // Add this sheet modifier at the end of the main VStack (before the last closing brace):
+        .sheet(isPresented: $showJSONViewer) {
+            JSONViewerView()
         }
     }
 
@@ -169,6 +210,7 @@ struct BrowserView: View {
         
         showError = false
         containsChapter = false // Reset chapter detection when loading new URL
+        chapterRange = "0-0-0" // Reset chapter range to triple format
         
         let input = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
         
@@ -201,6 +243,74 @@ struct BrowserView: View {
         
         isURLFieldFocused = false
     }
+    
+    private func findChapters() {
+        AddMangaJAVA.findChapterLinks(in: webView) { chapterDict in
+            if let chapters = chapterDict {
+                print("Found \(chapters.count) chapters")
+                // Extract just URLs for the range calculation
+                let urlDict = AddMangaJAVA.extractURLs(from: chapters)
+                self.updateChapterRange(from: urlDict)
+            }
+        }
+    }
+    
+    private func updateChapterRange(from chapters: [String: String]) {
+        // Extract and sort chapter numbers
+        let chapterNumbers = chapters.keys.compactMap { Double($0) }.sorted()
+        
+        if chapterNumbers.isEmpty {
+            chapterRange = "0-0-0"
+        } else if chapterNumbers.count == 1 {
+            let onlyChapter = chapterNumbers[0]
+            let formatted = onlyChapter == floor(onlyChapter) ? String(format: "%.0f", onlyChapter) : String(onlyChapter)
+            chapterRange = "\(formatted)-\(formatted)-\(formatted)"
+        } else {
+            let firstChapter = chapterNumbers[0]
+            let lastChapter = chapterNumbers[chapterNumbers.count - 1]
+            
+            // Calculate middle chapter (round to nearest if even count)
+            let middleIndex = chapterNumbers.count / 2
+            let middleChapter = chapterNumbers[middleIndex]
+            
+            // Format numbers appropriately (remove .0 if integer)
+            let firstFormatted = firstChapter == floor(firstChapter) ? String(format: "%.0f", firstChapter) : String(firstChapter)
+            let middleFormatted = middleChapter == floor(middleChapter) ? String(format: "%.0f", middleChapter) : String(middleChapter)
+            let lastFormatted = lastChapter == floor(lastChapter) ? String(format: "%.0f", lastChapter) : String(lastChapter)
+            
+            chapterRange = "\(firstFormatted)-\(middleFormatted)-\(lastFormatted)"
+        }
+        
+        // Notify other parts of the app about the update
+        NotificationCenter.default.post(
+            name: .didUpdateChapterRange,
+            object: nil,
+            userInfo: ["chapterRange": chapterRange]
+        )
+    }
+    
+    private func loadChapterRange() {
+        // Load existing chapter data from JSON file and update range
+        if let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+            let fileURL = documentsDirectory.appendingPathComponent("chapters.json")
+            
+            if FileManager.default.fileExists(atPath: fileURL.path) {
+                do {
+                    let data = try Data(contentsOf: fileURL)
+                    if let chapters = try JSONSerialization.jsonObject(with: data) as? [String: [String: String]] {
+                        let urlDict = AddMangaJAVA.extractURLs(from: chapters)
+                        updateChapterRange(from: urlDict)
+                    }
+                } catch {
+                    print("Error loading chapter data: \(error.localizedDescription)")
+                }
+            }
+        }
+    }
+    
+    
+    
+    
 }
 
 // MARK: WebView Wrapper
@@ -263,7 +373,14 @@ class WebViewCoordinator: NSObject, WKNavigationDelegate {
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         postNavigationUpdate(webView: webView)
         // Check for chapter word when page finishes loading
-        checkForChapterWord(in: webView)
+        AddMangaJAVA.checkForChapterWord(in: webView) { containsChapter in
+            // Send notification with the result
+            NotificationCenter.default.post(
+                name: .didFindChapterWord,
+                object: nil,
+                userInfo: ["containsChapter": containsChapter]
+            )
+        }
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
@@ -290,49 +407,6 @@ class WebViewCoordinator: NSObject, WKNavigationDelegate {
         }
     }
     
-    // Function to check for chapter word
-    private func checkForChapterWord(in webView: WKWebView) {
-        let javascript = """
-        // Check if document body exists and has content
-        if (document.body && document.body.innerText) {
-            document.body.innerText.toLowerCase().includes('chapter');
-        } else {
-            false;
-        }
-        """
-        
-        webView.evaluateJavaScript(javascript) { result, error in
-            DispatchQueue.main.async {
-                if let error = error {
-                    print("Error checking for chapter: \(error.localizedDescription)")
-                    // Send notification that no chapter was found
-                    NotificationCenter.default.post(
-                        name: .didFindChapterWord,
-                        object: nil,
-                        userInfo: ["containsChapter": false]
-                    )
-                    return
-                }
-                
-                if let containsChapter = result as? Bool {
-                    // Send notification with the result
-                    NotificationCenter.default.post(
-                        name: .didFindChapterWord,
-                        object: nil,
-                        userInfo: ["containsChapter": containsChapter]
-                    )
-                } else {
-                    // Send notification that no chapter was found
-                    NotificationCenter.default.post(
-                        name: .didFindChapterWord,
-                        object: nil,
-                        userInfo: ["containsChapter": false]
-                    )
-                }
-            }
-        }
-    }
-    
     // Optional: Handle navigation decisions to prevent some cancellations
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         // Allow all navigation by default
@@ -343,4 +417,5 @@ class WebViewCoordinator: NSObject, WKNavigationDelegate {
 extension Notification.Name {
     static let didUpdateWebViewNav = Notification.Name("didUpdateWebViewNav")
     static let didFindChapterWord = Notification.Name("didFindChapterWord")
+    static let didUpdateChapterRange = Notification.Name("didUpdateChapterRange")
 }

@@ -20,6 +20,8 @@
 		271345F22E5D28D800BC7435 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271345F12E5D28D800BC7435 /* SettingsView.swift */; };
 		271345F42E5E50ED00BC7435 /* DLWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271345F32E5E50ED00BC7435 /* DLWebView.swift */; };
 		271345F62E5E53A400BC7435 /* BrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271345F52E5E53A400BC7435 /* BrowserView.swift */; };
+		271346002E60EA0A00BC7435 /* AddMangaJAVA.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271345FF2E60EA0A00BC7435 /* AddMangaJAVA.swift */; };
+		271346022E618AA500BC7435 /* JSONViewerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271346012E618AA500BC7435 /* JSONViewerView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -56,6 +58,8 @@
 		271345F12E5D28D800BC7435 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		271345F32E5E50ED00BC7435 /* DLWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DLWebView.swift; sourceTree = "<group>"; };
 		271345F52E5E53A400BC7435 /* BrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserView.swift; sourceTree = "<group>"; };
+		271345FF2E60EA0A00BC7435 /* AddMangaJAVA.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddMangaJAVA.swift; sourceTree = "<group>"; };
+		271346012E618AA500BC7435 /* JSONViewerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONViewerView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -108,7 +112,9 @@
 			children = (
 				271345C12E5D07B000BC7435 /* MangaDenApp.swift */,
 				271345C32E5D07B000BC7435 /* ContentView.swift */,
+				271346012E618AA500BC7435 /* JSONViewerView.swift */,
 				271345EB2E5D283700BC7435 /* LibraryView.swift */,
+				271345FF2E60EA0A00BC7435 /* AddMangaJAVA.swift */,
 				271345F52E5E53A400BC7435 /* BrowserView.swift */,
 				271345ED2E5D28A500BC7435 /* AddMangaView.swift */,
 				271345F32E5E50ED00BC7435 /* DLWebView.swift */,
@@ -277,11 +283,13 @@
 			files = (
 				271345C42E5D07B000BC7435 /* ContentView.swift in Sources */,
 				271345F02E5D28C200BC7435 /* DownloadsView.swift in Sources */,
+				271346022E618AA500BC7435 /* JSONViewerView.swift in Sources */,
 				271345EE2E5D28A500BC7435 /* AddMangaView.swift in Sources */,
 				271345F62E5E53A400BC7435 /* BrowserView.swift in Sources */,
 				271345F22E5D28D800BC7435 /* SettingsView.swift in Sources */,
 				271345EC2E5D283700BC7435 /* LibraryView.swift in Sources */,
 				271345F42E5E50ED00BC7435 /* DLWebView.swift in Sources */,
+				271346002E60EA0A00BC7435 /* AddMangaJAVA.swift in Sources */,
 				271345C22E5D07B000BC7435 /* MangaDenApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

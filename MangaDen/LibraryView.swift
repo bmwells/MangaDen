@@ -51,8 +51,9 @@ struct LibraryView: View {
                 HStack {
                     Button(action: { showAddManga = true }) {
                         Image(systemName: "plus")
-                            .font(.title2)
+                            .font(.system(size: 28, weight: .medium))
                             .padding(8)
+                            .offset(x:20, y:-15)
                     }
                     .sheet(isPresented: $showAddManga) { AddMangaView() }
                     
@@ -64,16 +65,19 @@ struct LibraryView: View {
                         }
                     }
                     .pickerStyle(SegmentedPickerStyle())
-                    .frame(maxWidth: 250)
+                    .fixedSize()
+                    .padding(.horizontal)
+                    .scaleEffect(x: 0.9, y: 1.0) // Make 80% width, keep full height
+                    .offset(y: -5)
                     
                     Spacer()
                     
-                    Button(action: {}) {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.title2)
-                            .padding(8)
-                    }
-                }
+                    // Add an invisible view to balance the plus button
+                    Color.clear
+                        .frame(width: 44, height: 44) // Match the plus button size
+                }// HStack (Top Bar)
+                
+                
                 .padding(.horizontal)
                 .padding(.top, 8)
                 
