@@ -150,7 +150,7 @@ class AddMangaJAVA {
                 guard let number = Double(key) else { return nil }
                 return (number, key, value)
             }
-            .sorted { $0.0 < $1.0 }
+            .sorted { $0.0 > $1.0 } // Changed to descending order
             .map { ($0.1, $0.2) } // Convert back to original string keys
         
         // Create final dictionary with sorted chapters
@@ -164,10 +164,25 @@ class AddMangaJAVA {
         completion(sortedDict)
     }
     
-    // Save chapters to JSON file
+    // Save chapters to JSON file with proper ordering
     static func saveChaptersToJSON(_ chapters: [String: [String: String]]) {
         do {
-            let jsonData = try JSONSerialization.data(withJSONObject: chapters, options: [.prettyPrinted, .sortedKeys])
+            // Convert to array of objects with chapter number for proper ordering
+            let sortedChapters = chapters
+                .compactMap { key, value -> (Double, [String: Any])? in
+                    guard let number = Double(key) else { return nil }
+                    // Convert [String: String] to [String: Any] to allow mixed types
+                    var chapterDict: [String: Any] = [:]
+                    for (k, v) in value {
+                        chapterDict[k] = v
+                    }
+                    chapterDict["chapter_number"] = number
+                    return (number, chapterDict)
+                }
+                .sorted { $0.0 > $1.0 } // Sort in descending order
+                .map { $0.1 } // Extract the chapter dictionary
+            
+            let jsonData = try JSONSerialization.data(withJSONObject: sortedChapters, options: [.prettyPrinted])
             
             // Get documents directory
             if let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
@@ -227,8 +242,6 @@ class AddMangaJAVA {
         let foundSet = Set(foundChapters)
         return expectedChapters.filter { !foundSet.contains($0) }
     }
-    
-    
     
     
 } // AddMangaJAVA

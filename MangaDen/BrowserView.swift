@@ -149,7 +149,7 @@ struct BrowserView: View {
         .onAppear {
             // Load a default page if no URL is specified
             if urlString.isEmpty {
-                urlString = "https://www.google.com"
+                urlString = "https://read-berserk-manga.com/"
                 loadURL()
             }
             // Load existing chapter data if available
