@@ -11,6 +11,7 @@ import WebKit
 struct BrowserView: View {
     
     @State private var showJSONViewer = false
+    @State private var showMetadataView = false // New state for metadata view
     
     @State private var urlString: String = ""
     @State private var canGoBack = false
@@ -21,17 +22,21 @@ struct BrowserView: View {
     @State private var errorMessage = ""
     @State private var containsChapter = false
     @State private var chapterRange: String = "0-0-0"
+    @State private var mangaMetadata: [String: Any]? = nil // Store metadata
     @FocusState private var isURLFieldFocused: Bool
 
     private let webView = WKWebView()
     private let coordinator: WebViewCoordinator
 
     init() {
-        let coord = WebViewCoordinator()
-        self.coordinator = coord
-        webView.navigationDelegate = coord
-        coord.attachObservers(to: webView)
-    }
+            let coord = WebViewCoordinator()
+            self.coordinator = coord
+            webView.navigationDelegate = coord
+            coord.attachObservers(to: webView)
+            
+            // Set mobile user agent by default for display
+            AddMangaJAVA.setMobileUserAgent(for: webView)
+        }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -115,17 +120,24 @@ struct BrowserView: View {
                 
                 Spacer()
                 
-                // Optional: Add a button to manually trigger chapter search
+                // MARK: Button to show metadata (replaces JSON button)
+                Button(action: {
+                    showMetadataView.toggle()
+                }) {
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 16))
+                        .foregroundColor(mangaMetadata != nil ? .blue : .gray)
+                }
+                .disabled(mangaMetadata == nil)
+                
+                // MARK: Button to open JSONView (keep but make secondary)
                 Button(action: {
                     showJSONViewer.toggle()
                 }) {
-                    Image(systemName: "doc.text")
-                        .font(.system(size: 12))
+                    Image(systemName: "list.bullet")
+                        .font(.system(size: 16))
                         .foregroundColor(.blue)
                 }
-                
-                
-                
             }
             .padding(.horizontal)
             .padding(.vertical, 4)
@@ -149,11 +161,13 @@ struct BrowserView: View {
         .onAppear {
             // Load a default page if no URL is specified
             if urlString.isEmpty {
-                urlString = "https://read-berserk-manga.com/"
+                urlString = "https://google.com/"
                 loadURL()
             }
             // Load existing chapter data if available
             loadChapterRange()
+            // Load existing metadata if available
+            loadMangaMetadata()
         }
         .onReceive(NotificationCenter.default.publisher(for: .didUpdateWebViewNav)) { notification in
             if let info = notification.userInfo as? [String: Any] {
@@ -183,9 +197,10 @@ struct BrowserView: View {
         .onReceive(NotificationCenter.default.publisher(for: .didFindChapterWord)) { notification in
             if let containsChapter = notification.userInfo?["containsChapter"] as? Bool {
                 self.containsChapter = containsChapter
-                // If chapter is found, automatically search for chapter links
+                // If chapter is found, automatically search for chapter links and metadata
                 if containsChapter {
                     findChapters()
+                    findMetadata()
                 }
             }
         }
@@ -194,9 +209,13 @@ struct BrowserView: View {
                 self.chapterRange = range
             }
         }
-        // Add this sheet modifier at the end of the main VStack (before the last closing brace):
         .sheet(isPresented: $showJSONViewer) {
             JSONViewerView()
+        }
+        .sheet(isPresented: $showMetadataView) {
+            if let metadata = mangaMetadata {
+                MangaMetadataDetailView(metadata: metadata)
+            }
         }
     }
 
@@ -209,8 +228,9 @@ struct BrowserView: View {
         lastLoadTime = now
         
         showError = false
-        containsChapter = false // Reset chapter detection when loading new URL
-        chapterRange = "0-0-0" // Reset chapter range to triple format
+        containsChapter = false
+        chapterRange = "0-0-0"
+        mangaMetadata = nil
         
         let input = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
         
@@ -221,16 +241,16 @@ struct BrowserView: View {
             return
         }
         
+        // Set desktop user agent BEFORE loading the URL for scraping
+        AddMangaJAVA.setDesktopUserAgent(for: webView)
+        
         // Check if it's a valid URL
         if let url = URL(string: input), UIApplication.shared.canOpenURL(url) {
-            // It's a valid URL with scheme
             webView.load(URLRequest(url: url))
         } else if let url = URL(string: "https://" + input), UIApplication.shared.canOpenURL(url) {
-            // Try adding https:// prefix
             urlString = "https://" + input
             webView.load(URLRequest(url: url))
         } else {
-            // Treat as search query - use Google search
             let searchQuery = input.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? input
             if let searchURL = URL(string: "https://www.google.com/search?q=\(searchQuery)") {
                 urlString = searchURL.absoluteString
@@ -245,12 +265,25 @@ struct BrowserView: View {
     }
     
     private func findChapters() {
-        AddMangaJAVA.findChapterLinks(in: webView) { chapterDict in
-            if let chapters = chapterDict {
-                print("Found \(chapters.count) chapters")
-                // Extract just URLs for the range calculation
-                let urlDict = AddMangaJAVA.extractURLs(from: chapters)
-                self.updateChapterRange(from: urlDict)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            AddMangaJAVA.findChapterLinks(in: webView) { chapterDict in
+                if let chapters = chapterDict {
+                    print("Found \(chapters.count) chapters")
+                    let urlDict = AddMangaJAVA.extractURLs(from: chapters)
+                    self.updateChapterRange(from: urlDict)
+                }
+            }
+        }
+    }
+    
+    private func findMetadata() {
+        // Wait a moment for the desktop transformation to complete
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            AddMangaJAVA.findMangaMetadata(in: webView) { metadata in
+                if let metadata = metadata {
+                    self.mangaMetadata = metadata
+                    print("Found manga metadata: \(metadata)")
+                }
             }
         }
     }
@@ -308,9 +341,12 @@ struct BrowserView: View {
         }
     }
     
-    
-    
-    
+    private func loadMangaMetadata() {
+        // Load existing metadata from JSON file
+        if let metadata = AddMangaJAVA.loadMangaMetadata() {
+            self.mangaMetadata = metadata
+        }
+    }
 }
 
 // MARK: WebView Wrapper
@@ -372,9 +408,12 @@ class WebViewCoordinator: NSObject, WKNavigationDelegate {
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         postNavigationUpdate(webView: webView)
+        
+        // Restore mobile user agent for display after page loads
+        AddMangaJAVA.setMobileUserAgent(for: webView)
+        
         // Check for chapter word when page finishes loading
         AddMangaJAVA.checkForChapterWord(in: webView) { containsChapter in
-            // Send notification with the result
             NotificationCenter.default.post(
                 name: .didFindChapterWord,
                 object: nil,
@@ -414,8 +453,35 @@ class WebViewCoordinator: NSObject, WKNavigationDelegate {
     }
 }
 
+
 extension Notification.Name {
     static let didUpdateWebViewNav = Notification.Name("didUpdateWebViewNav")
     static let didFindChapterWord = Notification.Name("didFindChapterWord")
     static let didUpdateChapterRange = Notification.Name("didUpdateChapterRange")
 }
+
+// Optional: Create a helper function for user agent switching
+extension AddMangaJAVA {
+    static func withDesktopUserAgent<T>(webView: WKWebView, operation: @escaping (@escaping (T?) -> Void) -> Void, completion: @escaping (T?) -> Void) {
+        let originalUserAgent = webView.customUserAgent
+        setDesktopUserAgent(for: webView)
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            operation { result in
+                // Restore user agent
+                if let originalUserAgent = originalUserAgent {
+                    webView.customUserAgent = originalUserAgent
+                } else {
+                    setMobileUserAgent(for: webView)
+                }
+                completion(result)
+            }
+        }
+    }
+}
+    
+
+
+
+// BrowserView
+

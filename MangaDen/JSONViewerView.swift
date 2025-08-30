@@ -11,10 +11,18 @@ struct JSONViewerView: View {
     @State private var jsonContent: String = "Loading..."
     @State private var isLoading = true
     @State private var chapters: [Chapter] = []
+    @State private var mangaMetadata: [String: Any]? = nil
+    @State private var showingMetadata = false
     
     var body: some View {
         NavigationView {
             VStack {
+                // Manga Metadata Header
+                if let metadata = mangaMetadata {
+                    MangaMetadataHeader(metadata: metadata, showingMetadata: $showingMetadata)
+                        .padding(.horizontal)
+                }
+                
                 if isLoading {
                     ProgressView("Loading JSON data...")
                         .padding()
@@ -79,6 +87,7 @@ struct JSONViewerView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Refresh") {
                         loadJSON()
+                        loadMangaMetadata()
                     }
                 }
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -89,6 +98,12 @@ struct JSONViewerView: View {
             }
             .onAppear {
                 loadJSON()
+                loadMangaMetadata()
+            }
+            .sheet(isPresented: $showingMetadata) {
+                if let metadata = mangaMetadata {
+                    MangaMetadataDetailView(metadata: metadata)
+                }
             }
         }
     }
@@ -144,6 +159,151 @@ struct JSONViewerView: View {
             }
         }
     }
+    
+    private func loadMangaMetadata() {
+        DispatchQueue.global(qos: .userInitiated).async {
+            if let metadata = AddMangaJAVA.loadMangaMetadata() {
+                DispatchQueue.main.async {
+                    self.mangaMetadata = metadata
+                }
+            }
+        }
+    }
+}
+
+// Manga Metadata Header View
+struct MangaMetadataHeader: View {
+    let metadata: [String: Any]
+    @Binding var showingMetadata: Bool
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                if let imageUrl = metadata["title_image"] as? String,
+                   let url = URL(string: imageUrl) {
+                    AsyncImage(url: url) { image in
+                        image
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 60, height: 80)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .clipped()
+                    } placeholder: {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color.gray.opacity(0.3))
+                            .frame(width: 60, height: 80)
+                            .overlay(
+                                Image(systemName: "photo")
+                                    .foregroundColor(.gray)
+                            )
+                    }
+                }
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    if let author = metadata["author"] as? String {
+                        Text("By \(author)")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    if let status = metadata["status"] as? String {
+                        HStack {
+                            Image(systemName: status == "completed" ? "checkmark.circle.fill" : "arrow.clockwise")
+                                .foregroundColor(status == "completed" ? .green : .blue)
+                            Text(status.capitalized)
+                                .font(.caption)
+                                .fontWeight(.medium)
+                        }
+                    }
+                }
+                
+                Spacer()
+                
+                Button(action: {
+                    showingMetadata = true
+                }) {
+                    Image(systemName: "info.circle")
+                        .foregroundColor(.blue)
+                }
+            }
+        }
+        .padding()
+        .background(Color(.systemBackground))
+        .cornerRadius(12)
+        .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: 2)
+    }
+}
+
+// Manga Metadata Detail View
+struct MangaMetadataDetailView: View {
+    let metadata: [String: Any]
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 20) {
+                    if let imageUrl = metadata["title_image"] as? String,
+                       let url = URL(string: imageUrl) {
+                        AsyncImage(url: url) { image in
+                            image
+                                .resizable()
+                                .scaledToFit()
+                                .frame(maxWidth: 300, maxHeight: 400)
+                                .cornerRadius(12)
+                        } placeholder: {
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color.gray.opacity(0.3))
+                                .frame(width: 300, height: 400)
+                                .overlay(
+                                    ProgressView()
+                                )
+                        }
+                    }
+                    
+                    VStack(spacing: 16) {
+                        if let author = metadata["author"] as? String {
+                            HStack {
+                                Text("Author:")
+                                    .fontWeight(.bold)
+                                    .frame(width: 80, alignment: .leading)
+                                Text(author)
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                            }
+                        }
+                        
+                        if let status = metadata["status"] as? String {
+                            HStack {
+                                Text("Status:")
+                                    .fontWeight(.bold)
+                                    .frame(width: 80, alignment: .leading)
+                                Text(status.capitalized)
+                                    .foregroundColor(status == "completed" ? .green : .blue)
+                                Image(systemName: status == "completed" ? "checkmark.circle.fill" : "arrow.clockwise")
+                                    .foregroundColor(status == "completed" ? .green : .blue)
+                                Spacer()
+                            }
+                        }
+                    }
+                    .padding()
+                    .background(Color(.systemBackground))
+                    .cornerRadius(12)
+                    .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: 2)
+                }
+                .padding()
+            }
+            .navigationTitle("Manga Details")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
 }
 
 // Chapter model to represent the JSON structure
@@ -181,3 +341,6 @@ struct JSONViewerView_Previews: PreviewProvider {
         JSONViewerView()
     }
 }
+
+
+//JSONViewerView
