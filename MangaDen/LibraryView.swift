@@ -46,7 +46,7 @@ struct LibraryView: View {
     }
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack {
                 HStack {
                     Button(action: { showAddManga = true }) {

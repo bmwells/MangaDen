@@ -91,6 +91,19 @@ class AddMangaJAVA {
             // Pattern to exclude titles with numbers in parentheses (e.g., "Iron Man (2016)")
             const excludePattern = /\\(\\s*\\d{4}\\s*\\)|\\(\\s*\\d+\\s*\\)/;
             
+            // Patterns to include special chapter identifiers
+            const specialChapterPatterns = [
+                /\\bFull\\b/i, // Matches "Full" word
+                /\\(Part\\s+\\d+\\)/i, // Matches "(Part 1)", "(Part 2)", etc.
+                /\\(Pt\\.\\s+\\d+\\)/i, // Matches "(Pt. 1)", "(Pt. 2)", etc.
+                /\\bTPB\\b/i, // Matches "TPB" word
+                /\\bOmnibus\\b/i, // Matches "Omnibus" word
+                /\\bSpecial\\b/i, // Matches "Special" word
+                /\\bOne[\\-\\s]?Shot\\b/i, // Matches "One-Shot", "One Shot"
+                /\\bExtra\\b/i, // Matches "Extra" word
+                /\\bBonus\\b/i // Matches "Bonus" word
+            ];
+            
             // Get current page URL to filter same-series chapters
             const currentUrl = window.location.href;
             let currentMangaId = null;
@@ -128,6 +141,9 @@ class AddMangaJAVA {
             // First, check if there's a table with chapter/date structure
             const tableDateMap = findDatesInTables();
             
+            // NEW: Store links that might be title-only chapters
+            const potentialTitleOnlyLinks = [];
+            
             for (let link of links) {
                 const text = (link.textContent || link.innerText || '').trim();
                 const href = link.href;
@@ -137,6 +153,15 @@ class AddMangaJAVA {
                 // Skip titles with numbers in parentheses (e.g., "Iron Man (2016)")
                 if (excludePattern.test(text)) {
                     continue;
+                }
+                
+                // Check if text contains special chapter identifiers
+                let hasSpecialChapterIdentifier = false;
+                for (const pattern of specialChapterPatterns) {
+                    if (pattern.test(text)) {
+                        hasSpecialChapterIdentifier = true;
+                        break;
+                    }
                 }
                 
                 // Filter out links from different manga series
@@ -224,6 +249,112 @@ class AddMangaJAVA {
                     }
                 }
                 
+                // Pattern 5: Special chapter identifiers (assign special numbers)
+                if (!chapterNumber) {
+                    // Enhanced detection for complex patterns like "Batman '66 [II] TPB 5 (Part 2)"
+                    let tpbNumber = null;
+                    let partNumber = null;
+                    let hasSpecialIdentifier = false;
+                    
+                    // More robust TPB detection that handles various formats
+                    const tpbPatterns = [
+                        /TPB[\\s\\-]*(\\d+)/i,        // TPB 1, TPB-1, TPB1
+                    ];
+                    
+                    // Try all TPB patterns
+                    for (const pattern of tpbPatterns) {
+                        const match = text.match(pattern);
+                        if (match && match[1]) {
+                            tpbNumber = parseInt(match[1]);
+                            hasSpecialIdentifier = true;
+                            break;
+                        }
+                    }
+                    
+                    // Part number detection
+                    const partPatterns = [
+                        /\\(Part[\\s\\-]*(\\d+)\\)/i,    // (Part 1)
+                        /\\(Pt\\.?[\\s\\-]*(\\d+)\\)/i,  // (Pt. 1), (Pt 1)
+                        /Part[\\s\\-]*(\\d+)/i,          // Part 1 (without parentheses)
+                        /Pt\\.?[\\s\\-]*(\\d+)/i         // Pt. 1, Pt 1 (without parentheses)
+                    ];
+                    
+                    for (const pattern of partPatterns) {
+                        const match = text.match(pattern);
+                        if (match && match[1]) {
+                            partNumber = parseInt(match[1]);
+                            hasSpecialIdentifier = true;
+                            break;
+                        }
+                    }
+                    
+                    // Also check for other special identifiers as fallback
+                    if (!hasSpecialIdentifier) {
+                        for (const pattern of specialChapterPatterns) {
+                            if (pattern.test(text)) {
+                                hasSpecialIdentifier = true;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (hasSpecialIdentifier) {
+                        // Handle the Batman '66 series and similar patterns
+                        if (tpbNumber !== null && partNumber !== null) {
+                            // Both TPB number and part number exist
+                            // Calculate sequential numbering: TPB1 Part1=1, TPB1 Part2=2, TPB2 Part1=3, etc.
+                            chapterNumber = ((tpbNumber - 1) * 2 + partNumber).toString();
+                        } else if (tpbNumber !== null) {
+                            // Only TPB number exists
+                            chapterNumber = (900 + tpbNumber).toString(); // TPB1=901, TPB2=902, etc.
+                        } else if (partNumber !== null) {
+                            // Only part number exists
+                            chapterNumber = (800 + partNumber).toString(); // Part1=801, Part2=802, etc.
+                        } else {
+                            // Other special types
+                            if (/Full/i.test(text)) {
+                                chapterNumber = "701";
+                            } else if (/Omnibus/i.test(text)) {
+                                chapterNumber = "702";
+                            } else if (/Special/i.test(text)) {
+                                chapterNumber = "703";
+                            } else if (/One[\\-\\s]?Shot/i.test(text)) {
+                                chapterNumber = "704";
+                            } else if (/Extra/i.test(text)) {
+                                chapterNumber = "705";
+                            } else if (/Bonus/i.test(text)) {
+                                chapterNumber = "706";
+                            } else if (/TPB/i.test(text)) {
+                                chapterNumber = "707"; // TPB without number
+                            } else {
+                                chapterNumber = "799";
+                            }
+                        }
+                    }
+                }
+                
+                // NEW: Check if this might be a title-only chapter (no numbers found)
+                if (!chapterNumber) {
+                    // Check if the URL structure suggests it's a chapter link
+                    // For readcomiconline.li pattern: /Comic/Series-Name/Chapter-Title?id=number#page
+                    const comicUrlPattern = /\\/Comic\\/[^\\/]+\\/[^\\/]+(?:\\?id=\\d+)?(?:#\\d+)?$/i;
+                    
+                    // Check if href follows the chapter URL pattern but text has no numbers
+                    if (comicUrlPattern.test(href) &&
+                        !/\\d/.test(text) && // No digits in text
+                        text.length > 3 && // Reasonable length for a title
+                        !hasSpecialChapterIdentifier) { // Not a special chapter
+                        
+                        // Store for later processing
+                        potentialTitleOnlyLinks.push({
+                            text: text,
+                            href: href,
+                            link: link
+                        });
+                        continue; // Skip normal processing for now
+                    }
+                }
+                
                 if (chapterNumber) {
                     // Extract upload date (but don't remove from title)
                     let uploadDate = null;
@@ -258,6 +389,86 @@ class AddMangaJAVA {
                     const chapterData = {
                         "url": href,
                         "title": finalTitle || text // Use the cleaned title or original
+                    };
+                    
+                    if (uploadDate) {
+                        chapterData["upload_date"] = uploadDate;
+                    }
+                    
+                    // NEW: Add special chapter type identifier
+                    if (hasSpecialChapterIdentifier) {
+                        let chapterType = "normal";
+                        
+                        if (/(Part|Pt\\.)\\s*\\d+/i.test(text)) {
+                            chapterType = "part";
+                        } else if (/Full/i.test(text)) {
+                            chapterType = "full";
+                        } else if (/TPB/i.test(text)) {
+                            chapterType = "tpb";
+                        } else if (/Omnibus/i.test(text)) {
+                            chapterType = "omnibus";
+                        } else if (/Special/i.test(text)) {
+                            chapterType = "special";
+                        } else if (/One[\\-\\s]?Shot/i.test(text)) {
+                            chapterType = "oneshot";
+                        } else if (/Extra/i.test(text)) {
+                            chapterType = "extra";
+                        } else if (/Bonus/i.test(text)) {
+                            chapterType = "bonus";
+                        }
+                        
+                        chapterData["chapter_type"] = chapterType;
+                    }
+                    
+                    chapterLinks[chapterNumber] = chapterData;
+                }
+            }
+            
+            // NEW: Process title-only chapters
+            if (potentialTitleOnlyLinks.length > 0) {
+                // Use alphabetical ordering for title-only chapters
+                potentialTitleOnlyLinks.sort((a, b) => a.text.localeCompare(b.text));
+                
+                let titleChapterCounter = 1000; // Start at 1000 to avoid conflicts with numbered chapters
+                
+                for (const titleLink of potentialTitleOnlyLinks) {
+                    const chapterNumber = titleChapterCounter.toString();
+                    titleChapterCounter++;
+                    
+                    // Extract upload date
+                    let uploadDate = null;
+                    
+                    // Check in the original text for dates
+                    for (const pattern of datePatterns) {
+                        const dateMatch = titleLink.text.match(pattern);
+                        if (dateMatch) {
+                            uploadDate = dateMatch[0];
+                            break;
+                        }
+                    }
+                    
+                    // If no date found, check table date map using link text or href
+                    if (!uploadDate) {
+                        uploadDate = findDateInTableMap(titleLink.link, tableDateMap);
+                    }
+                    
+                    // If still no date found, check nearby elements
+                    if (!uploadDate) {
+                        uploadDate = findDateInNearbyElements(titleLink.link);
+                    }
+                    
+                    // Clean the title by removing dates if they were accidentally included
+                    let finalTitle = titleLink.text;
+                    if (uploadDate && finalTitle.includes(uploadDate)) {
+                        finalTitle = finalTitle.replace(uploadDate, '').trim();
+                        // Clean up any leftover punctuation
+                        finalTitle = finalTitle.replace(/^[\\s\\.,;:-]+|[\\s\\.,;:-]+$/g, '').trim();
+                    }
+                    
+                    const chapterData = {
+                        "url": titleLink.href,
+                        "title": finalTitle || titleLink.text,
+                        "chapter_type": "title_only"
                     };
                     
                     if (uploadDate) {

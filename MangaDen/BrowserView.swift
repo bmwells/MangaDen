@@ -24,19 +24,20 @@ struct BrowserView: View {
     @State private var chapterRange: String = "0-0-0"
     @State private var mangaMetadata: [String: Any]? = nil // Store metadata
     @FocusState private var isURLFieldFocused: Bool
+    @State private var isSwitchingToMobile = false // ADD THIS FLAG
 
     private let webView = WKWebView()
     private let coordinator: WebViewCoordinator
 
     init() {
-            let coord = WebViewCoordinator()
-            self.coordinator = coord
-            webView.navigationDelegate = coord
-            coord.attachObservers(to: webView)
-            
-            // Set mobile user agent by default for display
-            AddMangaJAVA.setMobileUserAgent(for: webView)
-        }
+        let coord = WebViewCoordinator()
+        self.coordinator = coord
+        webView.navigationDelegate = coord
+        coord.attachObservers(to: webView)
+        
+        // Set mobile user agent by default for display
+        AddMangaJAVA.setMobileUserAgent(for: webView)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -231,6 +232,7 @@ struct BrowserView: View {
         containsChapter = false
         chapterRange = "0-0-0"
         mangaMetadata = nil
+        isSwitchingToMobile = false // RESET THE FLAG
         
         let input = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
         
@@ -279,10 +281,46 @@ struct BrowserView: View {
     private func findMetadata() {
         // Wait a moment for the desktop transformation to complete
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            AddMangaJAVA.findMangaMetadata(in: webView) { metadata in
+            AddMangaJAVA.findMangaMetadata(in: self.webView) { metadata in
                 if let metadata = metadata {
                     self.mangaMetadata = metadata
                     print("Found manga metadata: \(metadata)")
+                }
+                
+                // Switch back to mobile user agent but DON'T reload
+                DispatchQueue.main.async {
+                    // Set flag to prevent infinite loop
+                    self.isSwitchingToMobile = true
+                    
+                    AddMangaJAVA.setMobileUserAgent(for: self.webView)
+                    print("Switched back to mobile user agent")
+                    
+                    // Use JavaScript to apply mobile styling instead of reloading
+                    let mobileViewportJS = """
+                    // Set mobile viewport
+                    var viewportMeta = document.querySelector('meta[name="viewport"]');
+                    if (!viewportMeta) {
+                        viewportMeta = document.createElement('meta');
+                        viewportMeta.name = 'viewport';
+                        document.head.appendChild(viewportMeta);
+                    }
+                    viewportMeta.content = 'width=device-width, initial-scale=1.0';
+                    
+                    // Force mobile-friendly styling
+                    document.documentElement.style.maxWidth = '100%';
+                    document.body.style.maxWidth = '100%';
+                    document.body.style.overflowX = 'hidden';
+                    """
+                    
+                    self.webView.evaluateJavaScript(mobileViewportJS) { _, error in
+                        if let error = error {
+                            print("Error applying mobile styling: \(error)")
+                        } else {
+                            print("Mobile styling applied successfully")
+                        }
+                        // Reset flag
+                        self.isSwitchingToMobile = false
+                    }
                 }
             }
         }
@@ -409,9 +447,6 @@ class WebViewCoordinator: NSObject, WKNavigationDelegate {
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         postNavigationUpdate(webView: webView)
         
-        // Restore mobile user agent for display after page loads
-        AddMangaJAVA.setMobileUserAgent(for: webView)
-        
         // Check for chapter word when page finishes loading
         AddMangaJAVA.checkForChapterWord(in: webView) { containsChapter in
             NotificationCenter.default.post(
@@ -453,7 +488,6 @@ class WebViewCoordinator: NSObject, WKNavigationDelegate {
     }
 }
 
-
 extension Notification.Name {
     static let didUpdateWebViewNav = Notification.Name("didUpdateWebViewNav")
     static let didFindChapterWord = Notification.Name("didFindChapterWord")
@@ -479,7 +513,6 @@ extension AddMangaJAVA {
         }
     }
 }
-    
 
 
 
