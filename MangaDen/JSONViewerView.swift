@@ -342,8 +342,8 @@ struct MangaMetadataDetailView: View {
 }
 
 // Chapter model to represent the JSON structure
-struct Chapter: Identifiable {
-    let id = UUID()
+struct Chapter: Identifiable, Codable {
+    let id: UUID
     let chapterNumber: Double
     let url: String
     let title: String?
@@ -364,10 +364,32 @@ struct Chapter: Identifiable {
             return nil
         }
         
+        self.id = UUID()
         self.chapterNumber = chapterNumber
         self.url = url
         self.title = dict["title"] as? String
         self.uploadDate = dict["upload_date"] as? String
+    }
+    
+    init(id: UUID = UUID(), chapterNumber: Double, url: String, title: String? = nil, uploadDate: String? = nil) {
+        self.id = id
+        self.chapterNumber = chapterNumber
+        self.url = url
+        self.title = title
+        self.uploadDate = uploadDate
+    }
+    
+    enum CodingKeys: String, CodingKey {
+        case id, chapterNumber, url, title, uploadDate
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        chapterNumber = try container.decode(Double.self, forKey: .chapterNumber)
+        url = try container.decode(String.self, forKey: .url)
+        title = try container.decodeIfPresent(String.self, forKey: .title)
+        uploadDate = try container.decodeIfPresent(String.self, forKey: .uploadDate)
     }
 }
 

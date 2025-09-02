@@ -11,7 +11,12 @@ import WebKit
 struct BrowserView: View {
     
     @State private var showJSONViewer = false
-    @State private var showMetadataView = false // New state for metadata view
+    @State private var showMetadataView = false
+    @State private var bothJSONsExist = false
+    @State private var isAddingTitle = false
+    @State private var addTitleError: String?
+    @State private var showSuccessAlert = false
+    @State private var successMessage = ""
     
     @State private var urlString: String = ""
     @State private var canGoBack = false
@@ -22,9 +27,9 @@ struct BrowserView: View {
     @State private var errorMessage = ""
     @State private var containsChapter = false
     @State private var chapterRange: String = "0-0-0"
-    @State private var mangaMetadata: [String: Any]? = nil // Store metadata
+    @State private var mangaMetadata: [String: Any]? = nil
     @FocusState private var isURLFieldFocused: Bool
-    @State private var isSwitchingToMobile = false // ADD THIS FLAG
+    @State private var isSwitchingToMobile = false
 
     private let webView = WKWebView()
     private let coordinator: WebViewCoordinator
@@ -94,6 +99,32 @@ struct BrowserView: View {
             .padding(.horizontal)
             .padding(.vertical, 6)
             .background(Color(.systemGray6))
+
+            // Add Title Button Row
+            HStack {
+                Spacer()
+                
+                // Add Title Button
+                Button(action: addTitleToLibrary) {
+                    if isAddingTitle {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                    } else {
+                        Text("Add Title")
+                            .font(.system(size: 14, weight: .semibold))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(bothJSONsExist ? Color.blue : Color.gray)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                    }
+                }
+                .disabled(!bothJSONsExist || isAddingTitle)
+                
+                Spacer()
+            }
+            .padding(.vertical, 4)
+            .background(Color(.systemGray5))
 
             // Chapter indicator with range
             HStack {
@@ -169,6 +200,12 @@ struct BrowserView: View {
             loadChapterRange()
             // Load existing metadata if available
             loadMangaMetadata()
+            checkJSONsExist()
+            
+            // Set up timer to periodically check for JSON files
+            Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+                checkJSONsExist()
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .didUpdateWebViewNav)) { notification in
             if let info = notification.userInfo as? [String: Any] {
@@ -210,6 +247,12 @@ struct BrowserView: View {
                 self.chapterRange = range
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .titleAddedSuccess)) { notification in
+            if let title = notification.userInfo?["title"] as? String{
+                successMessage = "\(title) has been successfully added to your library!"
+                showSuccessAlert = true
+            }
+        }
         .sheet(isPresented: $showJSONViewer) {
             JSONViewerView()
         }
@@ -218,6 +261,18 @@ struct BrowserView: View {
                 MangaMetadataDetailView(metadata: metadata)
             }
         }
+        .alert("Error Adding Title", isPresented: .constant(addTitleError != nil), actions: {
+            Button("OK") { addTitleError = nil }
+        }, message: {
+            if let error = addTitleError {
+                Text(error)
+            }
+        })
+        .alert("Success", isPresented: $showSuccessAlert, actions: {
+            Button("OK") { showSuccessAlert = false }
+        }, message: {
+            Text(successMessage)
+        })
     }
 
     private func loadURL() {
@@ -385,6 +440,218 @@ struct BrowserView: View {
             self.mangaMetadata = metadata
         }
     }
+    
+    private func checkJSONsExist() {
+        let fileManager = FileManager.default
+        if let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first {
+            let chaptersFile = documentsDirectory.appendingPathComponent("chapters.json")
+            let metadataFile = documentsDirectory.appendingPathComponent("manga_metadata.json")
+            
+            // Check if files exist and have content
+            let chaptersExists = fileManager.fileExists(atPath: chaptersFile.path)
+            let metadataExists = fileManager.fileExists(atPath: metadataFile.path)
+            
+            var chaptersHasContent = false
+            var metadataHasContent = false
+            
+            if chaptersExists {
+                do {
+                    let chaptersData = try Data(contentsOf: chaptersFile)
+                    chaptersHasContent = !chaptersData.isEmpty
+                    if !chaptersHasContent {
+                        print("chapters.json exists but is empty")
+                    }
+                } catch {
+                    print("Error reading chapters.json: \(error)")
+                }
+            }
+            
+            if metadataExists {
+                do {
+                    let metadataData = try Data(contentsOf: metadataFile)
+                    metadataHasContent = !metadataData.isEmpty
+                    if !metadataHasContent {
+                        print("manga_metadata.json exists but is empty")
+                    }
+                } catch {
+                    print("Error reading manga_metadata.json: \(error)")
+                }
+            }
+            
+            bothJSONsExist = chaptersHasContent && metadataHasContent
+        }
+    }
+    
+    private func downloadCoverImage(from urlString: String?) -> Data? {
+        guard let urlString = urlString, let url = URL(string: urlString) else {
+            return nil
+        }
+        
+        do {
+            let imageData = try Data(contentsOf: url)
+            print("Downloaded cover image from: \(urlString)")
+            return imageData
+        } catch {
+            print("Error downloading cover image: \(error)")
+            return nil
+        }
+    }
+    
+    private func addTitleToLibrary() {
+        isAddingTitle = true
+        addTitleError = nil
+        
+        DispatchQueue.global(qos: .userInitiated).async {
+            do {
+                let fileManager = FileManager.default
+                guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+                    throw NSError(domain: "FileError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Could not access documents directory"])
+                }
+                
+                // Load chapters
+                let chaptersFile = documentsDirectory.appendingPathComponent("chapters.json")
+                if !fileManager.fileExists(atPath: chaptersFile.path) {
+                    throw NSError(domain: "FileError", code: 2, userInfo: [NSLocalizedDescriptionKey: "chapters.json file not found"])
+                }
+                
+                let chaptersData = try Data(contentsOf: chaptersFile)
+                if chaptersData.isEmpty {
+                    throw NSError(domain: "DataError", code: 3, userInfo: [NSLocalizedDescriptionKey: "chapters.json is empty"])
+                }
+                
+                // Parse the JSON to understand its structure
+                let jsonObject = try JSONSerialization.jsonObject(with: chaptersData, options: [])
+                var chapters: [Chapter] = []
+                
+                if let jsonArray = jsonObject as? [[String: Any]] {
+                    // This is the format saved by saveChaptersToJSON
+                    for chapterDict in jsonArray {
+                        if let chapterNumber = chapterDict["chapter_number"] as? Double,
+                           let url = chapterDict["url"] as? String {
+                            
+                            let title = chapterDict["title"] as? String
+                            let uploadDate = chapterDict["upload_date"] as? String
+                            
+                            let chapter = Chapter(
+                                chapterNumber: chapterNumber,
+                                url: url,
+                                title: title,
+                                uploadDate: uploadDate
+                            )
+                            chapters.append(chapter)
+                        }
+                    }
+                    print("Successfully parsed \(chapters.count) chapters from array format")
+                } else if let chapterDict = jsonObject as? [String: [String: String]] {
+                    // This is the original dictionary format
+                    chapters = chapterDict.compactMap { key, value -> Chapter? in
+                        guard let chapterNumber = Double(key),
+                              let url = value["url"] else {
+                            return nil
+                        }
+                        return Chapter(
+                            chapterNumber: chapterNumber,
+                            url: url,
+                            title: value["title"],
+                            uploadDate: value["upload_date"]
+                        )
+                    }
+                    .sorted { $0.chapterNumber > $1.chapterNumber } // Sort in descending order
+                    print("Successfully parsed \(chapters.count) chapters from dictionary format")
+                } else {
+                    throw NSError(domain: "DataError", code: 4, userInfo: [NSLocalizedDescriptionKey: "Unknown chapters.json format"])
+                }
+                
+                if chapters.isEmpty {
+                    throw NSError(domain: "DataError", code: 5, userInfo: [NSLocalizedDescriptionKey: "No valid chapters found"])
+                }
+                
+                // Load metadata
+                let metadataFile = documentsDirectory.appendingPathComponent("manga_metadata.json")
+                if !fileManager.fileExists(atPath: metadataFile.path) {
+                    throw NSError(domain: "FileError", code: 6, userInfo: [NSLocalizedDescriptionKey: "manga_metadata.json file not found"])
+                }
+                
+                let metadataData = try Data(contentsOf: metadataFile)
+                if metadataData.isEmpty {
+                    throw NSError(domain: "DataError", code: 7, userInfo: [NSLocalizedDescriptionKey: "manga_metadata.json is empty"])
+                }
+                
+                let metadata = try JSONSerialization.jsonObject(with: metadataData) as? [String: Any] ?? [:]
+                if metadata.isEmpty {
+                    throw NSError(domain: "DataError", code: 8, userInfo: [NSLocalizedDescriptionKey: "No metadata found in manga_metadata.json"])
+                }
+                
+                // Extract title, author, and status from metadata
+                let title = metadata["title"] as? String ?? "Unknown Title"
+                let author = metadata["author"] as? String ?? "Unknown Author"
+                let status = metadata["status"] as? String ?? "unknown"
+                
+                print("Extracted metadata - Title: \(title), Author: \(author), Status: \(status)")
+                
+                // Download cover image (async with timeout)
+                let coverImageUrl = metadata["title_image"] as? String
+                var coverImageData: Data? = nil
+                
+                if let imageUrl = coverImageUrl, let url = URL(string: imageUrl) {
+                    let semaphore = DispatchSemaphore(value: 0)
+                    
+                    URLSession.shared.dataTask(with: url) { data, response, error in
+                        if let data = data, error == nil {
+                            coverImageData = data
+                            print("Downloaded cover image (\(data.count) bytes) from: \(imageUrl)")
+                        } else {
+                            print("Error downloading cover image: \(error?.localizedDescription ?? "Unknown error")")
+                        }
+                        semaphore.signal()
+                    }.resume()
+                    
+                    // Wait for download with timeout (5 seconds)
+                    _ = semaphore.wait(timeout: .now() + 5.0)
+                }
+                
+                // Create new title
+                let newTitle = Title(
+                    title: title,
+                    author: author,
+                    status: status,
+                    coverImageData: coverImageData,
+                    chapters: chapters,
+                    metadata: metadata
+                )
+                
+                // Save title to documents directory
+                let titlesDirectory = documentsDirectory.appendingPathComponent("Titles")
+                if !fileManager.fileExists(atPath: titlesDirectory.path) {
+                    try fileManager.createDirectory(at: titlesDirectory, withIntermediateDirectories: true)
+                    print("Created Titles directory: \(titlesDirectory.path)")
+                }
+                
+                let titleFile = titlesDirectory.appendingPathComponent("\(newTitle.id.uuidString).json")
+                let titleData = try JSONEncoder().encode(newTitle)
+                try titleData.write(to: titleFile)
+                print("Saved title to: \(titleFile.path) (\(titleData.count) bytes)")
+                
+                // Notify LibraryView to refresh and show success
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(name: .titleAdded, object: nil)
+                    NotificationCenter.default.post(
+                        name: .titleAddedSuccess,
+                        object: nil,
+                        userInfo: ["title": title, "author": author]
+                    )
+                    isAddingTitle = false
+                }
+                
+            } catch {
+                DispatchQueue.main.async {
+                    addTitleError = "Error adding title: \(error.localizedDescription)"
+                    isAddingTitle = false
+                    print("Error adding title: \(error)")
+                }
+            }
+        }
+    }
 }
 
 // MARK: WebView Wrapper
@@ -492,6 +759,7 @@ extension Notification.Name {
     static let didUpdateWebViewNav = Notification.Name("didUpdateWebViewNav")
     static let didFindChapterWord = Notification.Name("didFindChapterWord")
     static let didUpdateChapterRange = Notification.Name("didUpdateChapterRange")
+    static let titleAddedSuccess = Notification.Name("titleAddedSuccess")
 }
 
 // Optional: Create a helper function for user agent switching
@@ -514,7 +782,4 @@ extension AddMangaJAVA {
     }
 }
 
-
-
 // BrowserView
-
