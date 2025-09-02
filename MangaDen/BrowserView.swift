@@ -759,6 +759,7 @@ extension Notification.Name {
     static let didUpdateWebViewNav = Notification.Name("didUpdateWebViewNav")
     static let didFindChapterWord = Notification.Name("didFindChapterWord")
     static let didUpdateChapterRange = Notification.Name("didUpdateChapterRange")
+    static let titleAdded = Notification.Name("titleAdded")
     static let titleAddedSuccess = Notification.Name("titleAddedSuccess")
 }
 

@@ -7,15 +7,6 @@
 
 import SwiftUI
 
-// MARK: - Manga File Struct
-struct Manga: Identifiable {
-    let id = UUID()
-    let title: String
-    let isDownloaded: Bool
-    let isArchived: Bool
-}
-
-// MARK: - Title Struct
 // MARK: - Title Struct
 struct Title: Identifiable, Codable {
     let id: UUID
@@ -88,14 +79,6 @@ struct LibraryView: View {
     @State private var showAddManga: Bool = false
     @State private var titles: [Title] = []
     
-    @State private var mangas: [Manga] = [
-        Manga(title: "One Piece", isDownloaded: true, isArchived: false),
-        Manga(title: "Naruto", isDownloaded: true, isArchived: true),
-        Manga(title: "Bleach", isDownloaded: false, isArchived: false),
-        Manga(title: "Attack on Titan", isDownloaded: true, isArchived: false),
-        Manga(title: "Berserk", isDownloaded: false, isArchived: true)
-    ]
-    
     // Tabs (Reading, Downloads, Archive)
     enum LibraryTab: String, CaseIterable {
         case reading = "Reading"
@@ -150,34 +133,37 @@ struct LibraryView: View {
                 ScrollView {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 16)]) {
                         ForEach(filteredTitles) { title in
-                            VStack {
-                                if let imageData = title.coverImageData, let uiImage = UIImage(data: imageData) {
-                                    Image(uiImage: uiImage)
-                                        .resizable()
-                                        .scaledToFill()
-                                        .frame(width: 120, height: 160)
-                                        .cornerRadius(12)
-                                        .clipped()
-                                } else {
-                                    Rectangle()
-                                        .fill(Color.blue.opacity(0.3))
-                                        .frame(width: 120, height: 160)
-                                        .cornerRadius(12)
-                                        .overlay(Text(title.title.prefix(1))
-                                            .font(.largeTitle)
-                                            .foregroundColor(.white))
-                                }
-                                
+                            NavigationLink(destination: TitleView(title: title)) {
                                 VStack {
-                                    Text(title.title)
-                                        .font(.caption)
-                                        .lineLimit(1)
-                                    Text(title.author)
-                                        .font(.caption2)
-                                        .foregroundColor(.secondary)
-                                        .lineLimit(1)
+                                    if let imageData = title.coverImageData, let uiImage = UIImage(data: imageData) {
+                                        Image(uiImage: uiImage)
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(width: 120, height: 160)
+                                            .cornerRadius(12)
+                                            .clipped()
+                                    } else {
+                                        Rectangle()
+                                            .fill(Color.blue.opacity(0.3))
+                                            .frame(width: 120, height: 160)
+                                            .cornerRadius(12)
+                                            .overlay(Text(title.title.prefix(1))
+                                                .font(.largeTitle)
+                                                .foregroundColor(.white))
+                                    }
+                                    
+                                    VStack {
+                                        Text(title.title)
+                                            .font(.caption)
+                                            .lineLimit(1)
+                                        Text(title.author)
+                                            .font(.caption2)
+                                            .foregroundColor(.secondary)
+                                            .lineLimit(1)
+                                    }
                                 }
                             }
+                            .buttonStyle(PlainButtonStyle()) // Important: removes the default button styling
                         }
                     }
                     .padding()
@@ -186,9 +172,6 @@ struct LibraryView: View {
             .navigationTitle("Library")
             .navigationBarHidden(true)
             .onAppear {
-                loadTitles()
-            }
-            .onReceive(NotificationCenter.default.publisher(for: .titleAdded)) { _ in
                 loadTitles()
             }
         }
@@ -231,9 +214,7 @@ struct LibraryView: View {
     }
 }
 
-extension Notification.Name {
-    static let titleAdded = Notification.Name("titleAdded")
-}
+
 
 
 //LibraryView
