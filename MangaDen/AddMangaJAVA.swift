@@ -24,17 +24,31 @@ class AddMangaJAVA {
             webView.customUserAgent = mobileUserAgent
         }
     
-// Retrieve Chapter Information
-
-    // Function to check for chapter word
+    // Function to check for chapter word and alternatives
     static func checkForChapterWord(in webView: WKWebView, completion: @escaping (Bool) -> Void) {
         let javascript = """
-        // Check if document body exists and has content
-        if (document.body && document.body.innerText) {
-            document.body.innerText.toLowerCase().includes('chapter');
-        } else {
-            false;
-        }
+        (function() {
+            if (!document.body || !document.body.innerText) return false;
+            
+            const text = document.body.innerText.toLowerCase();
+            const patterns = [
+                'chapter', 'chp', 'ch', 'chap',
+                'issue', 'iss', 'is',
+                'volume', 'vol', 'v',
+                'episode', 'ep', 'eps',
+                'part', 'pt'
+            ];
+            
+            // Check for text patterns
+            for (const pattern of patterns) {
+                if (text.includes(pattern)) return true;
+            }
+            
+            // Check for hashtag numbers
+            if (/#\\d+/.test(text)) return true;
+            
+            return false;
+        })();
         """
         
         webView.evaluateJavaScript(javascript) { result, error in
@@ -53,118 +67,336 @@ class AddMangaJAVA {
             }
         }
     }
+
+// MARK: Find Chapter Number, Title, Date, and URL
     
-    
-    // Function to find chapter title, link URL and upload date with specific numbering patterns
+    // Function to find chapter links with enhanced pattern matching and table date detection
     static func findChapterLinks(in webView: WKWebView, completion: @escaping ([String: [String: String]]?) -> Void) {
         let javascript = """
-            (function() {
-                // Get all anchor tags on the page
-                const links = document.getElementsByTagName('a');
-                const chapterLinks = {};
-                const chapterPattern = /chapter\\s*[\\d\\.]+/i;
+        (function() {
+            const links = document.querySelectorAll('a');
+            const chapterLinks = {};
+            
+            // Enhanced date patterns including M/DD/YYYY format
+            const datePatterns = [
+                /\\b\\d{1,2}\\/\\d{1,2}\\/\\d{4}\\b/, // M/DD/YYYY or MM/DD/YYYY
+                /\\b\\d{1,2}\\/\\d{1,2}\\/\\d{2}\\b/, // M/DD/YY or MM/DD/YY
+                /\\b\\d{1,2}[\\-]\\d{1,2}[\\-]\\d{4}\\b/, // MM-DD-YYYY, M-DD-YYYY
+                /\\b\\d{4}[\\-]\\d{1,2}[\\-]\\d{1,2}\\b/, // YYYY-MM-DD
+                /(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\\s+\\d{1,2},?\\s+\\d{4}/i,
+                /\\d{1,2}\\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\\s+\\d{4}/i,
+                /(?:today|yesterday)\\b/i
+            ];
+            
+            // Pattern to exclude titles with numbers in parentheses (e.g., "Iron Man (2016)")
+            const excludePattern = /\\(\\s*\\d{4}\\s*\\)|\\(\\s*\\d+\\s*\\)/;
+            
+            // Get current page URL to filter same-series chapters
+            const currentUrl = window.location.href;
+            let currentMangaId = null;
+            
+            // Extract manga ID from current URL (common patterns for manga sites)
+            const urlPatterns = [
+                /\\/manga\\/([^\\/]+)/,
+                /\\/series\\/([^\\/]+)/,
+                /\\/comic\\/([^\\/]+)/,
+                /\\/title\\/([^\\/]+)/,
+                /\\/read\\/([^\\/]+)/,
+                /manga=([^&]+)/,
+                /series=([^&]+)/,
+                /comic=([^&]+)/
+            ];
+            
+            for (const pattern of urlPatterns) {
+                const match = currentUrl.match(pattern);
+                if (match && match[1]) {
+                    currentMangaId = match[1];
+                    break;
+                }
+            }
+            
+            // If we can't extract a clean ID, use a simpler approach
+            if (!currentMangaId) {
+                // Use domain and path to create a base pattern
+                const urlObj = new URL(currentUrl);
+                const pathParts = urlObj.pathname.split('/').filter(part => part.length > 2);
+                if (pathParts.length > 0) {
+                    currentMangaId = pathParts[pathParts.length - 1];
+                }
+            }
+            
+            // First, check if there's a table with chapter/date structure
+            const tableDateMap = findDatesInTables();
+            
+            for (let link of links) {
+                const text = (link.textContent || link.innerText || '').trim();
+                const href = link.href;
                 
-                // Common date patterns
-                const datePatterns = [
-                    /(\\d{1,2}[\\/\\-]\\d{1,2}[\\/\\-]\\d{2,4})/, // MM/DD/YYYY, MM-DD-YYYY
-                    /(\\d{4}[\\/\\-]\\d{1,2}[\\/\\-]\\d{1,2})/, // YYYY/MM/DD, YYYY-MM-DD
-                    /(\\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\\s+\\d{1,2},?\\s+\\d{4}\\b)/i, // Month DD, YYYY
-                    /(\\b\\d{1,2}\\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\\s+\\d{4}\\b)/i, // DD Month YYYY
-                    /(\\d{1,2}[\\/\\-]\\d{1,2}[\\/\\-]\\d{2})/, // MM/DD/YY, MM-DD-YY
-                    /(\\d{2}:\\d{2}(?::\\d{2})?)/, // Time patterns
-                    /(\\b(?:today|yesterday)\\b)/i // Relative dates
-                ];
+                if (!text || !href) continue;
                 
-                for (let i = 0; i < links.length; i++) {
-                    const link = links[i];
-                    const text = link.textContent || link.innerText;
-                    const href = link.href;
+                // Skip titles with numbers in parentheses (e.g., "Iron Man (2016)")
+                if (excludePattern.test(text)) {
+                    continue;
+                }
+                
+                // Filter out links from different manga series
+                if (currentMangaId) {
+                    let isSameSeries = false;
                     
-                    if (text && chapterPattern.test(text.toLowerCase())) {
-                        // Extract the chapter number
-                        const match = text.match(/(\\d+(?:\\.\\d+)?)/);
-                        if (match && match[1]) {
-                            // Store the original full text as title
-                            let fullTitle = text.trim().replace(/\\s+/g, ' ');
-                            let uploadDate = null;
+                    // Check if link href contains the current manga ID
+                    if (href.includes(currentMangaId)) {
+                        isSameSeries = true;
+                    }
+                    
+                    // Additional checks for common URL patterns
+                    if (!isSameSeries) {
+                        // Check for similar URL structure
+                        const linkUrlObj = new URL(href);
+                        const currentUrlObj = new URL(currentUrl);
+                        
+                        // Same domain and similar path structure
+                        if (linkUrlObj.hostname === currentUrlObj.hostname) {
+                            const linkPathParts = linkUrlObj.pathname.split('/').filter(part => part.length > 2);
+                            const currentPathParts = currentUrlObj.pathname.split('/').filter(part => part.length > 2);
                             
-                            // Try to find and extract date from the text
+                            if (linkPathParts.length > 0 && currentPathParts.length > 0) {
+                                // Check if last path segment is similar (common for chapter pages)
+                                const lastLinkPart = linkPathParts[linkPathParts.length - 1];
+                                const lastCurrentPart = currentPathParts[currentPathParts.length - 1];
+                                
+                                if (lastLinkPart && lastCurrentPart) {
+                                    // Check for common prefixes or patterns
+                                    const linkBase = lastLinkPart.replace(/[^a-z]/gi, '');
+                                    const currentBase = lastCurrentPart.replace(/[^a-z]/gi, '');
+                                    
+                                    if (linkBase.length > 3 && currentBase.length > 3 &&
+                                        (linkBase.includes(currentBase) || currentBase.includes(linkBase))) {
+                                        isSameSeries = true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (!isSameSeries) {
+                        continue; // Skip links from different series
+                    }
+                }
+                
+                // Try to extract chapter number with various patterns
+                let chapterNumber = null;
+                let cleanTitle = text; // Start with original text
+                
+                // Pattern 1: Chapter X, Issue X, Volume X, etc.
+                const pattern1 = /(chapter|chp|ch|chap|issue|iss|is|volume|vol|v|episode|ep|eps|part|pt)[\\s:]*([\\d\\.]+)/i;
+                let match1 = text.match(pattern1);
+                if (match1 && match1[2]) {
+                    chapterNumber = match1[2];
+                    // Don't modify the title - keep the full original text
+                }
+                
+                // Pattern 2: #X, #01, #001, etc.
+                if (!chapterNumber) {
+                    const pattern2 = /#\\s*([\\d\\.]+)/i;
+                    let match2 = text.match(pattern2);
+                    if (match2 && match2[1]) {
+                        chapterNumber = match2[1];
+                        // Don't modify the title - keep the full original text
+                    }
+                }
+                
+                // Pattern 3: Number at beginning or end (standalone numbers)
+                if (!chapterNumber) {
+                    const pattern3 = /^\\s*([\\d\\.]+)\\s*$|\\b([\\d\\.]+)\\s*(?:chapter|chp|ch|chap|issue|iss|is|volume|vol|v|episode|ep|eps|part|pt)\\b/i;
+                    let match3 = text.match(pattern3);
+                    if (match3 && (match3[1] || match3[2])) {
+                        chapterNumber = match3[1] || match3[2];
+                        // Don't modify the title - keep the full original text
+                    }
+                }
+                
+                // Pattern 4: Look for numbers in the text (fallback)
+                if (!chapterNumber) {
+                    const numberMatch = text.match(/\\b(\\d+(?:\\.\\d+)?)\\b/);
+                    if (numberMatch) {
+                        chapterNumber = numberMatch[1];
+                        // Don't modify the title - keep the full original text
+                    }
+                }
+                
+                if (chapterNumber) {
+                    // Extract upload date (but don't remove from title)
+                    let uploadDate = null;
+                    
+                    // Check in the original text for dates (but don't modify title)
+                    for (const pattern of datePatterns) {
+                        const dateMatch = text.match(pattern);
+                        if (dateMatch) {
+                            uploadDate = dateMatch[0];
+                            break;
+                        }
+                    }
+                    
+                    // If no date found, check table date map using link text or href
+                    if (!uploadDate) {
+                        uploadDate = findDateInTableMap(link, tableDateMap);
+                    }
+                    
+                    // If still no date found, check nearby elements
+                    if (!uploadDate) {
+                        uploadDate = findDateInNearbyElements(link);
+                    }
+                    
+                    // Clean the title by removing dates if they were accidentally included
+                    let finalTitle = cleanTitle;
+                    if (uploadDate && finalTitle.includes(uploadDate)) {
+                        finalTitle = finalTitle.replace(uploadDate, '').trim();
+                        // Clean up any leftover punctuation
+                        finalTitle = finalTitle.replace(/^[\\s\\.,;:-]+|[\\s\\.,;:-]+$/g, '').trim();
+                    }
+                    
+                    const chapterData = {
+                        "url": href,
+                        "title": finalTitle || text // Use the cleaned title or original
+                    };
+                    
+                    if (uploadDate) {
+                        chapterData["upload_date"] = uploadDate;
+                    }
+                    
+                    chapterLinks[chapterNumber] = chapterData;
+                }
+            }
+            
+            function findDatesInTables() {
+                const dateMap = new Map();
+                const tables = document.querySelectorAll('table');
+                
+                for (let table of tables) {
+                    const rows = table.querySelectorAll('tr');
+                    for (let row of rows) {
+                        const cells = row.querySelectorAll('td, th');
+                        if (cells.length >= 2) {
+                            const leftCell = cells[0];
+                            const rightCell = cells[1];
+                            
+                            // Check if right cell contains a date
+                            const rightText = (rightCell.textContent || '').trim();
+                            let foundDate = null;
+                            
                             for (const pattern of datePatterns) {
-                                const dateMatch = fullTitle.match(pattern);
+                                const dateMatch = rightText.match(pattern);
                                 if (dateMatch) {
-                                    uploadDate = dateMatch[0].trim();
-                                    // Remove the date from the title
-                                    fullTitle = fullTitle.replace(pattern, '').trim();
-                                    // Clean up any leftover punctuation or extra spaces
-                                    fullTitle = fullTitle.replace(/^[\\s\\.,;:-]+|[\\s\\.,;:-]+$/g, '').trim();
+                                    foundDate = dateMatch[0];
                                     break;
                                 }
                             }
                             
-                            // If no date found, check parent elements or sibling elements for dates
-                            if (!uploadDate) {
-                                uploadDate = findDateInNearbyElements(link);
+                            if (foundDate) {
+                                // Check left cell for chapter link or text
+                                const leftLinks = leftCell.querySelectorAll('a');
+                                if (leftLinks.length > 0) {
+                                    for (let link of leftLinks) {
+                                        const linkText = (link.textContent || '').trim();
+                                        const linkHref = link.href;
+                                        if (linkText) {
+                                            dateMap.set(linkText, foundDate);
+                                            dateMap.set(linkHref, foundDate);
+                                        }
+                                    }
+                                } else {
+                                    const leftText = (leftCell.textContent || '').trim();
+                                    if (leftText) {
+                                        dateMap.set(leftText, foundDate);
+                                    }
+                                }
                             }
-                            
-                            const chapterData = {
-                                "url": href,
-                                "title": fullTitle  // Keep the full title including "Chapter X"
-                            };
-                            
-                            if (uploadDate) {
-                                chapterData["upload_date"] = uploadDate;
-                            }
-                            
-                            // Use just the number as the key (e.g., "4" instead of "Chapter 4")
-                            chapterLinks[match[1]] = chapterData;
+                        }
+                    }
+                }
+                return dateMap;
+            }
+            
+            function findDateInTableMap(link, tableDateMap) {
+                const linkText = (link.textContent || '').trim();
+                const linkHref = link.href;
+                
+                // Try exact matches first
+                if (tableDateMap.has(linkText)) {
+                    return tableDateMap.get(linkText);
+                }
+                if (tableDateMap.has(linkHref)) {
+                    return tableDateMap.get(linkHref);
+                }
+                
+                // Try partial matches for link text
+                for (let [key, value] of tableDateMap.entries()) {
+                    if (linkText.includes(key) || key.includes(linkText)) {
+                        return value;
+                    }
+                }
+                
+                return null;
+            }
+            
+            function findDateInNearbyElements(element) {
+                // Check parent
+                if (element.parentElement) {
+                    const parentText = element.parentElement.textContent;
+                    for (const pattern of datePatterns) {
+                        const match = parentText.match(pattern);
+                        if (match) return match[0];
+                    }
+                }
+                
+                // Check siblings
+                let sibling = element.previousElementSibling;
+                while (sibling) {
+                    const siblingText = sibling.textContent;
+                    for (const pattern of datePatterns) {
+                        const match = siblingText.match(pattern);
+                        if (match) return match[0];
+                    }
+                    sibling = sibling.previousElementSibling;
+                }
+                
+                sibling = element.nextElementSibling;
+                while (sibling) {
+                    const siblingText = sibling.textContent;
+                    for (const pattern of datePatterns) {
+                        const match = siblingText.match(pattern);
+                        if (match) return match[0];
+                    }
+                    sibling = sibling.nextElementSibling;
+                }
+                
+                // Check parent's siblings (for table-like structures)
+                if (element.parentElement) {
+                    const parentSibling = element.parentElement.previousElementSibling;
+                    if (parentSibling) {
+                        const parentSiblingText = parentSibling.textContent;
+                        for (const pattern of datePatterns) {
+                            const match = parentSiblingText.match(pattern);
+                            if (match) return match[0];
+                        }
+                    }
+                    
+                    const nextParentSibling = element.parentElement.nextElementSibling;
+                    if (nextParentSibling) {
+                        const nextParentSiblingText = nextParentSibling.textContent;
+                        for (const pattern of datePatterns) {
+                            const match = nextParentSiblingText.match(pattern);
+                            if (match) return match[0];
                         }
                     }
                 }
                 
-                // Helper function to find dates in nearby elements
-                function findDateInNearbyElements(element) {
-                    // Check parent element
-                    if (element.parentElement) {
-                        const parentText = element.parentElement.textContent || element.parentElement.innerText;
-                        for (const pattern of datePatterns) {
-                            const dateMatch = parentText.match(pattern);
-                            if (dateMatch && !parentText.includes(element.textContent)) {
-                                return dateMatch[0].trim();
-                            }
-                        }
-                    }
-                    
-                    // Check previous and next siblings
-                    let sibling = element.previousElementSibling;
-                    while (sibling) {
-                        const siblingText = sibling.textContent || sibling.innerText;
-                        for (const pattern of datePatterns) {
-                            const dateMatch = siblingText.match(pattern);
-                            if (dateMatch) {
-                                return dateMatch[0].trim();
-                            }
-                        }
-                        sibling = sibling.previousElementSibling;
-                    }
-                    
-                    sibling = element.nextElementSibling;
-                    while (sibling) {
-                        const siblingText = sibling.textContent || sibling.innerText;
-                        for (const pattern of datePatterns) {
-                            const dateMatch = siblingText.match(pattern);
-                            if (dateMatch) {
-                                return dateMatch[0].trim();
-                            }
-                        }
-                        sibling = sibling.nextElementSibling;
-                    }
-                    
-                    return null;
-                }
-                
-                return Object.keys(chapterLinks).length > 0 ? chapterLinks : null;
-            })();
-            """
+                return null;
+            }
+            
+            return Object.keys(chapterLinks).length > 0 ? chapterLinks : null;
+        })();
+        """
         
         webView.evaluateJavaScript(javascript) { result, error in
             DispatchQueue.main.async {
@@ -175,7 +407,6 @@ class AddMangaJAVA {
                 }
                 
                 if let chapterDict = result as? [String: [String: String]] {
-                    // Sort and save to JSON
                     self.processAndSaveChapters(chapterDict, completion: completion)
                 } else {
                     completion(nil)
@@ -184,41 +415,29 @@ class AddMangaJAVA {
         }
     }
     
-    // Alternative approach: Find all potential chapter numbers programmatically
+    
+
+    // Alternative approach: Find all potential chapter numbers
     static func findChapterNumbersProgrammatically(in webView: WKWebView, completion: @escaping ([Double]?) -> Void) {
         let javascript = """
-            (function() {
-                // Get all text content
-                const text = document.body.innerText || document.body.textContent || '';
-                const chapterNumbers = new Set();
-                
-                // Pattern to match chapter numbers like "Chapter 1", "Chapter 1.5", etc.
-                const pattern = /chapter\\s+(\\d+(?:\\.\\d+)?)/gi;
-                let match;
-                
-                while ((match = pattern.exec(text)) !== null) {
-                    const number = parseFloat(match[1]);
-                    if (!isNaN(number)) {
-                        chapterNumbers.add(number);
-                    }
+        (function() {
+            const text = document.body.innerText || '';
+            const numbers = new Set();
+            
+            // Pattern to find numbers near chapter-related words
+            const pattern = /(?:chapter|chp|ch|chap|issue|iss|is|volume|vol|v|episode|ep|eps|part|pt)[\\s:]*([\\d\\.]+)|#\\s*([\\d\\.]+)/gi;
+            
+            let match;
+            while ((match = pattern.exec(text)) !== null) {
+                const num = match[1] || match[2];
+                if (num) {
+                    numbers.add(parseFloat(num));
                 }
-                
-                // Also check for links with chapter numbers
-                const links = document.getElementsByTagName('a');
-                for (let i = 0; i < links.length; i++) {
-                    const linkText = (links[i].textContent || links[i].innerText || '').toLowerCase();
-                    const linkMatch = linkText.match(/chapter\\s+(\\d+(?:\\.\\d+)?)/);
-                    if (linkMatch) {
-                        const number = parseFloat(linkMatch[1]);
-                        if (!isNaN(number)) {
-                            chapterNumbers.add(number);
-                        }
-                    }
-                }
-                
-                return Array.from(chapterNumbers).sort((a, b) => a - b);
-            })();
-            """
+            }
+            
+            return Array.from(numbers).sort((a, b) => a - b);
+        })();
+        """
         
         webView.evaluateJavaScript(javascript) { result, error in
             DispatchQueue.main.async {
@@ -236,7 +455,6 @@ class AddMangaJAVA {
             }
         }
     }
-    
     // Process found chapters and save to JSON
     private static func processAndSaveChapters(_ chapterDict: [String: [String: String]], completion: @escaping ([String: [String: String]]?) -> Void) {
         // Convert string keys to doubles for sorting
@@ -419,7 +637,7 @@ class AddMangaJAVA {
     // Add this function to extract title from URL
     static func extractTitleFromURL(_ url: String) -> String? {
         guard let urlComponents = URLComponents(string: url),
-              let host = urlComponents.host else {
+              urlComponents.host != nil else {
             return nil
         }
         
@@ -564,94 +782,144 @@ class AddMangaJAVA {
                     
                     // 2. Enhanced author finding with multiple strategies
                     const findAuthor = () => {
-                        const authorPatterns = [
-                            /Author(?:s|\\(s\\))?[\\s:]*([^\\n\\r<]+)/i,
-                            /Creator(?:s)?[\\s:]*([^\\n\\r<]+)/i,
-                            /By[\\s]+([^\\n\\r<]+?(?=\\s*(?:Chapter|Vol|\\d{4}|$)))/i,
-                            /Written by[\\s]+([^\\n\\r<]+)/i,
-                            /Story by[\\s]+([^\\n\\r<]+)/i,
-                            /\\bAuthor\\b[^:\\n\\r<]*([A-Z][a-z]+(?:\\s+[A-Z][a-z]+)+)/,
-                            /\\bCreator\\b[^:\\n\\r<]*([A-Z][a-z]+(?:\\s+[A-Z][a-z]+)+)/
-                        ];
-                        
-                        // Strategy 1: Text content search
-                        const textContent = document.body.innerText || document.body.textContent || '';
-                        for (const pattern of authorPatterns) {
-                            const match = textContent.match(pattern);
-                            if (match && match[1]) {
-                                let author = match[1].trim()
-                                    .replace(/\\([^)]+\\)/g, '')
-                                    .replace(/\\s*,\\s*.*$/, '')
-                                    .replace(/\\s+and\\s+.*$/i, '')
-                                    .replace(/\\s*\\bet al\\b.*$/i, '')
-                                    .replace(/^\\s*[,-]\\s*/, '')
-                                    .replace(/[,-]\\s*$/, '')
-                                    .trim();
+                                const authorPatterns = [
+                                    /Author(?:s|\\(s\\))?\\s*:\\s*([^\\n\\r<]+)/i,
+                                    /Creator(?:s)?\\s*:\\s*([^\\n\\r<]+)/i,
+                                    /Writer(?:s)?\\s*:\\s*([^\\n\\r<]+)/i,
+                                    /By\\s*:\\s*([^\\n\\r<]+?(?=\\s*(?:Chapter|Vol|\\d{4}|$)))/i,
+                                    /Written by\\s*:\\s*([^\\n\\r<]+)/i,
+                                    /Story by\\s*:\\s*([^\\n\\r<]+)/i,
+                                    
+                                    /Author(?:s|\\(s\\))?\\s+([^\\n\\r<:<]+)/i,
+                                    /Creator(?:s)?\\s+([^\\n\\r<:<]+)/i,
+                                    /Writer(?:s)?\\s+([^\\n\\r<:<]+)/i,
+                                    /By\\s+([^\\n\\r<:<]+?(?=\\s*(?:Chapter|Vol|\\d{4}|$)))/i,
+                                    /Written by\\s+([^\\n\\r<:<]+)/i,
+                                    /Story by\\s+([^\\n\\r<:<]+)/i,
+                                    
+                                    /\\bAuthor\\b[^:\\n\\r<]*([A-Z][a-z]+(?:\\s+[A-Z][a-z]+)+)/,
+                                    /\\bCreator\\b[^:\\n\\r<]*([A-Z][a-z]+(?:\\s+[A-Z][a-z]+)+)/,
+                                    /\\bWriter\\b[^:\\n\\r<]*([A-Z][a-z]+(?:\\s+[A-Z][a-z]+)+)/
+                                ];
                                 
-                                if (author.length > 3) {
-                                    return author;
-                                }
-                            }
-                        }
-                        
-                        // Strategy 2: HTML element search
-                        const authorSelectors = [
-                            '[class*="author" i]',
-                            '[id*="author" i]',
-                            '[class*="creator" i]',
-                            '[id*="creator" i]',
-                            '.author-name',
-                            '.creator-name',
-                            '.manga-author',
-                            '.comic-author',
-                            '.writer',
-                            '.artist',
-                            '.credit',
-                            '.info-item:contains("Author")',
-                            '.info-item:contains("Creator")',
-                            'td:contains("Author") + td',
-                            'td:contains("Creator") + td',
-                            'th:contains("Author") + td',
-                            'th:contains("Creator") + td'
-                        ];
-                        
-                        for (const selector of authorSelectors) {
-                            try {
-                                const elements = document.querySelectorAll(selector);
-                                for (let el of elements) {
-                                    const text = (el.textContent || '').trim();
-                                    if (text && text.length > 3 && !text.includes('@') && !text.includes('http')) {
-                                        // Check if this looks like an author name
-                                        const words = text.split(/\\s+/);
-                                        if (words.length >= 2 && words.every(word => word.length > 1)) {
-                                            return text;
+                                let colonMatches = [];
+                                let nonColonMatches = [];
+                                
+                                const textContent = document.body.innerText || document.body.textContent || '';
+                                for (let i = 0; i < authorPatterns.length; i++) {
+                                    const pattern = authorPatterns[i];
+                                    const match = textContent.match(pattern);
+                                    if (match && match[1]) {
+                                        let author = match[1].trim()
+                                            .replace(/\\([^)]+\\)/g, '')
+                                            .replace(/\\s*,\\s*.*$/, '')
+                                            .replace(/\\s+and\\s+.*$/i, '')
+                                            .replace(/\\s*\\bet al\\b.*$/i, '')
+                                            .replace(/^\\s*[,-]\\s*/, '')
+                                            .replace(/[,-]\\s*$/, '')
+                                            .trim();
+                                        
+                                        if (author.length > 3) {
+                                            if (i < 6) {
+                                                colonMatches.push(author);
+                                            } else {
+                                                nonColonMatches.push(author);
+                                            }
                                         }
                                     }
                                 }
-                            } catch (e) {
-                                // Ignore selector errors
-                            }
-                        }
-                        
-                        // Strategy 3: Table-based info (common on manga sites)
-                        const infoTables = document.querySelectorAll('table.info, table.details, .info-table');
-                        for (let table of infoTables) {
-                            const rows = table.querySelectorAll('tr');
-                            for (let row of rows) {
-                                const cells = row.querySelectorAll('td, th');
-                                if (cells.length >= 2) {
-                                    const label = (cells[0].textContent || '').toLowerCase();
-                                    const value = (cells[1].textContent || '').trim();
-                                    
-                                    if ((label.includes('author') || label.includes('creator')) && value.length > 3) {
-                                        return value;
+                                
+                                if (colonMatches.length > 0) {
+                                    return colonMatches[0];
+                                }
+                                
+                                const authorSelectors = [
+                                    'td:contains("Author:")',
+                                    'td:contains("Creator:")',
+                                    'th:contains("Author:")',
+                                    'th:contains("Creator:")',
+                                    '[class*="author" i]',
+                                    '[id*="author" i]',
+                                    '[class*="creator" i]',
+                                    '[id*="creator" i]',
+                                    '.author-name',
+                                    '.creator-name',
+                                    '.manga-author',
+                                    '.comic-author',
+                                    '.writer',
+                                    '.artist',
+                                    '.credit'
+                                ];
+                                
+                                let colonElementMatches = [];
+                                let nonColonElementMatches = [];
+                                
+                                for (const selector of authorSelectors) {
+                                    try {
+                                        const elements = document.querySelectorAll(selector);
+                                        for (let el of elements) {
+                                            const text = (el.textContent || '').trim();
+                                            if (text && text.length > 3 && !text.includes('@') && !text.includes('http')) {
+                                                const words = text.split(/\\s+/);
+                                                if (words.length >= 2 && words.every(word => word.length > 1)) {
+                                                    if (selector.includes(':contains(":")') || text.includes(':')) {
+                                                        const colonIndex = text.indexOf(':');
+                                                        if (colonIndex !== -1) {
+                                                            const afterColon = text.substring(colonIndex + 1).trim();
+                                                            if (afterColon.length > 3) {
+                                                                colonElementMatches.push(afterColon);
+                                                            }
+                                                        } else {
+                                                            colonElementMatches.push(text);
+                                                        }
+                                                    } else {
+                                                        nonColonElementMatches.push(text);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    } catch (e) {
                                     }
                                 }
-                            }
-                        }
-                        
-                        return null;
-                    };
+                                
+                                if (colonElementMatches.length > 0) {
+                                    return colonElementMatches[0];
+                                }
+                                
+                                if (nonColonMatches.length > 0) {
+                                    return nonColonMatches[0];
+                                }
+                                
+                                if (nonColonElementMatches.length > 0) {
+                                    return nonColonElementMatches[0];
+                                }
+                                
+                                const infoTables = document.querySelectorAll('table.info, table.details, .info-table');
+                                for (let table of infoTables) {
+                                    const rows = table.querySelectorAll('tr');
+                                    for (let row of rows) {
+                                        const cells = row.querySelectorAll('td, th');
+                                        if (cells.length >= 2) {
+                                            const label = (cells[0].textContent || '').toLowerCase();
+                                            const value = (cells[1].textContent || '').trim();
+                                            
+                                            if ((label.includes('author') || label.includes('creator')) && value.length > 3) {
+                                                if (label.includes(':')) {
+                                                    return value;
+                                                } else {
+                                                    nonColonMatches.push(value);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                if (nonColonMatches.length > 0) {
+                                    return nonColonMatches[0];
+                                }
+                                
+                                return null;
+                            };
                     
                     metadata.author = findAuthor();
                     
