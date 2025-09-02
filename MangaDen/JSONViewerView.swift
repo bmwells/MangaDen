@@ -178,6 +178,16 @@ struct MangaMetadataHeader: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
+            // Title at the top
+            if let title = metadata["title"] as? String {
+                Text(title)
+                    .font(.headline)
+                    .fontWeight(.bold)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            
             HStack {
                 if let imageUrl = metadata["title_image"] as? String,
                    let url = URL(string: imageUrl) {
@@ -208,8 +218,14 @@ struct MangaMetadataHeader: View {
                     
                     if let status = metadata["status"] as? String {
                         HStack {
-                            Image(systemName: status == "completed" ? "checkmark.circle.fill" : "arrow.clockwise")
-                                .foregroundColor(status == "completed" ? .green : .blue)
+                            Image(systemName: status == "completed" ? "checkmark.circle.fill" :
+                                  status == "releasing" ? "arrow.clockwise" :
+                                  status == "hiatus" ? "pause.circle" : "xmark.circle")
+                                .foregroundColor(
+                                    status == "completed" ? .green :
+                                    status == "releasing" ? .blue :
+                                    status == "hiatus" ? .orange : .red
+                                )
                             Text(status.capitalized)
                                 .font(.caption)
                                 .fontWeight(.medium)
@@ -243,6 +259,15 @@ struct MangaMetadataDetailView: View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 20) {
+                    // Title at the top of detail view
+                    if let title = metadata["title"] as? String {
+                        Text(title)
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                    }
+                    
                     if let imageUrl = metadata["title_image"] as? String,
                        let url = URL(string: imageUrl) {
                         AsyncImage(url: url) { image in
@@ -279,9 +304,19 @@ struct MangaMetadataDetailView: View {
                                     .fontWeight(.bold)
                                     .frame(width: 80, alignment: .leading)
                                 Text(status.capitalized)
-                                    .foregroundColor(status == "completed" ? .green : .blue)
-                                Image(systemName: status == "completed" ? "checkmark.circle.fill" : "arrow.clockwise")
-                                    .foregroundColor(status == "completed" ? .green : .blue)
+                                    .foregroundColor(
+                                        status == "completed" ? .green :
+                                        status == "releasing" ? .blue :
+                                        status == "hiatus" ? .orange : .red
+                                    )
+                                Image(systemName: status == "completed" ? "checkmark.circle.fill" :
+                                      status == "releasing" ? "arrow.clockwise" :
+                                      status == "hiatus" ? "pause.circle" : "xmark.circle")
+                                    .foregroundColor(
+                                        status == "completed" ? .green :
+                                        status == "releasing" ? .blue :
+                                        status == "hiatus" ? .orange : .red
+                                    )
                                 Spacer()
                             }
                         }
@@ -341,6 +376,3 @@ struct JSONViewerView_Previews: PreviewProvider {
         JSONViewerView()
     }
 }
-
-
-//JSONViewerView

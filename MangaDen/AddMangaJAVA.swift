@@ -416,8 +416,60 @@ class AddMangaJAVA {
         }
     }
 
-    // Enhanced metadata finding function with desktop forcing
+    // Add this function to extract title from URL
+    static func extractTitleFromURL(_ url: String) -> String? {
+        guard let urlComponents = URLComponents(string: url),
+              let host = urlComponents.host else {
+            return nil
+        }
+        
+        // Common manga/comic path patterns
+        let patterns = [
+            "/manga/", "/comic/", "/series/", "/title/", "/read/"
+        ]
+        
+        // Find which pattern exists in the path
+        var foundPattern: String?
+        for pattern in patterns {
+            if urlComponents.path.contains(pattern) {
+                foundPattern = pattern
+                break
+            }
+        }
+        
+        guard let pattern = foundPattern else {
+            return nil
+        }
+        
+        // Extract the title portion from the path
+        if let range = urlComponents.path.range(of: pattern) {
+            let titlePart = String(urlComponents.path[range.upperBound...])
+            
+            // Remove any file extensions and special characters
+            let cleanedTitle = titlePart
+                .replacingOccurrences(of: "[a-zA-Z]\\.[^.]*$", with: "", options: .regularExpression) // Remove single letter before extension
+                .replacingOccurrences(of: "\\.[^.]*$", with: "", options: .regularExpression) // Remove file extension
+                .replacingOccurrences(of: "-", with: " ") // Replace hyphens with spaces
+                .replacingOccurrences(of: "_", with: " ") // Replace underscores with spaces
+                .replacingOccurrences(of: "[0-9]", with: "", options: .regularExpression) // Remove numbers
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            // Capitalize first letter of each word
+            let words = cleanedTitle.components(separatedBy: " ")
+            let capitalizedWords = words.map { $0.capitalized }
+            return capitalizedWords.joined(separator: " ")
+        }
+        
+        return nil
+    }
+    
+    
+    
+
+    // Updated findMangaMetadata function to include title extraction
     static func findMangaMetadata(in webView: WKWebView, completion: @escaping ([String: Any]?) -> Void) {
+        // First get current URL for title extraction
+        let currentURL = webView.url?.absoluteString ?? ""
         
         // First force desktop view, then scrape
         forceDesktopView(in: webView) { success in
@@ -431,9 +483,34 @@ class AddMangaJAVA {
                 let javascript = """
                 (function() {
                     const metadata = {
+                        "title": null,
                         "title_image": null,
                         "author": null,
                         "status": null
+                    };
+                    
+                    // Function to find title in page elements
+                    const findTitleInPage = () => {
+                        // Try to find title in common elements
+                        const titleSelectors = [
+                            'h1', 'h2', '.title', '.manga-title', '.comic-title',
+                            '.series-title', '.entry-title', '.name', '.heading'
+                        ];
+                        
+                        for (const selector of titleSelectors) {
+                            try {
+                                const elements = document.querySelectorAll(selector);
+                                for (let el of elements) {
+                                    const text = (el.textContent || '').trim();
+                                    if (text && text.length > 3) {
+                                        return text;
+                                    }
+                                }
+                            } catch (e) {
+                                // Ignore selector errors
+                            }
+                        }
+                        return null;
                     };
                     
                     // 1. Find title image - more comprehensive search
@@ -736,6 +813,10 @@ class AddMangaJAVA {
                     };
 
                     metadata.status = findStatus();
+                    
+                    // Add title extraction from page as fallback
+                    metadata.title = findTitleInPage();
+                    
                     return Object.keys(metadata).some(key => metadata[key] !== null) ? metadata : null;
                 })();
                 """
@@ -748,7 +829,12 @@ class AddMangaJAVA {
                             return
                         }
                         
-                        if let metadata = result as? [String: Any] {
+                        if var metadata = result as? [String: Any] {
+                            // Prioritize URL-based title extraction
+                            if let urlTitle = extractTitleFromURL(currentURL) {
+                                metadata["title"] = urlTitle
+                            }
+                            
                             self.saveMangaMetadata(metadata)
                             completion(metadata)
                         } else {
