@@ -131,28 +131,28 @@ struct LibraryView: View {
                 .padding(.top, 8)
                 
                 ScrollView {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 16)]) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 20)], spacing: 20) {
                         ForEach(filteredTitles) { title in
                             NavigationLink(destination: TitleView(title: title)) {
-                                VStack {
+                                VStack(spacing: 8) {
                                     if let imageData = title.coverImageData, let uiImage = UIImage(data: imageData) {
                                         Image(uiImage: uiImage)
                                             .resizable()
                                             .scaledToFill()
-                                            .frame(width: 120, height: 160)
+                                            .frame(width: 150, height: 200)
                                             .cornerRadius(12)
                                             .clipped()
                                     } else {
                                         Rectangle()
                                             .fill(Color.blue.opacity(0.3))
-                                            .frame(width: 120, height: 160)
+                                            .frame(width: 150, height: 200)
                                             .cornerRadius(12)
                                             .overlay(Text(title.title.prefix(1))
                                                 .font(.largeTitle)
                                                 .foregroundColor(.white))
                                     }
                                     
-                                    VStack {
+                                    VStack(spacing: 4) {
                                         Text(title.title)
                                             .font(.caption)
                                             .lineLimit(1)
@@ -161,12 +161,16 @@ struct LibraryView: View {
                                             .foregroundColor(.secondary)
                                             .lineLimit(1)
                                     }
+                                    .padding(.horizontal, 4)
                                 }
+                                .padding(8)
+                                .background(Color(.systemBackground))
+                                .cornerRadius(12)
                             }
-                            .buttonStyle(PlainButtonStyle()) // Important: removes the default button styling
+                            .buttonStyle(PlainButtonStyle())
                         }
                     }
-                    .padding()
+                    .padding(16)
                 }
             }
             .navigationTitle("Library")

@@ -67,6 +67,7 @@ struct TitleView: View {
                         
                         // Status badge
                         HStack {
+                            Spacer()
                             StatusBadge(status: title.status)
                             Spacer()
                         }
@@ -127,7 +128,19 @@ struct TitleView: View {
                     Button(action: {
                         // Edit Title action
                     }) {
-                        Label("Edit Title", systemImage: "gearshape")
+                        Label("Edit Title Info", systemImage: "pencil")
+                    }
+                    
+                    Button(action: {
+                        // Download Title action
+                    }) {
+                        Label("Download Title", systemImage: "arrow.down.circle")
+                    }
+                    
+                    Button(action: {
+                        // Archive Title action
+                    }) {
+                        Label("Archive Title", systemImage: "archivebox")
                     }
                     
                     Button(role: .destructive, action: {

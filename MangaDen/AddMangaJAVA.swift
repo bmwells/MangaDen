@@ -429,7 +429,7 @@ class AddMangaJAVA {
                 // Use alphabetical ordering for title-only chapters
                 potentialTitleOnlyLinks.sort((a, b) => a.text.localeCompare(b.text));
                 
-                let titleChapterCounter = 1000; // Start at 1000 to avoid conflicts with numbered chapters
+                let titleChapterCounter = 0.01; // Start at 0.01 to avoid conflicts with numbered chapters
                 
                 for (const titleLink of potentialTitleOnlyLinks) {
                     const chapterNumber = titleChapterCounter.toString();
