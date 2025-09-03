@@ -16,4 +16,5 @@ extension Notification.Name {
     static let titleAdded = Notification.Name("titleAdded")
     static let titleAddedSuccess = Notification.Name("titleAddedSuccess")
     static let titleDeleted = Notification.Name("titleDeleted")
+    static let titleUpdated = Notification.Name("titleUpdated")
 }

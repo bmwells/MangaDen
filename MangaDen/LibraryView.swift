@@ -16,8 +16,8 @@ struct Title: Identifiable, Codable {
     let coverImageData: Data?
     let chapters: [Chapter]
     let metadata: [String: Any]
-    let isDownloaded: Bool
-    let isArchived: Bool
+    var isDownloaded: Bool
+    var isArchived: Bool
     
     // Coding keys to handle the metadata dictionary
     enum CodingKeys: String, CodingKey {
@@ -88,11 +88,15 @@ struct LibraryView: View {
     
     // Tab Filters
     var filteredTitles: [Title] {
+        let filtered: [Title]
         switch selectedTab {
-        case .reading: return titles.filter { !$0.isArchived }
-        case .downloads: return titles.filter { $0.isDownloaded }
-        case .archive: return titles.filter { $0.isArchived }
+        case .reading: filtered = titles.filter { !$0.isArchived }
+        case .downloads: filtered = titles.filter { $0.isDownloaded }
+        case .archive: filtered = titles.filter { $0.isArchived }
         }
+        
+        // Sort alphabetically by title
+        return filtered.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
     }
     
     var body: some View {
@@ -131,7 +135,7 @@ struct LibraryView: View {
                 .padding(.top, 8)
                 
                 ScrollView {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 20)], spacing: 20) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: UIDevice.current.userInterfaceIdiom == .pad ? 200 : 150), spacing: 20)], spacing: 20) {
                         ForEach(filteredTitles) { title in
                             NavigationLink(destination: TitleView(title: title)) {
                                 VStack(spacing: 8) {
@@ -139,13 +143,15 @@ struct LibraryView: View {
                                         Image(uiImage: uiImage)
                                             .resizable()
                                             .scaledToFill()
-                                            .frame(width: 150, height: 200)
+                                            .frame(width: UIDevice.current.userInterfaceIdiom == .pad ? 210 : 150,
+                                                   height: UIDevice.current.userInterfaceIdiom == .pad ? 280 : 200)
                                             .cornerRadius(12)
                                             .clipped()
                                     } else {
                                         Rectangle()
                                             .fill(Color.blue.opacity(0.3))
-                                            .frame(width: 150, height: 200)
+                                            .frame(width: UIDevice.current.userInterfaceIdiom == .pad ? 210 : 150,
+                                                   height: UIDevice.current.userInterfaceIdiom == .pad ? 280 : 200)
                                             .cornerRadius(12)
                                             .overlay(Text(title.title.prefix(1))
                                                 .font(.largeTitle)
@@ -172,6 +178,9 @@ struct LibraryView: View {
                     }
                     .padding(16)
                 }
+                
+                
+                
             }
             .navigationTitle("Library")
             .navigationBarHidden(true)
@@ -182,6 +191,9 @@ struct LibraryView: View {
                 loadTitles()
             }
             .onReceive(NotificationCenter.default.publisher(for: .titleDeleted)) { _ in
+                loadTitles()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .titleUpdated)) { _ in
                 loadTitles()
             }
         }

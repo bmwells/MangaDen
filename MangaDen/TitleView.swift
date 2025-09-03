@@ -138,9 +138,9 @@ struct TitleView: View {
                     }
                     
                     Button(action: {
-                        // Archive Title action
+                        toggleArchiveStatus()
                     }) {
-                        Label("Archive Title", systemImage: "archivebox")
+                        Label(archiveButtonText(), systemImage: archiveButtonIcon())
                     }
                     
                     Button(role: .destructive, action: {
@@ -162,6 +162,45 @@ struct TitleView: View {
         } message: {
             Text("Are you sure you want to delete \"\(title.title)\" from your library? This action cannot be undone.")
         }
+    }
+    
+    private func toggleArchiveStatus() {
+        do {
+            let fileManager = FileManager.default
+            guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+                print("Error: Could not access documents directory")
+                return
+            }
+            
+            // Update the title's archive status
+            var updatedTitle = title
+            updatedTitle.isArchived.toggle()
+            
+            // Save the updated title
+            let titlesDirectory = documentsDirectory.appendingPathComponent("Titles")
+            let titleFile = titlesDirectory.appendingPathComponent("\(title.id.uuidString).json")
+            
+            let titleData = try JSONEncoder().encode(updatedTitle)
+            try titleData.write(to: titleFile)
+            print("Updated archive status for: \(title.title) - isArchived: \(updatedTitle.isArchived)")
+            
+            // Notify LibraryView to refresh
+            NotificationCenter.default.post(name: .titleUpdated, object: nil)
+            
+            // Dismiss the view and go back to library
+            dismiss()
+            
+        } catch {
+            print("Error updating archive status: \(error)")
+        }
+    }
+
+    private func archiveButtonText() -> String {
+        return title.isArchived ? "Move to Reading" : "Archive Title"
+    }
+
+    private func archiveButtonIcon() -> String {
+        return title.isArchived ? "book" : "archivebox"
     }
     
     private func deleteTitle() {
@@ -268,3 +307,5 @@ struct ChapterRow: View {
         .contentShape(Rectangle()) // Makes the whole area tappable
     }
 }
+
+
