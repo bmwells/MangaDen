@@ -24,6 +24,7 @@
 		271346022E618AA500BC7435 /* JSONViewerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271346012E618AA500BC7435 /* JSONViewerView.swift */; };
 		271346062E67B4D400BC7435 /* TitleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271346052E67B4D400BC7435 /* TitleView.swift */; };
 		271346082E67B4F700BC7435 /* ReaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271346072E67B4F700BC7435 /* ReaderView.swift */; };
+		2713460A2E67C61F00BC7435 /* Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271346092E67C61F00BC7435 /* Notifications.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -64,6 +65,7 @@
 		271346012E618AA500BC7435 /* JSONViewerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONViewerView.swift; sourceTree = "<group>"; };
 		271346052E67B4D400BC7435 /* TitleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TitleView.swift; sourceTree = "<group>"; };
 		271346072E67B4F700BC7435 /* ReaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderView.swift; sourceTree = "<group>"; };
+		271346092E67C61F00BC7435 /* Notifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notifications.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -124,6 +126,7 @@
 				271345F52E5E53A400BC7435 /* BrowserView.swift */,
 				271345ED2E5D28A500BC7435 /* AddMangaView.swift */,
 				271345F32E5E50ED00BC7435 /* DLWebView.swift */,
+				271346092E67C61F00BC7435 /* Notifications.swift */,
 				271345F12E5D28D800BC7435 /* SettingsView.swift */,
 				271345EF2E5D28C200BC7435 /* DownloadsView.swift */,
 				271345C52E5D07B100BC7435 /* Assets.xcassets */,
@@ -292,6 +295,7 @@
 				271345F02E5D28C200BC7435 /* DownloadsView.swift in Sources */,
 				271346022E618AA500BC7435 /* JSONViewerView.swift in Sources */,
 				271345EE2E5D28A500BC7435 /* AddMangaView.swift in Sources */,
+				2713460A2E67C61F00BC7435 /* Notifications.swift in Sources */,
 				271345F62E5E53A400BC7435 /* BrowserView.swift in Sources */,
 				271345F22E5D28D800BC7435 /* SettingsView.swift in Sources */,
 				271345EC2E5D283700BC7435 /* LibraryView.swift in Sources */,

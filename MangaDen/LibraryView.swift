@@ -174,6 +174,12 @@ struct LibraryView: View {
             .onAppear {
                 loadTitles()
             }
+            .onReceive(NotificationCenter.default.publisher(for: .titleAdded)) { _ in
+                loadTitles()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .titleDeleted)) { _ in
+                loadTitles()
+            }
         }
         // Forces iPhone-style navigation on iPad
         .navigationViewStyle(StackNavigationViewStyle())
@@ -213,9 +219,3 @@ struct LibraryView: View {
         }
     }
 }
-
-
-
-
-//LibraryView
-

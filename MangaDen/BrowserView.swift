@@ -755,14 +755,6 @@ class WebViewCoordinator: NSObject, WKNavigationDelegate {
     }
 }
 
-extension Notification.Name {
-    static let didUpdateWebViewNav = Notification.Name("didUpdateWebViewNav")
-    static let didFindChapterWord = Notification.Name("didFindChapterWord")
-    static let didUpdateChapterRange = Notification.Name("didUpdateChapterRange")
-    static let titleAdded = Notification.Name("titleAdded")
-    static let titleAddedSuccess = Notification.Name("titleAddedSuccess")
-}
-
 // Optional: Create a helper function for user agent switching
 extension AddMangaJAVA {
     static func withDesktopUserAgent<T>(webView: WKWebView, operation: @escaping (@escaping (T?) -> Void) -> Void, completion: @escaping (T?) -> Void) {
