@@ -1,5 +1,5 @@
 //
-//  AddMangaJava.swift
+//  AddTitleJAVA.swift
 //  MangaDen
 //
 //  Created by Brody Wells on 8/26/25.
@@ -8,7 +8,7 @@
 import SwiftUI
 import WebKit
 
-class AddMangaJAVA {
+class AddTitleJAVA {
     
 // Mobile/Desktop Views
 
@@ -1365,4 +1365,5 @@ class AddMangaJAVA {
     
     
     
-} // AddMangaJAVA
+} // AddTitleJAVA
+

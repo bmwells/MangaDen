@@ -41,7 +41,7 @@ struct BrowserView: View {
         coord.attachObservers(to: webView)
         
         // Set mobile user agent by default for display
-        AddMangaJAVA.setMobileUserAgent(for: webView)
+        AddTitleJAVA.setMobileUserAgent(for: webView)
     }
 
     var body: some View {
@@ -299,7 +299,7 @@ struct BrowserView: View {
         }
         
         // Set desktop user agent BEFORE loading the URL for scraping
-        AddMangaJAVA.setDesktopUserAgent(for: webView)
+        AddTitleJAVA.setDesktopUserAgent(for: webView)
         
         // Check if it's a valid URL
         if let url = URL(string: input), UIApplication.shared.canOpenURL(url) {
@@ -323,10 +323,10 @@ struct BrowserView: View {
     
     private func findChapters() {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            AddMangaJAVA.findChapterLinks(in: webView) { chapterDict in
+            AddTitleJAVA.findChapterLinks(in: webView) { chapterDict in
                 if let chapters = chapterDict {
                     print("Found \(chapters.count) chapters")
-                    let urlDict = AddMangaJAVA.extractURLs(from: chapters)
+                    let urlDict = AddTitleJAVA.extractURLs(from: chapters)
                     self.updateChapterRange(from: urlDict)
                 }
             }
@@ -336,7 +336,7 @@ struct BrowserView: View {
     private func findMetadata() {
         // Wait a moment for the desktop transformation to complete
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            AddMangaJAVA.findMangaMetadata(in: self.webView) { metadata in
+            AddTitleJAVA.findMangaMetadata(in: self.webView) { metadata in
                 if let metadata = metadata {
                     self.mangaMetadata = metadata
                     print("Found manga metadata: \(metadata)")
@@ -347,7 +347,7 @@ struct BrowserView: View {
                     // Set flag to prevent infinite loop
                     self.isSwitchingToMobile = true
                     
-                    AddMangaJAVA.setMobileUserAgent(for: self.webView)
+                    AddTitleJAVA.setMobileUserAgent(for: self.webView)
                     print("Switched back to mobile user agent")
                     
                     // Use JavaScript to apply mobile styling instead of reloading
@@ -424,7 +424,7 @@ struct BrowserView: View {
                 do {
                     let data = try Data(contentsOf: fileURL)
                     if let chapters = try JSONSerialization.jsonObject(with: data) as? [String: [String: String]] {
-                        let urlDict = AddMangaJAVA.extractURLs(from: chapters)
+                        let urlDict = AddTitleJAVA.extractURLs(from: chapters)
                         updateChapterRange(from: urlDict)
                     }
                 } catch {
@@ -436,7 +436,7 @@ struct BrowserView: View {
     
     private func loadMangaMetadata() {
         // Load existing metadata from JSON file
-        if let metadata = AddMangaJAVA.loadMangaMetadata() {
+        if let metadata = AddTitleJAVA.loadMangaMetadata() {
             self.mangaMetadata = metadata
         }
     }
@@ -715,7 +715,7 @@ class WebViewCoordinator: NSObject, WKNavigationDelegate {
         postNavigationUpdate(webView: webView)
         
         // Check for chapter word when page finishes loading
-        AddMangaJAVA.checkForChapterWord(in: webView) { containsChapter in
+        AddTitleJAVA.checkForChapterWord(in: webView) { containsChapter in
             NotificationCenter.default.post(
                 name: .didFindChapterWord,
                 object: nil,
@@ -756,7 +756,7 @@ class WebViewCoordinator: NSObject, WKNavigationDelegate {
 }
 
 // Optional: Create a helper function for user agent switching
-extension AddMangaJAVA {
+extension AddTitleJAVA {
     static func withDesktopUserAgent<T>(webView: WKWebView, operation: @escaping (@escaping (T?) -> Void) -> Void, completion: @escaping (T?) -> Void) {
         let originalUserAgent = webView.customUserAgent
         setDesktopUserAgent(for: webView)

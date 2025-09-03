@@ -20,11 +20,12 @@
 		271345F22E5D28D800BC7435 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271345F12E5D28D800BC7435 /* SettingsView.swift */; };
 		271345F42E5E50ED00BC7435 /* DLWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271345F32E5E50ED00BC7435 /* DLWebView.swift */; };
 		271345F62E5E53A400BC7435 /* BrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271345F52E5E53A400BC7435 /* BrowserView.swift */; };
-		271346002E60EA0A00BC7435 /* AddMangaJAVA.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271345FF2E60EA0A00BC7435 /* AddMangaJAVA.swift */; };
 		271346022E618AA500BC7435 /* JSONViewerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271346012E618AA500BC7435 /* JSONViewerView.swift */; };
 		271346062E67B4D400BC7435 /* TitleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271346052E67B4D400BC7435 /* TitleView.swift */; };
 		271346082E67B4F700BC7435 /* ReaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271346072E67B4F700BC7435 /* ReaderView.swift */; };
 		2713460A2E67C61F00BC7435 /* Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271346092E67C61F00BC7435 /* Notifications.swift */; };
+		271346102E68062A00BC7435 /* AddTitleJAVA.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2713460F2E68062A00BC7435 /* AddTitleJAVA.swift */; };
+		271346122E68084100BC7435 /* ReaderViewJAVA.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271346112E68084100BC7435 /* ReaderViewJAVA.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -61,11 +62,12 @@
 		271345F12E5D28D800BC7435 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		271345F32E5E50ED00BC7435 /* DLWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DLWebView.swift; sourceTree = "<group>"; };
 		271345F52E5E53A400BC7435 /* BrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserView.swift; sourceTree = "<group>"; };
-		271345FF2E60EA0A00BC7435 /* AddMangaJAVA.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddMangaJAVA.swift; sourceTree = "<group>"; };
 		271346012E618AA500BC7435 /* JSONViewerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONViewerView.swift; sourceTree = "<group>"; };
 		271346052E67B4D400BC7435 /* TitleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TitleView.swift; sourceTree = "<group>"; };
 		271346072E67B4F700BC7435 /* ReaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderView.swift; sourceTree = "<group>"; };
 		271346092E67C61F00BC7435 /* Notifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notifications.swift; sourceTree = "<group>"; };
+		2713460F2E68062A00BC7435 /* AddTitleJAVA.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddTitleJAVA.swift; sourceTree = "<group>"; };
+		271346112E68084100BC7435 /* ReaderViewJAVA.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderViewJAVA.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -119,9 +121,10 @@
 				271345C12E5D07B000BC7435 /* MangaDenApp.swift */,
 				271345C32E5D07B000BC7435 /* ContentView.swift */,
 				271346012E618AA500BC7435 /* JSONViewerView.swift */,
+				2713460F2E68062A00BC7435 /* AddTitleJAVA.swift */,
 				271345EB2E5D283700BC7435 /* LibraryView.swift */,
-				271345FF2E60EA0A00BC7435 /* AddMangaJAVA.swift */,
 				271346052E67B4D400BC7435 /* TitleView.swift */,
+				271346112E68084100BC7435 /* ReaderViewJAVA.swift */,
 				271346072E67B4F700BC7435 /* ReaderView.swift */,
 				271345F52E5E53A400BC7435 /* BrowserView.swift */,
 				271345ED2E5D28A500BC7435 /* AddMangaView.swift */,
@@ -290,6 +293,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				271346102E68062A00BC7435 /* AddTitleJAVA.swift in Sources */,
 				271345C42E5D07B000BC7435 /* ContentView.swift in Sources */,
 				271346082E67B4F700BC7435 /* ReaderView.swift in Sources */,
 				271345F02E5D28C200BC7435 /* DownloadsView.swift in Sources */,
@@ -300,8 +304,8 @@
 				271345F22E5D28D800BC7435 /* SettingsView.swift in Sources */,
 				271345EC2E5D283700BC7435 /* LibraryView.swift in Sources */,
 				271345F42E5E50ED00BC7435 /* DLWebView.swift in Sources */,
+				271346122E68084100BC7435 /* ReaderViewJAVA.swift in Sources */,
 				271346062E67B4D400BC7435 /* TitleView.swift in Sources */,
-				271346002E60EA0A00BC7435 /* AddMangaJAVA.swift in Sources */,
 				271345C22E5D07B000BC7435 /* MangaDenApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

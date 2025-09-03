@@ -162,7 +162,7 @@ struct JSONViewerView: View {
     
     private func loadMangaMetadata() {
         DispatchQueue.global(qos: .userInitiated).async {
-            if let metadata = AddMangaJAVA.loadMangaMetadata() {
+            if let metadata = AddTitleJAVA.loadMangaMetadata() {
                 DispatchQueue.main.async {
                     self.mangaMetadata = metadata
                 }
