@@ -52,8 +52,11 @@ class ReaderViewJava: NSObject, ObservableObject {
         )
     }
     
-    private func extractImagesFromPage() {
-        guard let webView = webView else { return }
+    private func extractImagesFromPage(onComplete: ((Bool) -> Void)? = nil) {
+        guard let webView = webView else {
+            onComplete?(false)
+            return
+        }
         
         // JavaScript to extract all image URLs from the page in DOM order (top to bottom)
         let jsScript = """
@@ -113,62 +116,75 @@ class ReaderViewJava: NSObject, ObservableObject {
         """
         
         webView.evaluateJavaScript(jsScript) { [weak self] result, error in
-            guard let self = self else { return }
+            guard let self = self else {
+                onComplete?(false)
+                return
+            }
             
             if let error = error {
+                print("JavaScript error: \(error.localizedDescription)")
                 Task { @MainActor in
                     self.error = "Failed to extract images: \(error.localizedDescription)"
                     self.isLoading = false
                 }
+                onComplete?(false)
                 return
             }
             
             guard let jsonString = result as? String,
                   let jsonData = jsonString.data(using: .utf8) else {
+                print("Failed to parse JSON result")
                 Task { @MainActor in
                     self.error = "Failed to parse image data"
                     self.isLoading = false
                 }
+                onComplete?(false)
                 return
             }
             
             do {
                 let imageInfos = try JSONDecoder().decode([PositionedImageInfo].self, from: jsonData)
-                self.processImageURLs(imageInfos)
+                let foundImages = self.processImageURLs(imageInfos, onComplete: onComplete)
+                
+                if !foundImages {
+                    onComplete?(false)
+                }
             } catch {
+                print("Failed to decode image information: \(error)")
                 Task { @MainActor in
                     self.error = "Failed to decode image information"
                     self.isLoading = false
                 }
+                onComplete?(false)
             }
         }
     }
     
-    private func processImageURLs(_ imageInfos: [PositionedImageInfo]) {
+    private func processImageURLs(_ imageInfos: [PositionedImageInfo], onComplete: ((Bool) -> Void)? = nil) -> Bool {
         // Filter out small images but maintain the order from top to bottom
         let filteredImages = imageInfos
             .filter { $0.width > 200 && $0.height > 200 } // Filter small images
         
         if filteredImages.isEmpty {
-            Task { @MainActor in
-                self.error = "No suitable images found on the page"
-                self.isLoading = false
-            }
-            return
+            print("No suitable images found in this attempt")
+            return false
         }
         
+        print("Found \(filteredImages.count) suitable images")
+        
         // Download images in the order they were found (top to bottom)
-        downloadImages(from: filteredImages)
+        downloadImages(from: filteredImages, onComplete: onComplete)
+        return true
     }
     
-    private func downloadImages(from imageInfos: [PositionedImageInfo]) {
+    private func downloadImages(from imageInfos: [PositionedImageInfo], onComplete: ((Bool) -> Void)? = nil) {
         Task {
             var downloadedImages: [UIImage] = []
             
             // Download images sequentially to maintain order
             for imageInfo in imageInfos {
                 // Check cache first
-                if let cachedImage =  getCachedImage(for: imageInfo.src) {
+                if let cachedImage = getCachedImage(for: imageInfo.src) {
                     downloadedImages.append(cachedImage)
                     continue
                 }
@@ -193,8 +209,11 @@ class ReaderViewJava: NSObject, ObservableObject {
             await MainActor.run {
                 if downloadedImages.isEmpty {
                     self.error = "Failed to download any images"
+                    onComplete?(false)
                 } else {
                     self.images = downloadedImages
+                    print("Successfully downloaded \(downloadedImages.count) images")
+                    onComplete?(true)
                 }
                 self.isLoading = false
             }
@@ -209,14 +228,40 @@ class ReaderViewJava: NSObject, ObservableObject {
     private func cacheImage(_ image: UIImage, for key: String) {
         imageCache[key] = image
     }
+    
+    // Retry logic methods
+    private func attemptImageExtraction(attempt: Int, maxAttempts: Int) {
+        let delay = Double(attempt) * 2.0 // 2s, 4s, 6s, 8s, 10s
+        
+        print("Attempt \(attempt) of \(maxAttempts) - waiting \(delay) seconds")
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+            guard let self = self else { return }
+            
+            self.extractImagesFromPage(onComplete: { [weak self] foundImages in
+                guard let self = self else { return }
+                
+                if foundImages || attempt >= maxAttempts {
+                    // Either found images or reached max attempts
+                    if !foundImages && attempt >= maxAttempts {
+                        Task { @MainActor in
+                            self.error = "No suitable images found after \(maxAttempts) attempts"
+                            self.isLoading = false
+                        }
+                    }
+                } else {
+                    // Try again
+                    self.attemptImageExtraction(attempt: attempt + 1, maxAttempts: maxAttempts)
+                }
+            })
+        }
+    }
 }
 
 extension ReaderViewJava: WKNavigationDelegate {
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        // Wait a bit for images to load, then extract them
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-            self?.extractImagesFromPage()
-        }
+        // Try multiple times with increasing delays
+        attemptImageExtraction(attempt: 1, maxAttempts: 5)
     }
     
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {

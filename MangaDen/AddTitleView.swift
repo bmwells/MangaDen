@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct AddMangaView: View {
+struct AddTitleView: View {
     @State private var urlText: String = ""
     @State private var showBrowser = false
     @State private var showHelp = false
@@ -95,7 +95,7 @@ struct AddMangaView: View {
             HelpView()
         }
     }
-}
+} // AddTitleView
 
 // MARK: Help View
 struct HelpView: View {
@@ -132,8 +132,3 @@ struct HelpView: View {
     }
 }
 
-struct AddMangaView_Previews: PreviewProvider {
-    static var previews: some View {
-        AddMangaView()
-    }
-}

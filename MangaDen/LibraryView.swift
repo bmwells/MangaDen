@@ -109,7 +109,7 @@ struct LibraryView: View {
                             .padding(8)
                             .offset(x:20, y:-15)
                     }
-                    .sheet(isPresented: $showAddManga) { AddMangaView() }
+                    .sheet(isPresented: $showAddManga) { AddTitleView() }
                     
                     Spacer()
                     

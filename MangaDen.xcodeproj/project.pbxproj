@@ -15,7 +15,7 @@
 		271345DD2E5D07B200BC7435 /* MangaDenUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271345DC2E5D07B200BC7435 /* MangaDenUITests.swift */; };
 		271345DF2E5D07B200BC7435 /* MangaDenUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271345DE2E5D07B200BC7435 /* MangaDenUITestsLaunchTests.swift */; };
 		271345EC2E5D283700BC7435 /* LibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271345EB2E5D283700BC7435 /* LibraryView.swift */; };
-		271345EE2E5D28A500BC7435 /* AddMangaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271345ED2E5D28A500BC7435 /* AddMangaView.swift */; };
+		271345EE2E5D28A500BC7435 /* AddTitleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271345ED2E5D28A500BC7435 /* AddTitleView.swift */; };
 		271345F02E5D28C200BC7435 /* DownloadsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271345EF2E5D28C200BC7435 /* DownloadsView.swift */; };
 		271345F22E5D28D800BC7435 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271345F12E5D28D800BC7435 /* SettingsView.swift */; };
 		271345F42E5E50ED00BC7435 /* DLWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271345F32E5E50ED00BC7435 /* DLWebView.swift */; };
@@ -57,7 +57,7 @@
 		271345DC2E5D07B200BC7435 /* MangaDenUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MangaDenUITests.swift; sourceTree = "<group>"; };
 		271345DE2E5D07B200BC7435 /* MangaDenUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MangaDenUITestsLaunchTests.swift; sourceTree = "<group>"; };
 		271345EB2E5D283700BC7435 /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
-		271345ED2E5D28A500BC7435 /* AddMangaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddMangaView.swift; sourceTree = "<group>"; };
+		271345ED2E5D28A500BC7435 /* AddTitleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddTitleView.swift; sourceTree = "<group>"; };
 		271345EF2E5D28C200BC7435 /* DownloadsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadsView.swift; sourceTree = "<group>"; };
 		271345F12E5D28D800BC7435 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		271345F32E5E50ED00BC7435 /* DLWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DLWebView.swift; sourceTree = "<group>"; };
@@ -127,7 +127,7 @@
 				271346112E68084100BC7435 /* ReaderViewJAVA.swift */,
 				271346072E67B4F700BC7435 /* ReaderView.swift */,
 				271345F52E5E53A400BC7435 /* BrowserView.swift */,
-				271345ED2E5D28A500BC7435 /* AddMangaView.swift */,
+				271345ED2E5D28A500BC7435 /* AddTitleView.swift */,
 				271345F32E5E50ED00BC7435 /* DLWebView.swift */,
 				271346092E67C61F00BC7435 /* Notifications.swift */,
 				271345F12E5D28D800BC7435 /* SettingsView.swift */,
@@ -298,7 +298,7 @@
 				271346082E67B4F700BC7435 /* ReaderView.swift in Sources */,
 				271345F02E5D28C200BC7435 /* DownloadsView.swift in Sources */,
 				271346022E618AA500BC7435 /* JSONViewerView.swift in Sources */,
-				271345EE2E5D28A500BC7435 /* AddMangaView.swift in Sources */,
+				271345EE2E5D28A500BC7435 /* AddTitleView.swift in Sources */,
 				2713460A2E67C61F00BC7435 /* Notifications.swift in Sources */,
 				271345F62E5E53A400BC7435 /* BrowserView.swift in Sources */,
 				271345F22E5D28D800BC7435 /* SettingsView.swift in Sources */,
