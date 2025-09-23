@@ -10,23 +10,24 @@ import SwiftUI
 // MARK: - Title Struct
 struct Title: Identifiable, Codable {
     let id: UUID
-    let title: String
-    let author: String
+    var title: String
+    var author: String
     let status: String
-    let coverImageData: Data?
+    var coverImageData: Data?
     let chapters: [Chapter]
     let metadata: [String: Any]
     var isDownloaded: Bool
     var isArchived: Bool
+    var sourceURL: String? // ADD THIS PROPERTY
     
     // Coding keys to handle the metadata dictionary
     enum CodingKeys: String, CodingKey {
-        case id, title, author, status, coverImageData, chapters, isDownloaded, isArchived, metadata
+        case id, title, author, status, coverImageData, chapters, isDownloaded, isArchived, metadata, sourceURL
     }
     
     init(id: UUID = UUID(), title: String, author: String, status: String,
          coverImageData: Data?, chapters: [Chapter], metadata: [String: Any],
-         isDownloaded: Bool = false, isArchived: Bool = false) {
+         isDownloaded: Bool = false, isArchived: Bool = false, sourceURL: String? = nil) { // ADD sourceURL PARAMETER
         self.id = id
         self.title = title
         self.author = author
@@ -36,6 +37,7 @@ struct Title: Identifiable, Codable {
         self.metadata = metadata
         self.isDownloaded = isDownloaded
         self.isArchived = isArchived
+        self.sourceURL = sourceURL // INITIALIZE
     }
     
     // Custom encoding
@@ -49,6 +51,7 @@ struct Title: Identifiable, Codable {
         try container.encode(chapters, forKey: .chapters)
         try container.encode(isDownloaded, forKey: .isDownloaded)
         try container.encode(isArchived, forKey: .isArchived)
+        try container.encode(sourceURL, forKey: .sourceURL) // ENCODE sourceURL
         
         // Encode metadata as JSON data
         let metadataData = try JSONSerialization.data(withJSONObject: metadata, options: [])
@@ -66,12 +69,14 @@ struct Title: Identifiable, Codable {
         chapters = try container.decode([Chapter].self, forKey: .chapters)
         isDownloaded = try container.decode(Bool.self, forKey: .isDownloaded)
         isArchived = try container.decode(Bool.self, forKey: .isArchived)
+        sourceURL = try container.decodeIfPresent(String.self, forKey: .sourceURL) // DECODE sourceURL
         
         // Decode metadata from JSON data
         let metadataData = try container.decode(Data.self, forKey: .metadata)
         metadata = try JSONSerialization.jsonObject(with: metadataData) as? [String: Any] ?? [:]
     }
 }
+
 
 // MARK: - Library Screen
 struct LibraryView: View {

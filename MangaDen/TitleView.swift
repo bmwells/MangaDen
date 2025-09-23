@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 struct TitleView: View {
     let title: Title
@@ -7,6 +8,11 @@ struct TitleView: View {
     @State private var scrollOffset: CGFloat = 0
     @State private var showDeleteConfirmation = false
     @State private var readingDirection: ReadingDirection = .rightToLeft
+    @State private var showEditSheet = false
+    @State private var editedTitle: String = ""
+    @State private var editedAuthor: String = ""
+    @State private var selectedCoverImage: UIImage?
+    @State private var coverImageItem: PhotosPickerItem?
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -15,7 +21,25 @@ struct TitleView: View {
                 VStack(spacing: 0) {
                     // Cover Image with blurred edges
                     ZStack {
-                        if let imageData = title.coverImageData, let uiImage = UIImage(data: imageData) {
+                        if let selectedCoverImage = selectedCoverImage {
+                            Image(uiImage: selectedCoverImage)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: geometry.size.width, height: 300 + max(0, -scrollOffset))
+                                .clipped()
+                                .blur(radius: 10)
+                                .scaleEffect(1.05)
+                                .offset(y: min(0, scrollOffset * 0.5))
+                            
+                            Image(uiImage: selectedCoverImage)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(height: 300)
+                                .cornerRadius(12)
+                                .shadow(radius: 5)
+                                .padding(.horizontal)
+                                .offset(y: min(0, scrollOffset * 0.5))
+                        } else if let imageData = title.coverImageData, let uiImage = UIImage(data: imageData) {
                             Image(uiImage: uiImage)
                                 .resizable()
                                 .scaledToFill()
@@ -50,12 +74,12 @@ struct TitleView: View {
                     
                     // Title and Author (will be hidden when scrolling)
                     VStack(spacing: 8) {
-                        Text(title.title)
+                        Text(editedTitle.isEmpty ? title.title : editedTitle)
                             .font(.title2)
                             .fontWeight(.bold)
                             .multilineTextAlignment(.center)
                         
-                        Text("by \(title.author)")
+                        Text("by \(editedAuthor.isEmpty ? title.author : editedAuthor)")
                             .font(.headline)
                             .foregroundColor(.secondary)
                         
@@ -163,7 +187,7 @@ struct TitleView: View {
                     }
                     
                     Button(action: {
-                        // Edit Title action
+                        showEditSheet = true
                     }) {
                         Label("Edit Title Info", systemImage: "pencil")
                     }
@@ -199,8 +223,20 @@ struct TitleView: View {
         } message: {
             Text("Are you sure you want to delete \"\(title.title)\" from your library? This action cannot be undone.")
         }
+        .sheet(isPresented: $showEditSheet) {
+            EditTitleView(
+                title: title,
+                editedTitle: $editedTitle,
+                editedAuthor: $editedAuthor,
+                selectedCoverImage: $selectedCoverImage,
+                coverImageItem: $coverImageItem,
+                onSave: saveTitleChanges
+            )
+        }
         .onAppear {
             loadReadingDirection()
+            editedTitle = title.title
+            editedAuthor = title.author
         }
     }
     
@@ -283,6 +319,40 @@ struct TitleView: View {
             print("Error deleting title: \(error)")
         }
     }
+    
+    private func saveTitleChanges() {
+        do {
+            let fileManager = FileManager.default
+            guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+                print("Error: Could not access documents directory")
+                return
+            }
+            
+            // Update the title with new data
+            var updatedTitle = title
+            updatedTitle.title = editedTitle
+            updatedTitle.author = editedAuthor
+            
+            // Update cover image if changed
+            if let newCoverImage = selectedCoverImage {
+                updatedTitle.coverImageData = newCoverImage.jpegData(compressionQuality: 0.8)
+            }
+            
+            // Save the updated title
+            let titlesDirectory = documentsDirectory.appendingPathComponent("Titles")
+            let titleFile = titlesDirectory.appendingPathComponent("\(title.id.uuidString).json")
+            
+            let titleData = try JSONEncoder().encode(updatedTitle)
+            try titleData.write(to: titleFile)
+            print("Updated title info: \(updatedTitle.title) by \(updatedTitle.author)")
+            
+            // Notify LibraryView to refresh
+            NotificationCenter.default.post(name: .titleUpdated, object: nil)
+            
+        } catch {
+            print("Error saving title changes: \(error)")
+        }
+    }
 }
 
 enum ReadingDirection: String, CaseIterable {
@@ -363,5 +433,105 @@ struct ChapterRow: View {
         }
         .padding()
         .contentShape(Rectangle()) // Makes the whole area tappable
+    }
+}
+
+// MARK: - EDIT TITLE VIEW
+struct EditTitleView: View {
+    let title: Title
+    @Binding var editedTitle: String
+    @Binding var editedAuthor: String
+    @Binding var selectedCoverImage: UIImage?
+    @Binding var coverImageItem: PhotosPickerItem?
+    let onSave: () -> Void
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section(header: Text("Cover Image")) {
+                    HStack {
+                        Spacer()
+                        if let selectedCoverImage = selectedCoverImage {
+                            Image(uiImage: selectedCoverImage)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 150, height: 200)
+                                .cornerRadius(8)
+                        } else if let imageData = title.coverImageData, let uiImage = UIImage(data: imageData) {
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 150, height: 200)
+                                .cornerRadius(8)
+                        } else {
+                            Rectangle()
+                                .fill(Color.gray.opacity(0.3))
+                                .frame(width: 150, height: 200)
+                                .cornerRadius(8)
+                                .overlay(
+                                    Image(systemName: "photo")
+                                        .font(.largeTitle)
+                                        .foregroundColor(.gray)
+                                )
+                        }
+                        Spacer()
+                    }
+                    .padding(.vertical, 8)
+                    
+                    PhotosPicker(selection: $coverImageItem, matching: .images) {
+                        Label("Change Cover Image", systemImage: "photo")
+                    }
+                    
+                    if selectedCoverImage != nil {
+                        Button(role: .destructive) {
+                            selectedCoverImage = nil
+                            coverImageItem = nil
+                        } label: {
+                            Label("Remove Cover Image", systemImage: "trash")
+                        }
+                    }
+                }
+                
+                Section(header: Text("Title Information")) {
+                    TextField("Title", text: $editedTitle)
+                    TextField("Author", text: $editedAuthor)
+                }
+                
+            }
+            .navigationTitle("Edit Title")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Save") {
+                        onSave()
+                        dismiss()
+                    }
+                    .disabled(editedTitle.isEmpty || editedAuthor.isEmpty)
+                }
+            }
+            .onChange(of: coverImageItem) { oldItem, newItem in
+                Task {
+                    if let data = try? await newItem?.loadTransferable(type: Data.self),
+                       let image = UIImage(data: data) {
+                        selectedCoverImage = image
+                    }
+                }
+            }
+            .onAppear {
+                if editedTitle.isEmpty {
+                    editedTitle = title.title
+                }
+                if editedAuthor.isEmpty {
+                    editedAuthor = title.author
+                }
+            }
+        }
     }
 }

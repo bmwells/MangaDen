@@ -68,6 +68,7 @@
 		271346092E67C61F00BC7435 /* Notifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notifications.swift; sourceTree = "<group>"; };
 		2713460F2E68062A00BC7435 /* AddTitleJAVA.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddTitleJAVA.swift; sourceTree = "<group>"; };
 		271346112E68084100BC7435 /* ReaderViewJAVA.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderViewJAVA.swift; sourceTree = "<group>"; };
+		279326892E833F33001AA1AC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -118,6 +119,7 @@
 		271345C02E5D07B000BC7435 /* MangaDen */ = {
 			isa = PBXGroup;
 			children = (
+				279326892E833F33001AA1AC /* Info.plist */,
 				271345C12E5D07B000BC7435 /* MangaDenApp.swift */,
 				271345C32E5D07B000BC7435 /* ContentView.swift */,
 				271346012E618AA500BC7435 /* JSONViewerView.swift */,
@@ -473,6 +475,9 @@
 				DEVELOPMENT_TEAM = 6N92947F99;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MangaDen/Info.plist;
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "This app needs permission to save manga pages to your photo library for downloading and sharing.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "This app needs access to your photo library to allow you to select custom cover images for your manga titles.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -502,6 +507,9 @@
 				DEVELOPMENT_TEAM = 6N92947F99;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MangaDen/Info.plist;
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "This app needs permission to save manga pages to your photo library for downloading and sharing.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "This app needs access to your photo library to allow you to select custom cover images for your manga titles.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

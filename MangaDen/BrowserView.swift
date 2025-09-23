@@ -610,14 +610,19 @@ struct BrowserView: View {
                     _ = semaphore.wait(timeout: .now() + 5.0)
                 }
                 
-                // Create new title
+                // CAPTURE CURRENT URL
+                let currentURL = self.urlString
+                print("Saving title with source URL: \(currentURL)")
+                
+                // Create new title WITH SOURCE URL
                 let newTitle = Title(
                     title: title,
                     author: author,
                     status: status,
                     coverImageData: coverImageData,
                     chapters: chapters,
-                    metadata: metadata
+                    metadata: metadata,
+                    sourceURL: currentURL // ADD THE URL HERE
                 )
                 
                 // Save title to documents directory
@@ -631,6 +636,7 @@ struct BrowserView: View {
                 let titleData = try JSONEncoder().encode(newTitle)
                 try titleData.write(to: titleFile)
                 print("Saved title to: \(titleFile.path) (\(titleData.count) bytes)")
+                print("Title saved with source URL: \(currentURL)")
                 
                 // Notify LibraryView to refresh and show success
                 DispatchQueue.main.async {
@@ -640,13 +646,13 @@ struct BrowserView: View {
                         object: nil,
                         userInfo: ["title": title, "author": author]
                     )
-                    isAddingTitle = false
+                    self.isAddingTitle = false
                 }
                 
             } catch {
                 DispatchQueue.main.async {
-                    addTitleError = "Error adding title: \(error.localizedDescription)"
-                    isAddingTitle = false
+                    self.addTitleError = "Error adding title: \(error.localizedDescription)"
+                    self.isAddingTitle = false
                     print("Error adding title: \(error)")
                 }
             }
@@ -776,3 +782,7 @@ extension AddTitleJAVA {
 }
 
 // BrowserView
+
+#Preview {
+    ContentView()
+}
