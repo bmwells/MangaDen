@@ -1,10 +1,3 @@
-//
-//  TitleView.swift
-//  MangaDen
-//
-//  Created by Brody Wells on 9/2/25.
-//
-
 import SwiftUI
 
 struct TitleView: View {
@@ -13,6 +6,7 @@ struct TitleView: View {
     @State private var showOptionsMenu = false
     @State private var scrollOffset: CGFloat = 0
     @State private var showDeleteConfirmation = false
+    @State private var readingDirection: ReadingDirection = .rightToLeft
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -72,6 +66,49 @@ struct TitleView: View {
                             Spacer()
                         }
                         .padding(.top, 4)
+                        
+                        // Reading Direction Selector
+                        HStack {
+                            Text("Reading direction:")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            
+                            Spacer()
+                            
+                            HStack(spacing: 0) {
+                                Button(action: {
+                                    readingDirection = .leftToRight
+                                    saveReadingDirection()
+                                }) {
+                                    Text("L→R")
+                                        .font(.subheadline)
+                                        .fontWeight(readingDirection == .leftToRight ? .bold : .regular)
+                                        .foregroundColor(readingDirection == .leftToRight ? .blue : .primary)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .background(readingDirection == .leftToRight ? Color.blue.opacity(0.1) : Color.clear)
+                                        .cornerRadius(6)
+                                }
+                                
+                                Button(action: {
+                                    readingDirection = .rightToLeft
+                                    saveReadingDirection()
+                                }) {
+                                    Text("L←R")
+                                        .font(.subheadline)
+                                        .fontWeight(readingDirection == .rightToLeft ? .bold : .regular)
+                                        .foregroundColor(readingDirection == .rightToLeft ? .blue : .primary)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .background(readingDirection == .rightToLeft ? Color.blue.opacity(0.1) : Color.clear)
+                                        .cornerRadius(6)
+                                }
+                            }
+                            .background(Color.gray.opacity(0.1))
+                            .cornerRadius(8)
+                        }
+                        .padding(.top, 8)
+                        .padding(.horizontal)
                     }
                     .padding(.horizontal)
                     .padding(.vertical, 20)
@@ -88,7 +125,7 @@ struct TitleView: View {
                         } else {
                             LazyVStack(spacing: 0) {
                                 ForEach(title.chapters) { chapter in
-                                    NavigationLink(destination: ReaderView(chapter: chapter)) {
+                                    NavigationLink(destination: ReaderView(chapter: chapter, readingDirection: readingDirection)) {
                                         ChapterRow(chapter: chapter)
                                     }
                                     .buttonStyle(PlainButtonStyle())
@@ -162,6 +199,22 @@ struct TitleView: View {
         } message: {
             Text("Are you sure you want to delete \"\(title.title)\" from your library? This action cannot be undone.")
         }
+        .onAppear {
+            loadReadingDirection()
+        }
+    }
+    
+    private func loadReadingDirection() {
+        let directionKey = "readingDirection_\(title.id.uuidString)"
+        if let savedDirection = UserDefaults.standard.string(forKey: directionKey),
+           let direction = ReadingDirection(rawValue: savedDirection) {
+            readingDirection = direction
+        }
+    }
+    
+    private func saveReadingDirection() {
+        let directionKey = "readingDirection_\(title.id.uuidString)"
+        UserDefaults.standard.set(readingDirection.rawValue, forKey: directionKey)
     }
     
     private func toggleArchiveStatus() {
@@ -230,6 +283,11 @@ struct TitleView: View {
             print("Error deleting title: \(error)")
         }
     }
+}
+
+enum ReadingDirection: String, CaseIterable {
+    case leftToRight = "L→R"
+    case rightToLeft = "L←R"
 }
 
 struct ViewOffsetKey: PreferenceKey {
@@ -307,5 +365,3 @@ struct ChapterRow: View {
         .contentShape(Rectangle()) // Makes the whole area tappable
     }
 }
-
-
