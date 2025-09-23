@@ -5,6 +5,7 @@
 //  Created by Brody Wells on 8/25/25.
 //
 
+
 import SwiftUI
 
 // MARK: - Title Struct
@@ -18,7 +19,7 @@ struct Title: Identifiable, Codable {
     let metadata: [String: Any]
     var isDownloaded: Bool
     var isArchived: Bool
-    var sourceURL: String? // ADD THIS PROPERTY
+    var sourceURL: String?
     
     // Coding keys to handle the metadata dictionary
     enum CodingKeys: String, CodingKey {
@@ -37,7 +38,7 @@ struct Title: Identifiable, Codable {
         self.metadata = metadata
         self.isDownloaded = isDownloaded
         self.isArchived = isArchived
-        self.sourceURL = sourceURL // INITIALIZE
+        self.sourceURL = sourceURL
     }
     
     // Custom encoding
@@ -77,12 +78,14 @@ struct Title: Identifiable, Codable {
     }
 }
 
-
 // MARK: - Library Screen
 struct LibraryView: View {
     @State private var selectedTab: LibraryTab = .reading
     @State private var showAddManga: Bool = false
+    @EnvironmentObject private var tabBarManager: TabBarManager
     @State private var titles: [Title] = []
+    @AppStorage("isDarkMode") private var isDarkMode = false
+    @Environment(\.colorScheme) private var systemColorScheme
     
     // Tabs (Reading, Downloads, Archive)
     enum LibraryTab: String, CaseIterable {
@@ -104,6 +107,11 @@ struct LibraryView: View {
         return filtered.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
     }
     
+    // Computed color scheme based on user preference
+    private var effectiveColorScheme: ColorScheme {
+        return isDarkMode ? .dark : .light
+    }
+    
     var body: some View {
         NavigationStack {
             VStack {
@@ -111,8 +119,9 @@ struct LibraryView: View {
                     Button(action: { showAddManga = true }) {
                         Image(systemName: "plus")
                             .font(.system(size: 28, weight: .medium))
+                            .foregroundColor(.accentColor)
                             .padding(8)
-                            .offset(x:20, y:-15)
+                            .offset(x: 0, y: -15)
                     }
                     .sheet(isPresented: $showAddManga) { AddTitleView() }
                     
@@ -126,70 +135,107 @@ struct LibraryView: View {
                     .pickerStyle(SegmentedPickerStyle())
                     .fixedSize()
                     .padding(.horizontal)
-                    .scaleEffect(x: 0.9, y: 1.0) // Make 80% width, keep full height
+                    .scaleEffect(x: 0.9, y: 1.0)
                     .offset(y: -5)
                     
                     Spacer()
                     
-                    // Add an invisible view to balance the plus button
-                    Color.clear
-                        .frame(width: 44, height: 44) // Match the plus button size
-                }// HStack (Top Bar)
-                
+                }
                 .padding(.horizontal)
                 .padding(.top, 8)
+                .background(Color(.systemBackground))
                 
                 ScrollView {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: UIDevice.current.userInterfaceIdiom == .pad ? 200 : 150), spacing: 20)], spacing: 20) {
-                        ForEach(filteredTitles) { title in
-                            NavigationLink(destination: TitleView(title: title)) {
-                                VStack(spacing: 8) {
-                                    if let imageData = title.coverImageData, let uiImage = UIImage(data: imageData) {
-                                        Image(uiImage: uiImage)
-                                            .resizable()
-                                            .scaledToFill()
-                                            .frame(width: UIDevice.current.userInterfaceIdiom == .pad ? 210 : 150,
-                                                   height: UIDevice.current.userInterfaceIdiom == .pad ? 280 : 200)
-                                            .cornerRadius(12)
-                                            .clipped()
-                                    } else {
-                                        Rectangle()
-                                            .fill(Color.blue.opacity(0.3))
-                                            .frame(width: UIDevice.current.userInterfaceIdiom == .pad ? 210 : 150,
-                                                   height: UIDevice.current.userInterfaceIdiom == .pad ? 280 : 200)
-                                            .cornerRadius(12)
-                                            .overlay(Text(title.title.prefix(1))
-                                                .font(.largeTitle)
-                                                .foregroundColor(.white))
-                                    }
-                                    
-                                    VStack(spacing: 4) {
-                                        Text(title.title)
-                                            .font(.caption)
-                                            .lineLimit(1)
-                                        Text(title.author)
-                                            .font(.caption2)
-                                            .foregroundColor(.secondary)
-                                            .lineLimit(1)
-                                    }
-                                    .padding(.horizontal, 4)
-                                }
-                                .padding(8)
-                                .background(Color(.systemBackground))
-                                .cornerRadius(12)
-                            }
-                            .buttonStyle(PlainButtonStyle())
+                    if filteredTitles.isEmpty {
+                        VStack(spacing: 20) {
+                            Image(systemName: "books.vertical.fill")
+                                .font(.system(size: 60))
+                                .foregroundColor(.secondary)
+                            
+                            VStack(spacing: 8) {
+                                Text("No Titles Found")
+                                    .font(.title2)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.primary)
+                                
+                                Text(emptyStateMessage)
+                                    .font(.body)
+                                    .foregroundColor(.secondary)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal, 40)
+                                
+                                                            }
                         }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .padding(.top, 100)
+                    } else {
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: UIDevice.current.userInterfaceIdiom == .pad ? 200 : 150), spacing: 20)], spacing: 20) {
+                            ForEach(filteredTitles) { title in
+                                NavigationLink(destination: TitleView(title: title)) {
+                                    VStack(spacing: 8) {
+                                        if let imageData = title.coverImageData, let uiImage = UIImage(data: imageData) {
+                                            Image(uiImage: uiImage)
+                                                .resizable()
+                                                .scaledToFill()
+                                                .frame(width: UIDevice.current.userInterfaceIdiom == .pad ? 210 : 150,
+                                                       height: UIDevice.current.userInterfaceIdiom == .pad ? 280 : 200)
+                                                .cornerRadius(12)
+                                                .clipped()
+                                                .overlay(
+                                                    RoundedRectangle(cornerRadius: 12)
+                                                        .stroke(Color(.systemGray4), lineWidth: 1)
+                                                )
+                                        } else {
+                                            ZStack {
+                                                Rectangle()
+                                                    .fill(Color.accentColor.opacity(0.3))
+                                                    .frame(width: UIDevice.current.userInterfaceIdiom == .pad ? 210 : 150,
+                                                           height: UIDevice.current.userInterfaceIdiom == .pad ? 280 : 200)
+                                                    .cornerRadius(12)
+                                                
+                                                VStack {
+                                                    Text(title.title.prefix(1))
+                                                        .font(.system(size: 40, weight: .bold))
+                                                        .foregroundColor(.accentColor)
+                                                    Text("No Cover")
+                                                        .font(.caption)
+                                                        .foregroundColor(.secondary)
+                                                }
+                                            }
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 12)
+                                                    .stroke(Color(.systemGray4), lineWidth: 1)
+                                            )
+                                        }
+                                        
+                                        VStack(spacing: 4) {
+                                            Text(title.title)
+                                                .font(.body)
+                                                .fontWeight(.medium)
+                                                .foregroundColor(.primary)
+                                                .lineLimit(1)
+                                                .multilineTextAlignment(.center)
+                                            
+                                            Text(title.author)
+                                                .font(.caption2)
+                                                .foregroundColor(.primary)
+                                                .lineLimit(1)
+                                            
+                                        }
+                                        .padding(.horizontal, 4)
+                                    }
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                            }
+                        }
+                        .padding(16)
                     }
-                    .padding(16)
                 }
-                
-                
-                
+                .background(Color(.systemGroupedBackground))
             }
-            .navigationTitle("Library")
-            .navigationBarHidden(true)
+            .preferredColorScheme(effectiveColorScheme)
             .onAppear {
+                tabBarManager.isTabBarHidden = false
                 loadTitles()
             }
             .onReceive(NotificationCenter.default.publisher(for: .titleAdded)) { _ in
@@ -202,8 +248,19 @@ struct LibraryView: View {
                 loadTitles()
             }
         }
-        // Forces iPhone-style navigation on iPad
         .navigationViewStyle(StackNavigationViewStyle())
+    }
+    
+    // Empty state message based on selected tab
+    private var emptyStateMessage: String {
+        switch selectedTab {
+        case .reading:
+            return "Your reading list is empty. Add some titles to get started!"
+        case .downloads:
+            return "No downloaded titles yet. Download titles to read them offline."
+        case .archive:
+            return "Your archive is empty. Archive titles you've finished reading."
+        }
     }
     
     private func loadTitles() {
@@ -229,14 +286,19 @@ struct LibraryView: View {
                     let title = try JSONDecoder().decode(Title.self, from: data)
                     loadedTitles.append(title)
                     print("Loaded title from: \(file.lastPathComponent)")
+                    if let sourceURL = title.sourceURL {
+                        print("Title '\(title.title)' has source URL: \(sourceURL)")
+                    }
                 } catch {
                     print("Error loading title from \(file.lastPathComponent): \(error)")
                 }
             }
             
             titles = loadedTitles
+            print("Loaded \(titles.count) titles from library")
         } catch {
             print("Error loading titles: \(error)")
         }
     }
 }
+

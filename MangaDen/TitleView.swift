@@ -3,6 +3,7 @@ import PhotosUI
 
 struct TitleView: View {
     let title: Title
+    @EnvironmentObject private var tabBarManager: TabBarManager
     @State private var selectedChapter: Chapter?
     @State private var showOptionsMenu = false
     @State private var scrollOffset: CGFloat = 0
@@ -106,29 +107,37 @@ struct TitleView: View {
                                 }) {
                                     Text("L→R")
                                         .font(.subheadline)
-                                        .fontWeight(readingDirection == .leftToRight ? .bold : .regular)
-                                        .foregroundColor(readingDirection == .leftToRight ? .blue : .primary)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 6)
-                                        .background(readingDirection == .leftToRight ? Color.blue.opacity(0.1) : Color.clear)
-                                        .cornerRadius(6)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(readingDirection == .leftToRight ? .white : .blue)
+                                        .padding(.horizontal, 16)
+                                        .padding(.vertical, 8)
+                                        .background(readingDirection == .leftToRight ? Color.blue : Color.blue.opacity(0.1))
+                                        .cornerRadius(8)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .stroke(Color.blue, lineWidth: 2)
+                                        )
                                 }
-                                
+
                                 Button(action: {
                                     readingDirection = .rightToLeft
                                     saveReadingDirection()
                                 }) {
                                     Text("L←R")
                                         .font(.subheadline)
-                                        .fontWeight(readingDirection == .rightToLeft ? .bold : .regular)
-                                        .foregroundColor(readingDirection == .rightToLeft ? .blue : .primary)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 6)
-                                        .background(readingDirection == .rightToLeft ? Color.blue.opacity(0.1) : Color.clear)
-                                        .cornerRadius(6)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(readingDirection == .rightToLeft ? .white : .blue)
+                                        .padding(.horizontal, 16)
+                                        .padding(.vertical, 8)
+                                        .background(readingDirection == .rightToLeft ? Color.blue : Color.blue.opacity(0.1))
+                                        .cornerRadius(8)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .stroke(Color.blue, lineWidth: 2)
+                                        )
                                 }
                             }
-                            .background(Color.gray.opacity(0.1))
+                            .background(Color.blue.opacity(0.05))
                             .cornerRadius(8)
                         }
                         .padding(.top, 8)
@@ -149,7 +158,10 @@ struct TitleView: View {
                         } else {
                             LazyVStack(spacing: 0) {
                                 ForEach(title.chapters) { chapter in
-                                    NavigationLink(destination: ReaderView(chapter: chapter, readingDirection: readingDirection)) {
+                                    NavigationLink(
+                                        destination: ReaderView(chapter: chapter, readingDirection: readingDirection)
+                                            .environmentObject(tabBarManager)
+                                    ) {
                                         ChapterRow(chapter: chapter)
                                     }
                                     .buttonStyle(PlainButtonStyle())
@@ -175,9 +187,11 @@ struct TitleView: View {
         .navigationBarBackButtonHidden(false)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            
             ToolbarItem(placement: .principal) {
                 Text("")
             }
+            
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
                     Button(action: {
@@ -237,6 +251,8 @@ struct TitleView: View {
             loadReadingDirection()
             editedTitle = title.title
             editedAuthor = title.author
+            tabBarManager.isTabBarHidden = true
+            print("TitleView appeared - Tab bar hidden: \(tabBarManager.isTabBarHidden)")
         }
     }
     
@@ -276,7 +292,8 @@ struct TitleView: View {
             // Notify LibraryView to refresh
             NotificationCenter.default.post(name: .titleUpdated, object: nil)
             
-            // Dismiss the view and go back to library
+            // Show tab bar and dismiss
+            tabBarManager.isTabBarHidden = false
             dismiss()
             
         } catch {
@@ -312,7 +329,8 @@ struct TitleView: View {
             // Notify LibraryView to refresh
             NotificationCenter.default.post(name: .titleDeleted, object: nil)
             
-            // Dismiss the view and go back to library
+            // Show tab bar and dismiss
+            tabBarManager.isTabBarHidden = false
             dismiss()
             
         } catch {
@@ -534,4 +552,9 @@ struct EditTitleView: View {
             }
         }
     }
+}
+
+
+#Preview {
+    ContentView()
 }

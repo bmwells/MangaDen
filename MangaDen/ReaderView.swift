@@ -4,6 +4,7 @@ import PhotosUI
 struct ReaderView: View {
     let chapter: Chapter
     let readingDirection: ReadingDirection
+    @EnvironmentObject private var tabBarManager: TabBarManager
     @StateObject private var readerJava = ReaderViewJava()
     @Environment(\.dismiss) private var dismiss
     @State private var currentPageIndex: Int = 0
@@ -122,12 +123,21 @@ struct ReaderView: View {
                 }
             }
         }
-        .hideTabBar()
         .onAppear {
             loadChapter()
+            // Force hide with a small delay to ensure the view is fully presented
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                tabBarManager.isTabBarHidden = true
+                print("ReaderView appeared - Tab bar hidden: \(tabBarManager.isTabBarHidden)")
+            }
         }
         .onDisappear {
             readerJava.clearCache()
+            // Force show with a small delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                tabBarManager.isTabBarHidden = true
+                print("ReaderView disappeared - Tab bar hidden: \(tabBarManager.isTabBarHidden)")
+            }
         }
         .statusBar(hidden: !showNavigationBars)
         .animation(.easeInOut(duration: 0.2), value: currentPageIndex)
@@ -351,7 +361,3 @@ struct ZoomableImageView: View {
 }
 
 
-
-#Preview {
-    ContentView()
-}

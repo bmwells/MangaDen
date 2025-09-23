@@ -26,6 +26,7 @@
 		2713460A2E67C61F00BC7435 /* Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271346092E67C61F00BC7435 /* Notifications.swift */; };
 		271346102E68062A00BC7435 /* AddTitleJAVA.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2713460F2E68062A00BC7435 /* AddTitleJAVA.swift */; };
 		271346122E68084100BC7435 /* ReaderViewJAVA.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271346112E68084100BC7435 /* ReaderViewJAVA.swift */; };
+		2793268B2E835FFE001AA1AC /* TabBarManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2793268A2E835FFE001AA1AC /* TabBarManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -69,6 +70,7 @@
 		2713460F2E68062A00BC7435 /* AddTitleJAVA.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddTitleJAVA.swift; sourceTree = "<group>"; };
 		271346112E68084100BC7435 /* ReaderViewJAVA.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderViewJAVA.swift; sourceTree = "<group>"; };
 		279326892E833F33001AA1AC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		2793268A2E835FFE001AA1AC /* TabBarManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabBarManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -127,6 +129,7 @@
 				271345EB2E5D283700BC7435 /* LibraryView.swift */,
 				271346052E67B4D400BC7435 /* TitleView.swift */,
 				271346112E68084100BC7435 /* ReaderViewJAVA.swift */,
+				2793268A2E835FFE001AA1AC /* TabBarManager.swift */,
 				271346072E67B4F700BC7435 /* ReaderView.swift */,
 				271345F52E5E53A400BC7435 /* BrowserView.swift */,
 				271345ED2E5D28A500BC7435 /* AddTitleView.swift */,
@@ -298,6 +301,7 @@
 				271346102E68062A00BC7435 /* AddTitleJAVA.swift in Sources */,
 				271345C42E5D07B000BC7435 /* ContentView.swift in Sources */,
 				271346082E67B4F700BC7435 /* ReaderView.swift in Sources */,
+				2793268B2E835FFE001AA1AC /* TabBarManager.swift in Sources */,
 				271345F02E5D28C200BC7435 /* DownloadsView.swift in Sources */,
 				271346022E618AA500BC7435 /* JSONViewerView.swift in Sources */,
 				271345EE2E5D28A500BC7435 /* AddTitleView.swift in Sources */,

@@ -8,29 +8,27 @@
 import SwiftUI
 
 struct SettingsView: View {
+    @AppStorage("isDarkMode") private var isDarkMode = false
+    @EnvironmentObject private var tabBarManager: TabBarManager
+    
     var body: some View {
         NavigationView {
             Form {
+                Section(header: Text("Appearance")) {
+                    Toggle("Dark Mode", isOn: $isDarkMode)
+                }
+                
                 Section(header: Text("General")) {
-                    Toggle("Dark Mode", isOn: .constant(false))
-                    Toggle("Notifications", isOn: .constant(true))
-                }
-                
-                Section(header: Text("Account")) {
-                    NavigationLink("Profile", destination: Text("Profile Settings"))
-                    NavigationLink("Privacy", destination: Text("Privacy Settings"))
-                }
-                
-                Section {
-                    Button(role: .destructive) {} label: {
-                        Text("Sign Out")
-                    }
+                    Text("Version 0.5")
+                        .foregroundColor(.secondary)
                 }
             }
             .navigationTitle("Settings")
         }
-        // Forces iPhone-style navigation on iPad
-        .navigationViewStyle(StackNavigationViewStyle())
+        .onAppear {
+            tabBarManager.isTabBarHidden = false
+        }
     }
 }
+
 
