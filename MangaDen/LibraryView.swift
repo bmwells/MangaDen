@@ -16,7 +16,7 @@ struct LibraryView: View {
     @AppStorage("isDarkMode") private var isDarkMode = false
     @Environment(\.colorScheme) private var systemColorScheme
     
-    // Tabs (Reading, Downloads, Archive)
+    // Tabs (Reading and Archive)
     enum LibraryTab: String, CaseIterable {
         case reading = "Reading"
         case archive = "Archive"
@@ -100,6 +100,13 @@ struct LibraryView: View {
                             ForEach(filteredTitles) { title in
                                 NavigationLink(destination: TitleView(title: title)) {
                                     VStack(spacing: 8) {
+                                        Text(title.title)
+                                            .font(.body)
+                                            .fontWeight(.medium)
+                                            .foregroundColor(.primary)
+                                            .lineLimit(1)
+                                            .multilineTextAlignment(.center)
+                                        
                                         if let imageData = title.coverImageData, let uiImage = UIImage(data: imageData) {
                                             Image(uiImage: uiImage)
                                                 .resizable()
@@ -136,13 +143,6 @@ struct LibraryView: View {
                                         }
                                         
                                         VStack(spacing: 4) {
-                                            Text(title.title)
-                                                .font(.body)
-                                                .fontWeight(.medium)
-                                                .foregroundColor(.primary)
-                                                .lineLimit(1)
-                                                .multilineTextAlignment(.center)
-                                            
                                             Text(title.author)
                                                 .font(.caption2)
                                                 .foregroundColor(.primary)

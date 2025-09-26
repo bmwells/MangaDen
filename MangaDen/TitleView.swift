@@ -86,6 +86,18 @@ struct TitleView: View {
                     
                     // Title and Author (will be hidden when scrolling)
                     VStack(spacing: 8) {
+                        
+                        
+                        
+                        // Download info for downloaded titles
+                        if !title.downloadedChapters.isEmpty {
+                            Text("\(title.downloadedChapters.count) Chapter\(title.downloadedChapters.count == 1 ? "" : "s") Downloaded [\(title.formattedDownloadSize)]")
+                                .font(.subheadline)
+                                .foregroundColor(.blue)
+                                .fontWeight(.medium)
+                                .padding(.top, 4)
+                        }
+                        
                         Text(editedTitle.isEmpty ? title.title : editedTitle)
                             .font(.title2)
                             .fontWeight(.bold)
@@ -94,23 +106,7 @@ struct TitleView: View {
                         Text("by \(editedAuthor.isEmpty ? title.author : editedAuthor)")
                             .font(.headline)
                             .foregroundColor(.secondary)
-                        
-                        // Download info for downloaded titles
-                        if title.isDownloaded && !title.downloadedChapters.isEmpty {
-                            HStack {
-                                Text("\(title.downloadedChapters.count) Chp\(title.downloadedChapters.count > 1 ? "s" : "")")
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                                
-                                Text("[\(title.formattedDownloadSize)]")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                            }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 4)
-                            .background(Color.blue.opacity(0.1))
-                            .cornerRadius(8)
-                        }
+                    
                         
                         // Status badge
                         HStack {
@@ -119,6 +115,7 @@ struct TitleView: View {
                             Spacer()
                         }
                         .padding(.top, 4)
+                        
                         
                         // Download Mode Controls
                         if showDownloadMode {
@@ -777,10 +774,3 @@ struct EditTitleView: View {
 }
 
 
-
-
-
-
-#Preview {
-    ContentView()
-}
