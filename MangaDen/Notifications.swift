@@ -18,5 +18,11 @@ extension Notification.Name {
     static let titleDeleted = Notification.Name("titleDeleted")
     static let titleUpdated = Notification.Name("titleUpdated")
     
+    static let downloadStarted = Notification.Name("downloadStarted")
+    static let downloadProgress = Notification.Name("downloadProgress")
+    static let downloadCompleted = Notification.Name("downloadCompleted")
+    static let downloadFailed = Notification.Name("downloadFailed")
+    static let downloadQueueUpdated = Notification.Name("downloadQueueUpdated")
+    static let chapterReadStatusChanged = Notification.Name("chapterReadStatusChanged")
     
 }

@@ -14,16 +14,27 @@ struct ReaderView: View {
     @State private var isZooming: Bool = false
     @State private var showDownloadAlert = false
     @State private var downloadAlertMessage = ""
+    @State private var loadedImages: [UIImage] = []
+    @State private var isLoadingFromStorage = false
+    
+    var isDownloaded: Bool {
+        chapter.isDownloaded
+    }
     
     var body: some View {
         ZStack {
             Color.black
                 .ignoresSafeArea()
-            if readerJava.isLoading {
+            
+            if isLoadingFromStorage && isDownloaded {
+                ProgressView("Loading from storage...")
+                    .scaleEffect(1.5)
+                    .foregroundColor(.white)
+            } else if readerJava.isLoading && !isDownloaded {
                 ProgressView("Loading chapter...")
                     .scaleEffect(1.5)
                     .foregroundColor(.white)
-            } else if let error = readerJava.error {
+            } else if let error = readerJava.error, !isDownloaded {
                 VStack {
                     Text("Error")
                         .font(.title)
@@ -39,7 +50,7 @@ struct ReaderView: View {
                     }
                     .buttonStyle(.borderedProminent)
                 }
-            } else if readerJava.images.isEmpty {
+            } else if loadedImages.isEmpty && readerJava.images.isEmpty {
                 VStack {
                     Text("No Content")
                         .font(.title)
@@ -50,10 +61,11 @@ struct ReaderView: View {
                 }
             } else {
                 ZStack {
-                    // Main image viewer - Use ZStack instead of TabView for manual control
-                    if readerJava.images.indices.contains(currentPageIndex) {
+                    // Main image viewer
+                    let images = isDownloaded ? loadedImages : readerJava.images
+                    if images.indices.contains(currentPageIndex) {
                         ZoomableImageView(
-                            image: readerJava.images[currentPageIndex],
+                            image: images[currentPageIndex],
                             zoomScale: $zoomScale,
                             lastZoomScale: $lastZoomScale,
                             isZooming: $isZooming
@@ -107,7 +119,8 @@ struct ReaderView: View {
                         Text("Chapter \(chapter.formattedChapterNumber)")
                             .font(.headline)
                             .foregroundColor(.white)
-                        Text("\(currentPageIndex + 1)/\(readerJava.images.count)")
+                        let images = isDownloaded ? loadedImages : readerJava.images
+                        Text("\(currentPageIndex + 1)/\(images.count)")
                             .font(.caption)
                             .foregroundColor(.white)
                     }
@@ -124,15 +137,24 @@ struct ReaderView: View {
             }
         }
         .onAppear {
-            loadChapter()
+            if isDownloaded {
+                loadFromStorage()
+            } else {
+                loadChapter()
+            }
             // Force hide with a small delay to ensure the view is fully presented
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 tabBarManager.isTabBarHidden = true
                 print("ReaderView appeared - Tab bar hidden: \(tabBarManager.isTabBarHidden)")
             }
+            
+            // Mark chapter as read when opened
+            markChapterAsRead()
         }
         .onDisappear {
-            readerJava.clearCache()
+            if !isDownloaded {
+                readerJava.clearCache()
+            }
             // Force show with a small delay
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 tabBarManager.isTabBarHidden = true
@@ -158,14 +180,64 @@ struct ReaderView: View {
         readerJava.loadChapter(url: url)
     }
     
+    private func loadFromStorage() {
+        isLoadingFromStorage = true
+        let chapterId = chapter.id.uuidString
+        let fileManager = FileManager.default
+        
+        guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            isLoadingFromStorage = false
+            return
+        }
+        
+        let chapterDirectory = documentsDirectory.appendingPathComponent("Downloads/\(chapterId)")
+        
+        DispatchQueue.global(qos: .userInitiated).async {
+            var images: [UIImage] = []
+            
+            // Load images from directory
+            do {
+                let files = try fileManager.contentsOfDirectory(at: chapterDirectory, includingPropertiesForKeys: nil)
+                let imageFiles = files.filter { $0.pathExtension == "jpg" }.sorted { $0.lastPathComponent < $1.lastPathComponent }
+                
+                for imageFile in imageFiles {
+                    if let imageData = try? Data(contentsOf: imageFile),
+                       let image = UIImage(data: imageData) {
+                        images.append(image)
+                    }
+                }
+                
+                DispatchQueue.main.async {
+                    self.loadedImages = images
+                    self.isLoadingFromStorage = false
+                }
+            } catch {
+                print("Error loading chapter from storage: \(error)")
+                DispatchQueue.main.async {
+                    self.isLoadingFromStorage = false
+                }
+            }
+        }
+    }
+    
+    private func markChapterAsRead() {
+        // Notify that chapter has been read
+        NotificationCenter.default.post(
+            name: .chapterReadStatusChanged,
+            object: nil,
+            userInfo: ["chapterId": chapter.id]
+        )
+    }
+    
     private func downloadCurrentImage() {
-        guard readerJava.images.indices.contains(currentPageIndex) else {
+        let images = isDownloaded ? loadedImages : readerJava.images
+        guard images.indices.contains(currentPageIndex) else {
             downloadAlertMessage = "No image available to download"
             showDownloadAlert = true
             return
         }
         
-        let image = readerJava.images[currentPageIndex]
+        let image = images[currentPageIndex]
         saveImageToPhotos(image)
     }
     
@@ -251,7 +323,8 @@ struct ReaderView: View {
     }
     
     private func navigateToNextPage() {
-        guard currentPageIndex < readerJava.images.count - 1 else { return }
+        let images = isDownloaded ? loadedImages : readerJava.images
+        guard currentPageIndex < images.count - 1 else { return }
         withAnimation {
             currentPageIndex += 1
             resetZoom()
@@ -359,5 +432,3 @@ struct ZoomableImageView: View {
         }
     }
 }
-
-

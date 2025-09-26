@@ -5,78 +5,7 @@
 //  Created by Brody Wells on 8/25/25.
 //
 
-
 import SwiftUI
-
-// MARK: - Title Struct
-struct Title: Identifiable, Codable {
-    let id: UUID
-    var title: String
-    var author: String
-    let status: String
-    var coverImageData: Data?
-    let chapters: [Chapter]
-    let metadata: [String: Any]
-    var isDownloaded: Bool
-    var isArchived: Bool
-    var sourceURL: String?
-    
-    // Coding keys to handle the metadata dictionary
-    enum CodingKeys: String, CodingKey {
-        case id, title, author, status, coverImageData, chapters, isDownloaded, isArchived, metadata, sourceURL
-    }
-    
-    init(id: UUID = UUID(), title: String, author: String, status: String,
-         coverImageData: Data?, chapters: [Chapter], metadata: [String: Any],
-         isDownloaded: Bool = false, isArchived: Bool = false, sourceURL: String? = nil) { // ADD sourceURL PARAMETER
-        self.id = id
-        self.title = title
-        self.author = author
-        self.status = status
-        self.coverImageData = coverImageData
-        self.chapters = chapters
-        self.metadata = metadata
-        self.isDownloaded = isDownloaded
-        self.isArchived = isArchived
-        self.sourceURL = sourceURL
-    }
-    
-    // Custom encoding
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(id, forKey: .id)
-        try container.encode(title, forKey: .title)
-        try container.encode(author, forKey: .author)
-        try container.encode(status, forKey: .status)
-        try container.encode(coverImageData, forKey: .coverImageData)
-        try container.encode(chapters, forKey: .chapters)
-        try container.encode(isDownloaded, forKey: .isDownloaded)
-        try container.encode(isArchived, forKey: .isArchived)
-        try container.encode(sourceURL, forKey: .sourceURL) // ENCODE sourceURL
-        
-        // Encode metadata as JSON data
-        let metadataData = try JSONSerialization.data(withJSONObject: metadata, options: [])
-        try container.encode(metadataData, forKey: .metadata)
-    }
-    
-    // Custom decoding
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(UUID.self, forKey: .id)
-        title = try container.decode(String.self, forKey: .title)
-        author = try container.decode(String.self, forKey: .author)
-        status = try container.decode(String.self, forKey: .status)
-        coverImageData = try container.decode(Data?.self, forKey: .coverImageData)
-        chapters = try container.decode([Chapter].self, forKey: .chapters)
-        isDownloaded = try container.decode(Bool.self, forKey: .isDownloaded)
-        isArchived = try container.decode(Bool.self, forKey: .isArchived)
-        sourceURL = try container.decodeIfPresent(String.self, forKey: .sourceURL) // DECODE sourceURL
-        
-        // Decode metadata from JSON data
-        let metadataData = try container.decode(Data.self, forKey: .metadata)
-        metadata = try JSONSerialization.jsonObject(with: metadataData) as? [String: Any] ?? [:]
-    }
-}
 
 // MARK: - Library Screen
 struct LibraryView: View {
@@ -90,7 +19,6 @@ struct LibraryView: View {
     // Tabs (Reading, Downloads, Archive)
     enum LibraryTab: String, CaseIterable {
         case reading = "Reading"
-        case downloads = "Downloads"
         case archive = "Archive"
     }
     
@@ -99,7 +27,6 @@ struct LibraryView: View {
         let filtered: [Title]
         switch selectedTab {
         case .reading: filtered = titles.filter { !$0.isArchived }
-        case .downloads: filtered = titles.filter { $0.isDownloaded }
         case .archive: filtered = titles.filter { $0.isArchived }
         }
         
@@ -135,8 +62,8 @@ struct LibraryView: View {
                     .pickerStyle(SegmentedPickerStyle())
                     .fixedSize()
                     .padding(.horizontal)
-                    .scaleEffect(x: 0.9, y: 1.0)
-                    .offset(y: -5)
+                    .scaleEffect(x: 1.3, y: 1.3)
+                    .offset (x:-25, y: -5)
                     
                     Spacer()
                     
@@ -221,6 +148,18 @@ struct LibraryView: View {
                                                 .foregroundColor(.primary)
                                                 .lineLimit(1)
                                             
+                                            // Download info for downloaded titles
+                                            if title.isDownloaded && !title.downloadedChapters.isEmpty {
+                                                HStack(spacing: 4) {
+                                                    Text("\(title.downloadedChapters.count) Chp\(title.downloadedChapters.count > 1 ? "s" : "")")
+                                                        .font(.caption2)
+                                                        .fontWeight(.medium)
+                                                    
+                                                    Text("[\(title.formattedDownloadSize)]")
+                                                        .font(.caption2)
+                                                        .foregroundColor(.secondary)
+                                                }
+                                            }
                                         }
                                         .padding(.horizontal, 4)
                                     }
@@ -247,6 +186,12 @@ struct LibraryView: View {
             .onReceive(NotificationCenter.default.publisher(for: .titleUpdated)) { _ in
                 loadTitles()
             }
+            .onReceive(NotificationCenter.default.publisher(for: .downloadCompleted)) { _ in
+                loadTitles()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .chapterReadStatusChanged)) { _ in
+                loadTitles()
+            }
         }
         .navigationViewStyle(StackNavigationViewStyle())
     }
@@ -256,8 +201,6 @@ struct LibraryView: View {
         switch selectedTab {
         case .reading:
             return "Your reading list is empty. Add some titles to get started!"
-        case .downloads:
-            return "No downloaded titles yet. Download titles to read them offline."
         case .archive:
             return "Your archive is empty. Archive titles you've finished reading."
         }
@@ -301,4 +244,3 @@ struct LibraryView: View {
         }
     }
 }
-

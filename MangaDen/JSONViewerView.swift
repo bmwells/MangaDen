@@ -121,17 +121,19 @@ struct JSONViewerView: View {
                         let data = try Data(contentsOf: fileURL)
                         let jsonObject = try JSONSerialization.jsonObject(with: data, options: [])
                         
-                        // Parse the JSON array into Chapter objects
+                        // Parse the JSON array into Chapter objects using the new struct
                         if let jsonArray = jsonObject as? [[String: Any]] {
                             var parsedChapters: [Chapter] = []
                             
                             for chapterDict in jsonArray {
-                                if let chapter = Chapter(from: chapterDict) {
+                                if let chapter = parseChapter(from: chapterDict) {
                                     parsedChapters.append(chapter)
                                 }
                             }
                             
-                            // The JSON is already in descending order, so we can use it as-is
+                            // Sort chapters by chapter number (descending)
+                            parsedChapters.sort { $0.chapterNumber > $1.chapterNumber }
+                            
                             let prettyData = try JSONSerialization.data(withJSONObject: jsonArray, options: [.prettyPrinted])
                             let jsonString = String(data: prettyData, encoding: .utf8) ?? "Failed to decode JSON"
                             
@@ -160,14 +162,53 @@ struct JSONViewerView: View {
         }
     }
     
+    private func parseChapter(from dict: [String: Any]) -> Chapter? {
+        guard let chapterNumber = dict["chapter_number"] as? Double,
+              let url = dict["url"] as? String else {
+            return nil
+        }
+        
+        return Chapter(
+            chapterNumber: chapterNumber,
+            url: url,
+            title: dict["title"] as? String,
+            uploadDate: dict["upload_date"] as? String,
+            isDownloaded: false,
+            isRead: false,
+            downloadProgress: 0.0,
+            totalImages: 0,
+            downloadedImages: 0
+        )
+    }
+    
     private func loadMangaMetadata() {
         DispatchQueue.global(qos: .userInitiated).async {
-            if let metadata = AddTitleJAVA.loadMangaMetadata() {
+            if let metadata = loadMangaMetadataFromFile() {
                 DispatchQueue.main.async {
                     self.mangaMetadata = metadata
                 }
             }
         }
+    }
+    
+    private func loadMangaMetadataFromFile() -> [String: Any]? {
+        guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            return nil
+        }
+        
+        let metadataFile = documentsDirectory.appendingPathComponent("manga_metadata.json")
+        
+        if FileManager.default.fileExists(atPath: metadataFile.path) {
+            do {
+                let data = try Data(contentsOf: metadataFile)
+                let metadata = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+                return metadata
+            } catch {
+                print("Error loading manga metadata: \(error)")
+            }
+        }
+        
+        return nil
     }
 }
 
@@ -338,58 +379,6 @@ struct MangaMetadataDetailView: View {
                 }
             }
         }
-    }
-}
-
-// Chapter model to represent the JSON structure
-struct Chapter: Identifiable, Codable {
-    let id: UUID
-    let chapterNumber: Double
-    let url: String
-    let title: String?
-    let uploadDate: String?
-    
-    var formattedChapterNumber: String {
-        // Remove trailing .0 if it's a whole number
-        if chapterNumber.truncatingRemainder(dividingBy: 1) == 0 {
-            return String(format: "%.0f", chapterNumber)
-        } else {
-            return String(chapterNumber)
-        }
-    }
-    
-    init?(from dict: [String: Any]) {
-        guard let chapterNumber = dict["chapter_number"] as? Double,
-              let url = dict["url"] as? String else {
-            return nil
-        }
-        
-        self.id = UUID()
-        self.chapterNumber = chapterNumber
-        self.url = url
-        self.title = dict["title"] as? String
-        self.uploadDate = dict["upload_date"] as? String
-    }
-    
-    init(id: UUID = UUID(), chapterNumber: Double, url: String, title: String? = nil, uploadDate: String? = nil) {
-        self.id = id
-        self.chapterNumber = chapterNumber
-        self.url = url
-        self.title = title
-        self.uploadDate = uploadDate
-    }
-    
-    enum CodingKeys: String, CodingKey {
-        case id, chapterNumber, url, title, uploadDate
-    }
-    
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(UUID.self, forKey: .id)
-        chapterNumber = try container.decode(Double.self, forKey: .chapterNumber)
-        url = try container.decode(String.self, forKey: .url)
-        title = try container.decodeIfPresent(String.self, forKey: .title)
-        uploadDate = try container.decodeIfPresent(String.self, forKey: .uploadDate)
     }
 }
 
