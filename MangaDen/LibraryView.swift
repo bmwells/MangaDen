@@ -100,13 +100,6 @@ struct LibraryView: View {
                             ForEach(filteredTitles) { title in
                                 NavigationLink(destination: TitleView(title: title)) {
                                     VStack(spacing: 8) {
-                                        Text(title.title)
-                                            .font(.body)
-                                            .fontWeight(.medium)
-                                            .foregroundColor(.primary)
-                                            .lineLimit(1)
-                                            .multilineTextAlignment(.center)
-                                        
                                         if let imageData = title.coverImageData, let uiImage = UIImage(data: imageData) {
                                             Image(uiImage: uiImage)
                                                 .resizable()
@@ -143,10 +136,14 @@ struct LibraryView: View {
                                         }
                                         
                                         VStack(spacing: 4) {
-                                            Text(title.author)
-                                                .font(.caption2)
+                                            // Title Text below Image
+                                            Text(title.title)
+                                                .font(.headline)
+                                                .fontWeight(.medium)
                                                 .foregroundColor(.primary)
                                                 .lineLimit(1)
+                                                .multilineTextAlignment(.center)
+                    
                                             
                                             // Download info for downloaded titles
                                             if title.isDownloaded && !title.downloadedChapters.isEmpty {

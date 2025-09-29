@@ -110,7 +110,7 @@ struct Title: Identifiable, Codable {
     let id: UUID
     var title: String
     var author: String
-    let status: String
+    var status: String
     var coverImageData: Data?
     var chapters: [Chapter]
     let metadata: [String: Any]

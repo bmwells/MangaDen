@@ -13,6 +13,7 @@ struct TitleView: View {
     @State private var showEditSheet = false
     @State private var editedTitle: String = ""
     @State private var editedAuthor: String = ""
+    @State private var editedStatus: String = "" // ADD THIS
     @State private var selectedCoverImage: UIImage?
     @State private var coverImageItem: PhotosPickerItem?
     @State private var showDownloadMode = false
@@ -84,11 +85,8 @@ struct TitleView: View {
                     }
                     .frame(height: 300)
                     
-                    // Title and Author (will be hidden when scrolling)
+                    // Title and Author
                     VStack(spacing: 8) {
-                        
-                        
-                        
                         // Download info for downloaded titles
                         if !title.downloadedChapters.isEmpty {
                             Text("\(title.downloadedChapters.count) Chapter\(title.downloadedChapters.count == 1 ? "" : "s") Downloaded [\(title.formattedDownloadSize)]")
@@ -99,19 +97,21 @@ struct TitleView: View {
                         }
                         
                         Text(editedTitle.isEmpty ? title.title : editedTitle)
-                            .font(.title2)
+                            .font(.title)
                             .fontWeight(.bold)
                             .multilineTextAlignment(.center)
                         
-                        Text("by \(editedAuthor.isEmpty ? title.author : editedAuthor)")
-                            .font(.headline)
-                            .foregroundColor(.secondary)
-                    
+                        // Only show author if it exists
+                        if !(editedAuthor.isEmpty ? title.author : editedAuthor).isEmpty {
+                            Text("by \(editedAuthor.isEmpty ? title.author : editedAuthor)")
+                                .font(.title3)
+                                .foregroundColor(.secondary)
+                        }
                         
                         // Status badge
                         HStack {
                             Spacer()
-                            StatusBadge(status: title.status)
+                            StatusBadge(status: editedStatus.isEmpty ? title.status : editedStatus)
                             Spacer()
                         }
                         .padding(.top, 4)
@@ -319,6 +319,7 @@ struct TitleView: View {
                 title: title,
                 editedTitle: $editedTitle,
                 editedAuthor: $editedAuthor,
+                editedStatus: $editedStatus, // ADD THIS
                 selectedCoverImage: $selectedCoverImage,
                 coverImageItem: $coverImageItem,
                 onSave: saveTitleChanges
@@ -328,6 +329,7 @@ struct TitleView: View {
             loadReadingDirection()
             editedTitle = title.title
             editedAuthor = title.author
+            editedStatus = title.status // ADD THIS
             tabBarManager.isTabBarHidden = true
             print("TitleView appeared - Tab bar hidden: \(tabBarManager.isTabBarHidden)")
         }
@@ -461,6 +463,7 @@ struct TitleView: View {
             var updatedTitle = title
             updatedTitle.title = editedTitle
             updatedTitle.author = editedAuthor
+            updatedTitle.status = editedStatus // ADD THIS
             
             // Update cover image if changed
             if let newCoverImage = selectedCoverImage {
@@ -473,7 +476,7 @@ struct TitleView: View {
             
             let titleData = try JSONEncoder().encode(updatedTitle)
             try titleData.write(to: titleFile)
-            print("Updated title info: \(updatedTitle.title) by \(updatedTitle.author)")
+            print("Updated title info: \(updatedTitle.title) by \(updatedTitle.author) with status: \(updatedTitle.status)") // UPDATED
             
             // Notify LibraryView to refresh
             NotificationCenter.default.post(name: .titleUpdated, object: nil)
@@ -645,13 +648,13 @@ struct StatusBadge: View {
     
     var body: some View {
         Text(status.capitalized)
-            .font(.caption)
+            .font(.headline)
             .fontWeight(.semibold)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 4)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
             .background(statusColor)
             .foregroundColor(.white)
-            .cornerRadius(8)
+            .cornerRadius(12)
             
     }
     
@@ -673,15 +676,26 @@ struct ViewOffsetKey: PreferenceKey {
     }
 }
 
+
+
+
+
 // MARK: - EDIT TITLE VIEW
 struct EditTitleView: View {
     let title: Title
     @Binding var editedTitle: String
     @Binding var editedAuthor: String
+    @Binding var editedStatus: String
     @Binding var selectedCoverImage: UIImage?
     @Binding var coverImageItem: PhotosPickerItem?
     let onSave: () -> Void
     @Environment(\.dismiss) private var dismiss
+    
+    let statusOptions = [
+        ("Releasing", "releasing", Color.blue),
+        ("Completed", "completed", Color.green),
+        ("Hiatus", "hiatus", Color.orange)
+    ]
     
     var body: some View {
         NavigationStack {
@@ -732,7 +746,36 @@ struct EditTitleView: View {
                 
                 Section(header: Text("Title Information")) {
                     TextField("Title", text: $editedTitle)
-                    TextField("Author", text: $editedAuthor)
+                    TextField("Author (optional)", text: $editedAuthor)
+                }
+                
+                // Status Picker Section - UPDATED to use binding
+                Section(header: Text("Status")) {
+                    HStack(spacing: 0) {
+                        ForEach(statusOptions, id: \.1) { displayName, value, color in
+                            Button(action: {
+                                editedStatus = value
+                            }) {
+                                Text(displayName)
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(editedStatus == value ? .white : color)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .background(editedStatus == value ? color : color.opacity(0.1))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(color, lineWidth: 2)
+                                    )
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            
+                            if value != statusOptions.last?.1 {
+                                Spacer().frame(width: 8)
+                            }
+                        }
+                    }
+                    .padding(.vertical, 4)
                 }
                 
             }
@@ -750,7 +793,7 @@ struct EditTitleView: View {
                         onSave()
                         dismiss()
                     }
-                    .disabled(editedTitle.isEmpty || editedAuthor.isEmpty)
+                    .disabled(editedTitle.isEmpty) // Only require title, not author
                 }
             }
             .onChange(of: coverImageItem) { oldItem, newItem in
@@ -768,9 +811,20 @@ struct EditTitleView: View {
                 if editedAuthor.isEmpty {
                     editedAuthor = title.author
                 }
+                // Set initial status - UPDATED
+                if editedStatus.isEmpty {
+                    editedStatus = title.status.lowercased()
+                }
             }
         }
     }
+}
+
+
+
+
+#Preview {
+    ContentView()
 }
 
 
