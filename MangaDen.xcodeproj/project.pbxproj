@@ -105,13 +105,13 @@
 		27130DA22E8C529D006FF48A /* Views */ = {
 			isa = PBXGroup;
 			children = (
-				27130DAB2E8C53C3006FF48A /* Title */,
-				27130DA92E8C52FC006FF48A /* AddTitle */,
-				27130DA72E8C52D3006FF48A /* Settings */,
-				27130DA62E8C52CB006FF48A /* Downloads */,
-				27130DA52E8C52B9006FF48A /* Browser */,
-				27130DA42E8C52B2006FF48A /* Reader */,
 				27130DA32E8C52A4006FF48A /* Main */,
+				27130DAB2E8C53C3006FF48A /* Title */,
+				27130DA42E8C52B2006FF48A /* Reader */,
+				27130DA72E8C52D3006FF48A /* Settings */,
+				27130DA92E8C52FC006FF48A /* AddTitle */,
+				27130DA52E8C52B9006FF48A /* Browser */,
+				27130DA62E8C52CB006FF48A /* Downloads */,
 			);
 			path = Views;
 			sourceTree = "<group>";
