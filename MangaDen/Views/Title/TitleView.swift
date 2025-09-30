@@ -261,40 +261,39 @@ struct TitleView: View {
             
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
+                    // Refresh Title
                     Button(action: {
                         // Refresh Title action
                     }) {
                         Label("Refresh Title", systemImage: "arrow.clockwise")
                     }
-                    
+                    // Edit Title Info
                     Button(action: {
                         showEditSheet = true
                     }) {
                         Label("Edit Title Info", systemImage: "pencil")
                     }
-                    
-                    if title.isDownloaded {
-                        Button(role: .destructive, action: {
-                            removeDownloadedChapters()
-                        }) {
-                            Label("Remove Chapters", systemImage: "trash")
+                    // Download Chapters
+                    Button(action: {
+                        withAnimation {
+                            showDownloadMode.toggle()
                         }
-                    } else {
-                        Button(action: {
-                            withAnimation {
-                                showDownloadMode.toggle()
-                            }
-                        }) {
-                            Label("Download Title", systemImage: "arrow.down.circle")
-                        }
+                    }) {
+                        Label("Download Chapters", systemImage: "arrow.down.circle")
                     }
-                    
+                    // Manage Chapters
+                    Button(action: {
+                        // Manage Chapters Action
+                    }) {
+                        Label("Manage Chapters", systemImage: "list.dash")
+                    }
+                    // Archive Title
                     Button(action: {
                         toggleArchiveStatus()
                     }) {
                         Label(archiveButtonText(), systemImage: archiveButtonIcon())
                     }
-                    
+                    // Delete Title
                     Button(role: .destructive, action: {
                         showDeleteConfirmation = true
                     }) {
@@ -319,7 +318,7 @@ struct TitleView: View {
                 title: title,
                 editedTitle: $editedTitle,
                 editedAuthor: $editedAuthor,
-                editedStatus: $editedStatus, // ADD THIS
+                editedStatus: $editedStatus,
                 selectedCoverImage: $selectedCoverImage,
                 coverImageItem: $coverImageItem,
                 onSave: saveTitleChanges
@@ -329,7 +328,7 @@ struct TitleView: View {
             loadReadingDirection()
             editedTitle = title.title
             editedAuthor = title.author
-            editedStatus = title.status // ADD THIS
+            editedStatus = title.status
             tabBarManager.isTabBarHidden = true
             print("TitleView appeared - Tab bar hidden: \(tabBarManager.isTabBarHidden)")
         }
@@ -374,12 +373,6 @@ struct TitleView: View {
         } catch {
             print("Error marking chapter as read: \(error)")
         }
-    }
-    
-    private func removeDownloadedChapters() {
-        // Implementation for removing downloaded chapters
-        // This would delete the downloaded files and update the title
-        print("Remove downloaded chapters functionality to be implemented")
     }
     
     private func toggleArchiveStatus() {

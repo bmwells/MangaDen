@@ -102,6 +102,91 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		27130DA22E8C529D006FF48A /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				27130DAB2E8C53C3006FF48A /* Title */,
+				27130DA92E8C52FC006FF48A /* AddTitle */,
+				27130DA72E8C52D3006FF48A /* Settings */,
+				27130DA62E8C52CB006FF48A /* Downloads */,
+				27130DA52E8C52B9006FF48A /* Browser */,
+				27130DA42E8C52B2006FF48A /* Reader */,
+				27130DA32E8C52A4006FF48A /* Main */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		27130DA32E8C52A4006FF48A /* Main */ = {
+			isa = PBXGroup;
+			children = (
+				271345C32E5D07B000BC7435 /* ContentView.swift */,
+				271345EB2E5D283700BC7435 /* LibraryView.swift */,
+			);
+			path = Main;
+			sourceTree = "<group>";
+		};
+		27130DA42E8C52B2006FF48A /* Reader */ = {
+			isa = PBXGroup;
+			children = (
+				271346112E68084100BC7435 /* ReaderViewJAVA.swift */,
+				271346072E67B4F700BC7435 /* ReaderView.swift */,
+			);
+			path = Reader;
+			sourceTree = "<group>";
+		};
+		27130DA52E8C52B9006FF48A /* Browser */ = {
+			isa = PBXGroup;
+			children = (
+				271345F32E5E50ED00BC7435 /* DLWebView.swift */,
+				271345F52E5E53A400BC7435 /* BrowserView.swift */,
+				271346012E618AA500BC7435 /* JSONViewerView.swift */,
+			);
+			path = Browser;
+			sourceTree = "<group>";
+		};
+		27130DA62E8C52CB006FF48A /* Downloads */ = {
+			isa = PBXGroup;
+			children = (
+				271345EF2E5D28C200BC7435 /* DownloadsView.swift */,
+				27901F4C2E8732C400C57418 /* DownloadManager.swift */,
+			);
+			path = Downloads;
+			sourceTree = "<group>";
+		};
+		27130DA72E8C52D3006FF48A /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				271345F12E5D28D800BC7435 /* SettingsView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		27130DA92E8C52FC006FF48A /* AddTitle */ = {
+			isa = PBXGroup;
+			children = (
+				2713460F2E68062A00BC7435 /* AddTitleJAVA.swift */,
+				271345ED2E5D28A500BC7435 /* AddTitleView.swift */,
+			);
+			path = AddTitle;
+			sourceTree = "<group>";
+		};
+		27130DAA2E8C539C006FF48A /* App */ = {
+			isa = PBXGroup;
+			children = (
+				271345C12E5D07B000BC7435 /* MangaDenApp.swift */,
+				2793268A2E835FFE001AA1AC /* TabBarManager.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		27130DAB2E8C53C3006FF48A /* Title */ = {
+			isa = PBXGroup;
+			children = (
+				271346052E67B4D400BC7435 /* TitleView.swift */,
+			);
+			path = Title;
+			sourceTree = "<group>";
+		};
 		271345B52E5D07B000BC7435 = {
 			isa = PBXGroup;
 			children = (
@@ -126,23 +211,10 @@
 			isa = PBXGroup;
 			children = (
 				279326892E833F33001AA1AC /* Info.plist */,
-				271345C12E5D07B000BC7435 /* MangaDenApp.swift */,
-				271345C32E5D07B000BC7435 /* ContentView.swift */,
-				271346012E618AA500BC7435 /* JSONViewerView.swift */,
-				2713460F2E68062A00BC7435 /* AddTitleJAVA.swift */,
-				271345EB2E5D283700BC7435 /* LibraryView.swift */,
-				271346052E67B4D400BC7435 /* TitleView.swift */,
-				271346112E68084100BC7435 /* ReaderViewJAVA.swift */,
-				2793268A2E835FFE001AA1AC /* TabBarManager.swift */,
+				27130DAA2E8C539C006FF48A /* App */,
+				27130DA22E8C529D006FF48A /* Views */,
 				27901F4A2E8732A800C57418 /* Models.swift */,
-				271346072E67B4F700BC7435 /* ReaderView.swift */,
-				27901F4C2E8732C400C57418 /* DownloadManager.swift */,
-				271345F52E5E53A400BC7435 /* BrowserView.swift */,
-				271345ED2E5D28A500BC7435 /* AddTitleView.swift */,
-				271345F32E5E50ED00BC7435 /* DLWebView.swift */,
 				271346092E67C61F00BC7435 /* Notifications.swift */,
-				271345F12E5D28D800BC7435 /* SettingsView.swift */,
-				271345EF2E5D28C200BC7435 /* DownloadsView.swift */,
 				271345C52E5D07B100BC7435 /* Assets.xcassets */,
 				271345C72E5D07B100BC7435 /* Preview Content */,
 			);
