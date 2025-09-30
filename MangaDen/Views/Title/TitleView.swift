@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import WebKit
 
 struct TitleView: View {
     let title: Title
@@ -23,15 +24,17 @@ struct TitleView: View {
     @State private var chapterToDelete: Chapter?
     @State private var showUninstallAllConfirmation = false
     @State private var hiddenChapterURLs: Set<String> = []
+    @State private var isRefreshing = false
+    @State private var showRefreshResult = false
+    @State private var refreshResultMessage = ""
+    @State private var newChaptersCount = 0
     @Environment(\.dismiss) private var dismiss
     
     // Filter chapters based on current tab and manage mode
     var displayChapters: [Chapter] {
         if showManageMode && manageMode == .uninstallDownloaded {
-            // Only show downloaded chapters in uninstall mode
             return title.downloadedChapters
         } else {
-            // Regular display - show all chapters except hidden ones
             let chapters = title.isDownloaded ? title.downloadedChapters : title.chapters
             return chapters.filter { !hiddenChapterURLs.contains($0.url) }
         }
@@ -41,314 +44,23 @@ struct TitleView: View {
         GeometryReader { geometry in
             ScrollView {
                 VStack(spacing: 0) {
-                    // Cover Image with blurred edges
-                    ZStack {
-                        if let selectedCoverImage = selectedCoverImage {
-                            Image(uiImage: selectedCoverImage)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: geometry.size.width, height: 300 + max(0, -scrollOffset))
-                                .clipped()
-                                .blur(radius: 10)
-                                .scaleEffect(1.05)
-                                .offset(y: min(0, scrollOffset * 0.5))
-                            
-                            Image(uiImage: selectedCoverImage)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(height: 300)
-                                .cornerRadius(12)
-                                .shadow(radius: 5)
-                                .padding(.horizontal)
-                                .offset(y: min(0, scrollOffset * 0.5))
-                        } else if let imageData = title.coverImageData, let uiImage = UIImage(data: imageData) {
-                            Image(uiImage: uiImage)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: geometry.size.width, height: 300 + max(0, -scrollOffset))
-                                .clipped()
-                                .blur(radius: 10)
-                                .scaleEffect(1.05)
-                                .offset(y: min(0, scrollOffset * 0.5))
-                            
-                            Image(uiImage: uiImage)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(height: 300)
-                                .cornerRadius(12)
-                                .shadow(radius: 5)
-                                .padding(.horizontal)
-                                .offset(y: min(0, scrollOffset * 0.5))
-                        } else {
-                            Rectangle()
-                                .fill(Color.blue.opacity(0.3))
-                                .frame(width: geometry.size.width, height: 300 + max(0, -scrollOffset))
-                                .clipped()
-                                .offset(y: min(0, scrollOffset * 0.5))
-                                .overlay(
-                                    Text(title.title.prefix(1))
-                                        .font(.system(size: 80))
-                                        .foregroundColor(.white)
-                                )
-                        }
-                    }
-                    .frame(height: 300)
+                    coverImageSection(geometry: geometry)
+                    titleInfoSection
                     
-                    // Title and Author
-                    VStack(spacing: 8) {
-                        // Download info for downloaded titles
-                        if !title.downloadedChapters.isEmpty {
-                            Text("\(title.downloadedChapters.count) Chapter\(title.downloadedChapters.count == 1 ? "" : "s") Downloaded [\(title.formattedDownloadSize)]")
-                                .font(.subheadline)
-                                .foregroundColor(.blue)
-                                .fontWeight(.medium)
-                                .padding(.top, 4)
-                        }
-                        
-                        Text(editedTitle.isEmpty ? title.title : editedTitle)
-                            .font(.title)
-                            .fontWeight(.bold)
-                            .multilineTextAlignment(.center)
-                        
-                        // Only show author if it exists
-                        if !(editedAuthor.isEmpty ? title.author : editedAuthor).isEmpty {
-                            Text("by \(editedAuthor.isEmpty ? title.author : editedAuthor)")
-                                .font(.title3)
-                                .foregroundColor(.secondary)
-                        }
-                        
-                        // Status badge
-                        HStack {
-                            Spacer()
-                            StatusBadge(status: editedStatus.isEmpty ? title.status : editedStatus)
-                            Spacer()
-                        }
-                        .padding(.top, 4)
-                        
-                        // Download Mode Controls
-                        if showDownloadMode {
-                            HStack {
-                                Button("Download All") {
-                                    downloadManager.downloadAllChapters(chapters: title.chapters)
-                                }
-                                .buttonStyle(.borderedProminent)
-                                .disabled(title.chapters.allSatisfy { $0.isDownloaded })
-                                
-                                Spacer()
-                                
-                                Button("Done") {
-                                    withAnimation {
-                                        showDownloadMode = false
-                                    }
-                                }
-                                .buttonStyle(.bordered)
-                            }
-                            .padding(.horizontal)
-                            .padding(.top, 8)
-                        }
-                        
-                        // Manage Mode Controls
-                        // Manage Mode Controls
-                        if showManageMode {
-                            VStack(spacing: 12) {
-                                // First button - Uninstall Downloaded Chapters
-                                if !title.downloadedChapters.isEmpty {
-                                    Button(action: {
-                                        withAnimation {
-                                            manageMode = .uninstallDownloaded
-                                        }
-                                    }) {
-                                        HStack {
-                                            Image(systemName: "trash")
-                                            Text("Uninstall Downloaded Chapters")
-                                            Spacer()
-                                            if manageMode == .uninstallDownloaded {
-                                                Image(systemName: "checkmark")
-                                                    .foregroundColor(.blue)
-                                            }
-                                        }
-                                        .foregroundColor(manageMode == .uninstallDownloaded ? .blue : .primary)
-                                        .padding()
-                                        .background(Color.gray.opacity(0.1))
-                                        .cornerRadius(10)
-                                    }
-                                    
-                                    // Uninstall ALL Chapters button (only shown in uninstall mode)
-                                    if manageMode == .uninstallDownloaded {
-                                        Button(role: .destructive, action: {
-                                            showUninstallAllConfirmation = true
-                                        }) {
-                                            HStack {
-                                                Image(systemName: "exclamationmark.triangle")
-                                                Text("Uninstall ALL Chapters")
-                                                Spacer()
-                                            }
-                                            .padding()
-                                            .background(Color.red.opacity(0.1))
-                                            .cornerRadius(10)
-                                        }
-                                    }
-                                }
-                                // Second button - Hide Chapters in List
-                                Button(action: {
-                                    withAnimation {
-                                        manageMode = .hideFromList
-                                    }
-                                }) {
-                                    HStack {
-                                        Image(systemName: "list.bullet")
-                                        Text("Hide Chapters in List")
-                                        Spacer()
-                                        if manageMode == .hideFromList {
-                                            Image(systemName: "checkmark")
-                                                .foregroundColor(.blue)
-                                        }
-                                    }
-                                    .foregroundColor(manageMode == .hideFromList ? .blue : .primary)
-                                    .padding()
-                                    .background(Color.gray.opacity(0.1))
-                                    .cornerRadius(10)
-                                }
-                                
-                                // Third button - Done
-                                Button(action: {
-                                    withAnimation {
-                                        showManageMode = false
-                                        // Reset to default mode for next time
-                                        manageMode = !title.downloadedChapters.isEmpty ? .uninstallDownloaded : .hideFromList
-                                    }
-                                }) {
-                                    HStack {
-                                        Image(systemName: "checkmark")
-                                        Text("Done")
-                                        Spacer()
-                                    }
-                                    .foregroundColor(.green)
-                                    .padding()
-                                    .background(Color.green.opacity(0.1))
-                                    .cornerRadius(10)
-                                }
-                            }
-                            .padding(.horizontal)
-                            .padding(.top, 8)
-                        }
-                        
-                        // Reading Direction Selector
-                        if !showDownloadMode && !showManageMode {
-                            HStack {
-                                Text("Reading direction:")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                                
-                                Spacer()
-                                
-                                HStack(spacing: 0) {
-                                    Button(action: {
-                                        readingDirection = .leftToRight
-                                        saveReadingDirection()
-                                    }) {
-                                        Text("L→R")
-                                            .font(.subheadline)
-                                            .fontWeight(.semibold)
-                                            .foregroundColor(readingDirection == .leftToRight ? .white : .blue)
-                                            .padding(.horizontal, 16)
-                                            .padding(.vertical, 8)
-                                            .background(readingDirection == .leftToRight ? Color.blue : Color.blue.opacity(0.1))
-                                            .cornerRadius(8)
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: 8)
-                                                    .stroke(Color.blue, lineWidth: 2)
-                                            )
-                                    }
-
-                                    Button(action: {
-                                        readingDirection = .rightToLeft
-                                        saveReadingDirection()
-                                    }) {
-                                        Text("L←R")
-                                            .font(.subheadline)
-                                            .fontWeight(.semibold)
-                                            .foregroundColor(readingDirection == .rightToLeft ? .white : .blue)
-                                            .padding(.horizontal, 16)
-                                            .padding(.vertical, 8)
-                                            .background(readingDirection == .rightToLeft ? Color.blue : Color.blue.opacity(0.1))
-                                            .cornerRadius(8)
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: 8)
-                                                    .stroke(Color.blue, lineWidth: 2)
-                                            )
-                                    }
-                                }
-                                .background(Color.blue.opacity(0.05))
-                                .cornerRadius(8)
-                            }
-                            .padding(.top, 8)
-                            .padding(.horizontal)
-                        }
+                    if showDownloadMode {
+                        downloadModeControls
                     }
-                    .padding(.horizontal)
-                    .padding(.vertical, 20)
-                    .opacity(max(0, 1 - (-scrollOffset / 100)))
+                    
+                    if showManageMode {
+                        manageModeControls
+                    }
+                    
+                    if !showDownloadMode && !showManageMode {
+                        readingDirectionSelector
+                    }
                     
                     Divider()
-                    
-                    // Chapters List
-                    VStack(alignment: .leading, spacing: 8) {
-                        if displayChapters.isEmpty {
-                            Text("No chapters available")
-                                .foregroundColor(.secondary)
-                                .padding()
-                        } else {
-                            LazyVStack(spacing: 0) {
-                                ForEach(displayChapters) { chapter in
-                                    HStack {
-                                        if showDownloadMode {
-                                            Button(action: {
-                                                downloadManager.addToDownloadQueue(chapter: chapter)
-                                            }) {
-                                                Image(systemName: chapter.isDownloaded || downloadManager.downloadQueue.contains { $0.chapter.id == chapter.id } ? "checkmark.circle.fill" : "plus.circle.fill")
-                                                    .font(.title2)
-                                                    .foregroundColor(chapter.isDownloaded || downloadManager.downloadQueue.contains { $0.chapter.id == chapter.id } ? .green : .blue)
-                                            }
-                                            .buttonStyle(PlainButtonStyle())
-                                            .disabled(chapter.isDownloaded || downloadManager.downloadQueue.contains { $0.chapter.id == chapter.id })
-                                        }
-                                        
-                                        if showManageMode {
-                                            Button(action: {
-                                                chapterToDelete = chapter
-                                                showDeleteChapterConfirmation = true
-                                            }) {
-                                                Image(systemName: "minus.circle.fill")
-                                                    .font(.title2)
-                                                    .foregroundColor(.red)
-                                            }
-                                            .buttonStyle(PlainButtonStyle())
-                                        }
-                                        
-                                        NavigationLink(
-                                            destination: ReaderView(chapter: chapter, readingDirection: readingDirection)
-                                                .environmentObject(tabBarManager)
-                                        ) {
-                                            ChapterRowContent(
-                                                chapter: chapter,
-                                                showDownloadButton: showDownloadMode,
-                                                showManageMode: showManageMode
-                                            )
-                                            .contentShape(Rectangle())
-                                        }
-                                        .buttonStyle(PlainButtonStyle())
-                                        .simultaneousGesture(TapGesture().onEnded {
-                                            markChapterAsRead(chapter: chapter)
-                                        })
-                                    }
-                                    
-                                    Divider()
-                                        .padding(.leading, 16)
-                                }
-                            }
-                        }
-                    }
+                    chaptersListSection
                 }
                 .padding(.vertical)
                 .background(GeometryReader {
@@ -369,65 +81,16 @@ struct TitleView: View {
             }
             
             ToolbarItem(placement: .navigationBarTrailing) {
-                Menu {
-                    // Refresh Title
-                    Button(action: {
-                        // Refresh Title action
-                    }) {
-                        Label("Refresh Title", systemImage: "arrow.clockwise")
-                    }
-                    // Edit Title Info
-                    Button(action: {
-                        showEditSheet = true
-                    }) {
-                        Label("Edit Title Info", systemImage: "pencil")
-                    }
-                    // Download Chapters
-                    Button(action: {
-                        withAnimation {
-                            showDownloadMode.toggle()
-                            if showDownloadMode { showManageMode = false }
-                        }
-                    }) {
-                        Label("Download Chapters", systemImage: "arrow.down.circle")
-                    }
-                    // Manage Chapters
-                    Button(action: {
-                        withAnimation {
-                            showManageMode.toggle()
-                            if showManageMode { showDownloadMode = false }
-                        }
-                    }) {
-                        Label("Manage Chapters", systemImage: "list.dash")
-                    }
-                    // Archive Title
-                    Button(action: {
-                        toggleArchiveStatus()
-                    }) {
-                        Label(archiveButtonText(), systemImage: archiveButtonIcon())
-                    }
-                    // Delete Title
-                    Button(role: .destructive, action: {
-                        showDeleteConfirmation = true
-                    }) {
-                        Label("Delete Title", systemImage: "trash")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .font(.system(size: 20))
-                }
+                optionsMenu
             }
         }
+        // Apply the alerts and overlays directly
         .alert("Delete Title", isPresented: $showDeleteConfirmation) {
             Button("Cancel", role: .cancel) { }
-            Button("Delete", role: .destructive) {
-                deleteTitle()
-            }
+            Button("Delete", role: .destructive, action: deleteTitle)
         } message: {
             Text("Are you sure you want to delete \"\(title.title)\" from your library? This action cannot be undone.")
         }
-        
-        
         .alert(manageMode == .hideFromList ? "Hide Chapter" : "Uninstall Chapter", isPresented: $showDeleteChapterConfirmation) {
             Button("Cancel", role: .cancel) { }
             Button(manageMode == .hideFromList ? "Hide" : "Uninstall", role: .destructive) {
@@ -440,12 +103,9 @@ struct TitleView: View {
                 Text("Are you sure you want to \(manageMode == .hideFromList ? "hide" : "uninstall") \"\(chapter.title ?? "Chapter \(chapter.formattedChapterNumber)")\"?")
             }
         }
-        
         .alert("Uninstall All Chapters", isPresented: $showUninstallAllConfirmation) {
             Button("Cancel", role: .cancel) { }
-            Button("Uninstall All", role: .destructive) {
-                uninstallAllChapters()
-            }
+            Button("Uninstall All", role: .destructive, action: uninstallAllChapters)
         } message: {
             Text("Are you sure you want to uninstall ALL downloaded chapters for \"\(title.title)\"? This will remove all downloaded content and cannot be undone.")
         }
@@ -460,17 +120,518 @@ struct TitleView: View {
                 onSave: saveTitleChanges
             )
         }
-        .onAppear {
-            loadReadingDirection()
-            loadHiddenChapters()
-            editedTitle = title.title
-            editedAuthor = title.author
-            editedStatus = title.status
-            manageMode = !title.downloadedChapters.isEmpty ? .uninstallDownloaded : .hideFromList
-            tabBarManager.isTabBarHidden = true
-            print("TitleView appeared - Tab bar hidden: \(tabBarManager.isTabBarHidden)")
+        .overlay {
+            if isRefreshing {
+                Color.black.opacity(0.3)
+                    .ignoresSafeArea()
+                    .transition(.opacity)
+                
+                VStack(spacing: 16) {
+                    ProgressView()
+                        .scaleEffect(1.5)
+                        .tint(.white)
+                    
+                    Text("Refreshing...")
+                        .font(.headline)
+                        .fontWeight(.medium)
+                        .foregroundColor(.white)
+                }
+                .padding(30)
+                .background(
+                    RoundedRectangle(cornerRadius: 15)
+                        .fill(Color.black.opacity(0.8))
+                )
+                .transition(.scale.combined(with: .opacity))
+            }
+        }
+        .alert("Refresh Complete", isPresented: $showRefreshResult) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(refreshResultMessage)
+        }
+        .onAppear(perform: onAppearActions)
+    }
+    
+    // MARK: - Lifecycle
+    private func onAppearActions() {
+        loadReadingDirection()
+        loadHiddenChapters()
+        editedTitle = title.title
+        editedAuthor = title.author
+        editedStatus = title.status
+        manageMode = !title.downloadedChapters.isEmpty ? .uninstallDownloaded : .hideFromList
+        tabBarManager.isTabBarHidden = true
+        print("TitleView appeared - Tab bar hidden: \(tabBarManager.isTabBarHidden)")
+    }
+
+    // MARK: - Alerts
+    private var alerts: some View {
+        EmptyView()
+            .alert("Delete Title", isPresented: $showDeleteConfirmation) {
+                Button("Cancel", role: .cancel) { }
+                Button("Delete", role: .destructive, action: deleteTitle)
+            } message: {
+                Text("Are you sure you want to delete \"\(title.title)\" from your library? This action cannot be undone.")
+            }
+            .alert(manageMode == .hideFromList ? "Hide Chapter" : "Uninstall Chapter", isPresented: $showDeleteChapterConfirmation) {
+                Button("Cancel", role: .cancel) { }
+                Button(manageMode == .hideFromList ? "Hide" : "Uninstall", role: .destructive) {
+                    if let chapter = chapterToDelete {
+                        deleteChapter(chapter)
+                    }
+                }
+            } message: {
+                if let chapter = chapterToDelete {
+                    Text("Are you sure you want to \(manageMode == .hideFromList ? "hide" : "uninstall") \"\(chapter.title ?? "Chapter \(chapter.formattedChapterNumber)")\"?")
+                }
+            }
+            .alert("Uninstall All Chapters", isPresented: $showUninstallAllConfirmation) {
+                Button("Cancel", role: .cancel) { }
+                Button("Uninstall All", role: .destructive, action: uninstallAllChapters)
+            } message: {
+                Text("Are you sure you want to uninstall ALL downloaded chapters for \"\(title.title)\"? This will remove all downloaded content and cannot be undone.")
+            }
+    }
+
+    // MARK: - Refresh Overlay
+    private var refreshOverlay: some View {
+        EmptyView()
+            .overlay {
+                if isRefreshing {
+                    Color.black.opacity(0.3)
+                        .ignoresSafeArea()
+                        .transition(.opacity)
+                    
+                    VStack(spacing: 16) {
+                        ProgressView()
+                            .scaleEffect(1.5)
+                            .tint(.white)
+                        
+                        Text("Refreshing...")
+                            .font(.headline)
+                            .fontWeight(.medium)
+                            .foregroundColor(.white)
+                    }
+                    .padding(30)
+                    .background(
+                        RoundedRectangle(cornerRadius: 15)
+                            .fill(Color.black.opacity(0.8))
+                    )
+                    .transition(.scale.combined(with: .opacity))
+                }
+            }
+    }
+
+    // MARK: - Refresh Alert
+    private var refreshAlert: some View {
+        EmptyView()
+            .alert("Refresh Complete", isPresented: $showRefreshResult) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(refreshResultMessage)
+            }
+    }
+    
+    
+    // MARK: - View Components
+    
+    private func coverImageSection(geometry: GeometryProxy) -> some View {
+        ZStack {
+            if let selectedCoverImage = selectedCoverImage {
+                backgroundCoverImage(selectedCoverImage, geometry: geometry)
+                foregroundCoverImage(selectedCoverImage)
+            } else if let imageData = title.coverImageData, let uiImage = UIImage(data: imageData) {
+                backgroundCoverImage(uiImage, geometry: geometry)
+                foregroundCoverImage(uiImage)
+            } else {
+                placeholderCoverImage(geometry: geometry)
+            }
+        }
+        .frame(height: 300)
+    }
+    
+    private func backgroundCoverImage(_ image: UIImage, geometry: GeometryProxy) -> some View {
+        Image(uiImage: image)
+            .resizable()
+            .scaledToFill()
+            .frame(width: geometry.size.width, height: 300 + max(0, -scrollOffset))
+            .clipped()
+            .blur(radius: 10)
+            .scaleEffect(1.05)
+            .offset(y: min(0, scrollOffset * 0.5))
+    }
+    
+    private func foregroundCoverImage(_ image: UIImage) -> some View {
+        Image(uiImage: image)
+            .resizable()
+            .scaledToFit()
+            .frame(height: 300)
+            .cornerRadius(12)
+            .shadow(radius: 5)
+            .padding(.horizontal)
+            .offset(y: min(0, scrollOffset * 0.5))
+    }
+    
+    private func placeholderCoverImage(geometry: GeometryProxy) -> some View {
+        Rectangle()
+            .fill(Color.blue.opacity(0.3))
+            .frame(width: geometry.size.width, height: 300 + max(0, -scrollOffset))
+            .clipped()
+            .offset(y: min(0, scrollOffset * 0.5))
+            .overlay(
+                Text(title.title.prefix(1))
+                    .font(.system(size: 80))
+                    .foregroundColor(.white)
+            )
+    }
+    
+    private var titleInfoSection: some View {
+        VStack(spacing: 8) {
+            if !title.downloadedChapters.isEmpty {
+                Text("\(title.downloadedChapters.count) Chapter\(title.downloadedChapters.count == 1 ? "" : "s") Downloaded [\(title.formattedDownloadSize)]")
+                    .font(.subheadline)
+                    .foregroundColor(.blue)
+                    .fontWeight(.medium)
+                    .padding(.top, 4)
+            }
+            
+            Text(editedTitle.isEmpty ? title.title : editedTitle)
+                .font(.title)
+                .fontWeight(.bold)
+                .multilineTextAlignment(.center)
+            
+            if !(editedAuthor.isEmpty ? title.author : editedAuthor).isEmpty {
+                Text("by \(editedAuthor.isEmpty ? title.author : editedAuthor)")
+                    .font(.title3)
+                    .foregroundColor(.secondary)
+            }
+            
+            HStack {
+                Spacer()
+                StatusBadge(status: editedStatus.isEmpty ? title.status : editedStatus)
+                Spacer()
+            }
+            .padding(.top, 4)
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 20)
+        .opacity(max(0, 1 - (-scrollOffset / 100)))
+    }
+    
+    private var downloadModeControls: some View {
+        HStack {
+            Button("Download All") {
+                downloadManager.downloadAllChapters(chapters: title.chapters)
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(title.chapters.allSatisfy { $0.isDownloaded })
+            
+            Spacer()
+            
+            Button("Done") {
+                withAnimation {
+                    showDownloadMode = false
+                }
+            }
+            .buttonStyle(.bordered)
+        }
+        .padding(.horizontal)
+        .padding(.top, 8)
+    }
+    
+    private var manageModeControls: some View {
+        VStack(spacing: 12) {
+            if !title.downloadedChapters.isEmpty {
+                Button(action: {
+                    withAnimation {
+                        manageMode = .uninstallDownloaded
+                    }
+                }) {
+                    HStack {
+                        Image(systemName: "trash")
+                        Text("Uninstall Downloaded Chapters")
+                        Spacer()
+                        if manageMode == .uninstallDownloaded {
+                            Image(systemName: "checkmark")
+                                .foregroundColor(.blue)
+                        }
+                    }
+                    .foregroundColor(manageMode == .uninstallDownloaded ? .blue : .primary)
+                    .padding()
+                    .background(Color.gray.opacity(0.1))
+                    .cornerRadius(10)
+                }
+                
+                if manageMode == .uninstallDownloaded {
+                    Button(role: .destructive, action: {
+                        showUninstallAllConfirmation = true
+                    }) {
+                        HStack {
+                            Image(systemName: "exclamationmark.triangle")
+                            Text("Uninstall ALL Chapters")
+                            Spacer()
+                        }
+                        .padding()
+                        .background(Color.red.opacity(0.1))
+                        .cornerRadius(10)
+                    }
+                }
+            }
+            
+            Button(action: {
+                withAnimation {
+                    manageMode = .hideFromList
+                }
+            }) {
+                HStack {
+                    Image(systemName: "list.bullet")
+                    Text("Hide Chapters in List")
+                    Spacer()
+                    if manageMode == .hideFromList {
+                        Image(systemName: "checkmark")
+                            .foregroundColor(.blue)
+                    }
+                }
+                .foregroundColor(manageMode == .hideFromList ? .blue : .primary)
+                .padding()
+                .background(Color.gray.opacity(0.1))
+                .cornerRadius(10)
+            }
+            
+            Button(action: {
+                withAnimation {
+                    showManageMode = false
+                    manageMode = !title.downloadedChapters.isEmpty ? .uninstallDownloaded : .hideFromList
+                }
+            }) {
+                HStack {
+                    Image(systemName: "checkmark")
+                    Text("Done")
+                    Spacer()
+                }
+                .foregroundColor(.green)
+                .padding()
+                .background(Color.green.opacity(0.1))
+                .cornerRadius(10)
+            }
+        }
+        .padding(.horizontal)
+        .padding(.top, 8)
+    }
+    
+    private var readingDirectionSelector: some View {
+        HStack {
+            Text("Reading direction:")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+            
+            Spacer()
+            
+            HStack(spacing: 0) {
+                Button(action: {
+                    readingDirection = .leftToRight
+                    saveReadingDirection()
+                }) {
+                    Text("L→R")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(readingDirection == .leftToRight ? .white : .blue)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(readingDirection == .leftToRight ? Color.blue : Color.blue.opacity(0.1))
+                        .cornerRadius(8)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.blue, lineWidth: 2)
+                        )
+                }
+
+                Button(action: {
+                    readingDirection = .rightToLeft
+                    saveReadingDirection()
+                }) {
+                    Text("L←R")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(readingDirection == .rightToLeft ? .white : .blue)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(readingDirection == .rightToLeft ? Color.blue : Color.blue.opacity(0.1))
+                        .cornerRadius(8)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.blue, lineWidth: 2)
+                        )
+                }
+            }
+            .background(Color.blue.opacity(0.05))
+            .cornerRadius(8)
+        }
+        .padding(.top, 8)
+        .padding(.horizontal)
+    }
+    
+    private var chaptersListSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if displayChapters.isEmpty {
+                Text("No chapters available")
+                    .foregroundColor(.secondary)
+                    .padding()
+            } else {
+                LazyVStack(spacing: 0) {
+                    ForEach(displayChapters) { chapter in
+                        ChapterRowView(
+                            chapter: chapter,
+                            showDownloadMode: showDownloadMode,
+                            showManageMode: showManageMode,
+                            onDelete: { chapterToDelete = chapter; showDeleteChapterConfirmation = true },
+                            onDownload: { downloadManager.addToDownloadQueue(chapter: chapter) },
+                            onRead: { markChapterAsRead(chapter: chapter) }
+                        )
+                        Divider().padding(.leading, 16)
+                    }
+                }
+            }
         }
     }
+    
+    private var optionsMenu: some View {
+        Menu {
+            Button(action: refreshTitle) {
+                Label("Refresh Title", systemImage: "arrow.clockwise")
+            }
+            .disabled(isRefreshing)
+            
+            Button(action: { showEditSheet = true }) {
+                Label("Edit Title Info", systemImage: "pencil")
+            }
+            
+            Button(action: {
+                withAnimation {
+                    showDownloadMode.toggle()
+                    if showDownloadMode { showManageMode = false }
+                }
+            }) {
+                Label("Download Chapters", systemImage: "arrow.down.circle")
+            }
+            
+            Button(action: {
+                withAnimation {
+                    showManageMode.toggle()
+                    if showManageMode { showDownloadMode = false }
+                }
+            }) {
+                Label("Manage Chapters", systemImage: "list.dash")
+            }
+            
+            Button(action: toggleArchiveStatus) {
+                Label(archiveButtonText(), systemImage: archiveButtonIcon())
+            }
+            
+            Button(role: .destructive, action: { showDeleteConfirmation = true }) {
+                Label("Delete Title", systemImage: "trash")
+            }
+        } label: {
+            Image(systemName: "ellipsis.circle")
+                .font(.system(size: 20))
+        }
+    }
+    
+  
+    // MARK: - Helper Views
+    
+    private struct ChapterRowView: View {
+        let chapter: Chapter
+        let showDownloadMode: Bool
+        let showManageMode: Bool
+        let onDelete: () -> Void
+        let onDownload: () -> Void
+        let onRead: () -> Void
+        
+        @StateObject private var downloadManager = DownloadManager.shared
+        
+        private var isInQueue: Bool {
+            downloadManager.downloadQueue.contains { $0.chapter.id == chapter.id }
+        }
+        
+        private var isDownloaded: Bool {
+            chapter.isDownloaded
+        }
+        
+        var body: some View {
+            HStack {
+                if showDownloadMode {
+                    Button(action: onDownload) {
+                        Image(systemName: isDownloaded || isInQueue ? "checkmark.circle.fill" : "plus.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(isDownloaded || isInQueue ? .green : .blue)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .disabled(isDownloaded || isInQueue)
+                }
+                
+                if showManageMode {
+                    Button(action: onDelete) {
+                        Image(systemName: "minus.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(.red)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+                
+                NavigationLink(
+                    destination: ReaderView(chapter: chapter, readingDirection: .rightToLeft)
+                ) {
+                    ChapterRowContent(
+                        chapter: chapter,
+                        showDownloadButton: showDownloadMode,
+                        showManageMode: showManageMode
+                    )
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(PlainButtonStyle())
+                .simultaneousGesture(TapGesture().onEnded(onRead))
+            }
+        }
+    }
+    
+    // MARK: - Refresh Title Function
+    private func refreshTitle() {
+        isRefreshing = true
+        
+        let webView = WKWebView()
+        AddTitleJAVA.setDesktopUserAgent(for: webView)
+        
+        if let sourceURL = title.sourceURL, let url = URL(string: sourceURL) {
+            webView.load(URLRequest(url: url))
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                AddTitleJAVA.refreshTitle(in: webView, for: title) { result in
+                    DispatchQueue.main.async {
+                        isRefreshing = false
+                        
+                        switch result {
+                        case .success(let newChapters):
+                            newChaptersCount = newChapters.count
+                            refreshResultMessage = newChaptersCount > 0 ?
+                                "Title Refresh Successful. \(newChaptersCount) new Chapter\(newChaptersCount == 1 ? "" : "s") found." :
+                                "No new Chapters found."
+                        case .failure(let error):
+                            refreshResultMessage = "Refresh failed: \(error)"
+                        }
+                        
+                        showRefreshResult = true
+                        NotificationCenter.default.post(name: .titleUpdated, object: nil)
+                    }
+                }
+            }
+        } else {
+            isRefreshing = false
+            refreshResultMessage = "Invalid source URL for refresh"
+            showRefreshResult = true
+        }
+    }
+    
     
     // MARK: - Manage Mode Functions
     
@@ -1083,8 +1244,9 @@ struct EditTitleView: View {
             }
         }
     }
-}
+    
 
+}// TitleView
 
 
 
