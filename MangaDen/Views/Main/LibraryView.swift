@@ -167,6 +167,7 @@ struct LibraryView: View {
                         .padding(16)
                     }
                 }
+                .padding(.bottom, 45)
                 .background(Color(.systemGroupedBackground))
             }
             .preferredColorScheme(effectiveColorScheme)

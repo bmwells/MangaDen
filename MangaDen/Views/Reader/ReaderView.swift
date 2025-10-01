@@ -202,6 +202,13 @@ struct ReaderView: View {
         } message: {
             Text(downloadAlertMessage)
         }
+        .onReceive(NotificationCenter.default.publisher(for: .titleUpdated)) { _ in
+            // When images are loaded from web, set initial page for RTL
+            if !isDownloaded && readingDirection == .rightToLeft && !readerJava.images.isEmpty {
+                currentPageIndex = readerJava.images.count - 1
+            }
+        }
+    
     }
     
     private func loadChapter() {

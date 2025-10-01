@@ -213,6 +213,7 @@ class ReaderViewJava: NSObject, ObservableObject {
                 } else {
                     self.images = downloadedImages
                     print("Successfully downloaded \(downloadedImages.count) images")
+                    NotificationCenter.default.post(name: .titleUpdated, object: nil)
                     onComplete?(true)
                 }
                 self.isLoading = false
