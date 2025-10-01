@@ -16,6 +16,7 @@ struct ReaderView: View {
     @State private var downloadAlertMessage = ""
     @State private var loadedImages: [UIImage] = []
     @State private var isLoadingFromStorage = false
+    @State private var isChapterReady = false
     
     // Computed property to get images in correct order based on reading direction
     private var displayImages: [UIImage] {
@@ -27,15 +28,14 @@ struct ReaderView: View {
     }
     
     // Computed property for displayed page number
-        private var displayedPageNumber: Int {
-            if readingDirection == .rightToLeft {
-                let totalPages = displayImages.count
-                return totalPages - currentPageIndex
-            } else {
-                return currentPageIndex + 1
-            }
+    private var displayedPageNumber: Int {
+        if readingDirection == .rightToLeft {
+            let totalPages = displayImages.count
+            return totalPages - currentPageIndex
+        } else {
+            return currentPageIndex + 1
         }
-    
+    }
     
     var isDownloaded: Bool {
         chapter.isDownloaded
@@ -43,157 +43,14 @@ struct ReaderView: View {
     
     var body: some View {
         ZStack {
-            Color.black
-                .ignoresSafeArea()
-            
-            if isLoadingFromStorage && isDownloaded {
-                ProgressView("Loading from storage...")
-                    .scaleEffect(1.5)
-                    .foregroundColor(.white)
-            } else if readerJava.isLoading && !isDownloaded {
-                ProgressView("Loading chapter...")
-                    .scaleEffect(1.5)
-                    .foregroundColor(.white)
-            } else if let error = readerJava.error, !isDownloaded {
-                VStack {
-                    Text("Error")
-                        .font(.title)
-                        .foregroundColor(.red)
-                    
-                    Text(error)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding()
-                    
-                    Button("Retry") {
-                        loadChapter()
-                    }
-                    .buttonStyle(.borderedProminent)
-                }
-            } else if displayImages.isEmpty {
-                VStack {
-                    Text("No Content")
-                        .font(.title)
-                        .foregroundColor(.gray)
-                    
-                    Text("Unable to load chapter content")
-                        .foregroundColor(.secondary)
-                }
-            } else {
-                ZStack {
-                    // Seamless scroll view for pages
-                    GeometryReader { geometry in
-                        TrackableScrollView(currentIndex: $currentPageIndex) {
-                            LazyHStack(spacing: 0) {
-                                ForEach(Array(displayImages.enumerated()), id: \.offset) { index, image in
-                                    SinglePageView(
-                                        image: image,
-                                        zoomScale: $zoomScale,
-                                        lastZoomScale: $lastZoomScale,
-                                        isZooming: $isZooming,
-                                        isActive: index == currentPageIndex
-                                    )
-                                    .frame(width: geometry.size.width, height: geometry.size.height)
-                                    .id(index)
-                                }
-                            }
-                        }
-                        .disabled(isZooming)
-                    }
-                    
-                    // Overlay tap areas for navigation (only when not zooming)
-                    if !isZooming {
-                        HStack(spacing: 0) {
-                            // Left tap area (33%)
-                            Color.clear
-                                .contentShape(Rectangle())
-                                .onTapGesture {
-                                    handleTapGesture(location: .left)
-                                }
-                                .frame(maxWidth: .infinity)
-                            
-                            // Center tap area (34%)
-                            Color.clear
-                                .contentShape(Rectangle())
-                                .onTapGesture {
-                                    handleTapGesture(location: .center)
-                                }
-                                .frame(maxWidth: .infinity)
-                            
-                            // Right tap area (33%)
-                            Color.clear
-                                .contentShape(Rectangle())
-                                .onTapGesture {
-                                    handleTapGesture(location: .right)
-                                }
-                                .frame(maxWidth: .infinity)
-                        }
-                    }
-                }
-                .gesture(
-                    DragGesture(minimumDistance: 50)
-                        .onEnded { value in
-                            handleSwipeGesture(value: value)
-                        }
-                )
-            }
+            Color.black.ignoresSafeArea()
+            mainContent
         }
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarHidden(!showNavigationBars)
-        .toolbar {
-            if showNavigationBars {
-                ToolbarItem(placement: .principal) {
-                    VStack {
-                        Text("Chapter \(chapter.formattedChapterNumber)")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                        Text("\(displayedPageNumber)/\(displayImages.count)")
-                            .font(.caption)
-                            .foregroundColor(.white)
-                    }
-                }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        downloadCurrentImage()
-                    }) {
-                        Image(systemName: "square.and.arrow.down")
-                            .font(.title3)
-                    }
-                }
-            }
-        }
-        .onAppear {
-            if isDownloaded {
-                loadFromStorage()
-            } else {
-                loadChapter()
-            }
-            
-            // Set initial page based on reading direction
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                if readingDirection == .rightToLeft {
-                    // For RTL, start at the "first page" which is actually the last image
-                    let images = isDownloaded ? loadedImages : readerJava.images
-                    currentPageIndex = images.count > 0 ? images.count - 1 : 0
-                } else {
-                    // For LTR, start at the first page
-                    currentPageIndex = 0
-                }
-                tabBarManager.isTabBarHidden = true
-            }
-            
-            // Mark chapter as read when opened
-            markChapterAsRead()
-        }
-        .onDisappear {
-            if !isDownloaded {
-                readerJava.clearCache()
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                tabBarManager.isTabBarHidden = true
-            }
-        }
+        .toolbar { toolbarContent }
+        .onAppear { onAppearAction() }
+        .onDisappear { onDisappearAction() }
         .statusBar(hidden: !showNavigationBars)
         .animation(.easeInOut(duration: 0.2), value: currentPageIndex)
         .animation(.easeInOut(duration: 0.2), value: showNavigationBars)
@@ -202,22 +59,191 @@ struct ReaderView: View {
         } message: {
             Text(downloadAlertMessage)
         }
-        .onReceive(NotificationCenter.default.publisher(for: .titleUpdated)) { _ in
-            // When images are loaded from web, set initial page for RTL
-            if !isDownloaded && readingDirection == .rightToLeft && !readerJava.images.isEmpty {
-                currentPageIndex = readerJava.images.count - 1
+        .onChange(of: readerJava.images) { handleImagesChange(oldValue: $0, newValue: $1) }
+        .onChange(of: loadedImages) { handleLoadedImagesChange(oldValue: $0, newValue: $1) }
+    }
+    
+    // MARK: - Subviews
+    
+    @ViewBuilder
+    private var mainContent: some View {
+        if !isChapterReady {
+            loadingView
+        } else {
+            contentView
+        }
+    }
+    
+    private var loadingView: some View {
+        VStack {
+            ProgressView()
+                .scaleEffect(1.5)
+                .tint(.white)
+            
+            Text("Loading chapter...")
+                .font(.headline)
+                .foregroundColor(.white)
+                .padding(.top, 20)
+        }
+    }
+    
+    @ViewBuilder
+    private var contentView: some View {
+        if isLoadingFromStorage && isDownloaded {
+            ProgressView("Loading from storage...")
+                .scaleEffect(1.5)
+                .foregroundColor(.white)
+        } else if readerJava.isLoading && !isDownloaded {
+            ProgressView("Loading chapter...")
+                .scaleEffect(1.5)
+                .foregroundColor(.white)
+        } else if let error = readerJava.error, !isDownloaded {
+            errorView(error: error)
+        } else if displayImages.isEmpty {
+            emptyContentView
+        } else {
+            readerContentView
+        }
+    }
+    
+    private func errorView(error: String) -> some View {
+        VStack {
+            Text("Error")
+                .font(.title)
+                .foregroundColor(.red)
+            
+            Text(error)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding()
+            
+            Button("Retry") {
+                loadChapter()
+            }
+            .buttonStyle(.borderedProminent)
+        }
+    }
+    
+    private var emptyContentView: some View {
+        VStack {
+            Text("No Content")
+                .font(.title)
+                .foregroundColor(.gray)
+            
+            Text("Unable to load chapter content")
+                .foregroundColor(.secondary)
+        }
+    }
+    
+    private var readerContentView: some View {
+        ZStack {
+            GeometryReader { geometry in
+                TrackableScrollView(currentIndex: $currentPageIndex) {
+                    LazyHStack(spacing: 0) {
+                        ForEach(Array(displayImages.enumerated()), id: \.offset) { index, image in
+                            SinglePageView(
+                                image: image,
+                                zoomScale: $zoomScale,
+                                lastZoomScale: $lastZoomScale,
+                                isZooming: $isZooming,
+                                isActive: index == currentPageIndex
+                            )
+                            .frame(width: geometry.size.width, height: geometry.size.height)
+                            .id(index)
+                        }
+                    }
+                }
+                .disabled(isZooming)
+            }
+            
+            if !isZooming {
+                navigationOverlay
             }
         }
+        .gesture(
+            DragGesture(minimumDistance: 50)
+                .onEnded { handleSwipeGesture(value: $0) }
+        )
+    }
     
+    private var navigationOverlay: some View {
+        HStack(spacing: 0) {
+            tapArea(location: .left)
+            tapArea(location: .center)
+            tapArea(location: .right)
+        }
+    }
+    
+    private func tapArea(location: TapLocation) -> some View {
+        Color.clear
+            .contentShape(Rectangle())
+            .onTapGesture {
+                handleTapGesture(location: location)
+            }
+            .frame(maxWidth: .infinity)
+    }
+    
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        if showNavigationBars {
+            ToolbarItem(placement: .principal) {
+                VStack {
+                    Text("Chapter \(chapter.formattedChapterNumber)")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                    Text("\(displayedPageNumber)/\(displayImages.count)")
+                        .font(.caption)
+                        .foregroundColor(.white)
+                }
+            }
+            
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: downloadCurrentImage) {
+                    Image(systemName: "square.and.arrow.down")
+                        .font(.title3)
+                }
+            }
+        }
+    }
+    
+    // MARK: - Actions
+    
+    private func onAppearAction() {
+        if isDownloaded {
+            loadFromStorage()
+        } else {
+            loadChapter()
+        }
+        
+        tabBarManager.isTabBarHidden = true
+        markChapterAsRead()
+    }
+    
+    private func onDisappearAction() {
+        if !isDownloaded {
+            readerJava.clearCache()
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            tabBarManager.isTabBarHidden = true
+        }
     }
     
     private func loadChapter() {
         guard let url = URL(string: chapter.url) else {
             readerJava.error = "Invalid chapter URL"
+            isChapterReady = true
             return
         }
         
         readerJava.loadChapter(url: url)
+        
+        // Set a timeout to ensure we don't get stuck in loading state
+        DispatchQueue.main.asyncAfter(deadline: .now() + 30) { // 30 second timeout
+            if !isChapterReady && readerJava.images.isEmpty && readerJava.error == nil {
+                readerJava.error = "Loading timeout - please check your connection"
+                isChapterReady = true
+            }
+        }
     }
     
     private func loadFromStorage() {
@@ -227,6 +253,7 @@ struct ReaderView: View {
         
         guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
             isLoadingFromStorage = false
+            isChapterReady = true
             return
         }
         
@@ -235,10 +262,11 @@ struct ReaderView: View {
         DispatchQueue.global(qos: .userInitiated).async {
             var images: [UIImage] = []
             
-            // Load images from directory
             do {
                 let files = try fileManager.contentsOfDirectory(at: chapterDirectory, includingPropertiesForKeys: nil)
-                let imageFiles = files.filter { $0.pathExtension == "jpg" }.sorted { $0.lastPathComponent < $1.lastPathComponent }
+                let imageFiles = files
+                    .filter { $0.pathExtension == "jpg" }
+                    .sorted { $0.lastPathComponent < $1.lastPathComponent }
                 
                 for imageFile in imageFiles {
                     if let imageData = try? Data(contentsOf: imageFile),
@@ -251,15 +279,28 @@ struct ReaderView: View {
                     self.loadedImages = images
                     self.isLoadingFromStorage = false
                     
-                    // Set initial page for RTL after images are loaded
+                    // Set initial page based on reading direction for downloaded chapters
                     if self.readingDirection == .rightToLeft && !images.isEmpty {
+                        // For RTL downloaded chapters, start at the last page index
+                        // This will become the "first" page when displayImages reverses the array
                         self.currentPageIndex = images.count - 1
+                        print("RTL Downloaded: Set initial page to \(self.currentPageIndex) for \(images.count) images")
+                    } else if !images.isEmpty {
+                        // For LTR downloaded chapters, start at the first page
+                        self.currentPageIndex = 0
+                        print("LTR Downloaded: Set initial page to 0 for \(images.count) images")
                     }
+                    
+                    // Images are loaded, mark as ready
+                    self.isChapterReady = true
+                    
+                    print("Loaded \(images.count) images from storage")
                 }
             } catch {
                 print("Error loading chapter from storage: \(error)")
                 DispatchQueue.main.async {
                     self.isLoadingFromStorage = false
+                    self.isChapterReady = true
                 }
             }
         }
@@ -318,43 +359,37 @@ struct ReaderView: View {
     }
     
     private func handleTapGesture(location: TapLocation) {
-            switch location {
-            case .left:
-                // Left side tap
+        switch location {
+        case .left:
+            navigateToPreviousPage()
+        case .center:
+            withAnimation(.easeInOut(duration: 0.2)) {
+                showNavigationBars.toggle()
+            }
+        case .right:
+            navigateToNextPage()
+        }
+    }
+    
+    private func handleSwipeGesture(value: DragGesture.Value) {
+        guard !isZooming else { return }
+        
+        let horizontalAmount = value.translation.width
+        
+        if horizontalAmount < -50 {
+            if readingDirection == .leftToRight {
+                navigateToNextPage()
+            } else {
                 navigateToPreviousPage()
-                
-            case .center:
-                // Center tap
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    showNavigationBars.toggle()
-                }
-            case .right:
-                // Right side tap
+            }
+        } else if horizontalAmount > 50 {
+            if readingDirection == .leftToRight {
+                navigateToPreviousPage()
+            } else {
                 navigateToNextPage()
             }
         }
-        
-        private func handleSwipeGesture(value: DragGesture.Value) {
-            guard !isZooming else { return }
-            
-            let horizontalAmount = value.translation.width
-            
-            if horizontalAmount < -50 {
-                // Swipe left
-                if readingDirection == .leftToRight {
-                    navigateToNextPage()    // L→R: swipe left = next page
-                } else {
-                    navigateToPreviousPage() // L←R: swipe left = previous page
-                }
-            } else if horizontalAmount > 50 {
-                // Swipe right
-                if readingDirection == .leftToRight {
-                    navigateToPreviousPage() // L→R: swipe right = previous page
-                } else {
-                    navigateToNextPage()    // L←R: swipe right = next page
-                }
-            }
-        }
+    }
     
     private func navigateToNextPage() {
         guard currentPageIndex < displayImages.count - 1 else { return }
@@ -373,9 +408,49 @@ struct ReaderView: View {
         lastZoomScale = 1.0
         isZooming = false
     }
+    
+    // MARK: - Helper Methods
+    
+    private func handleImagesChange(oldValue: [UIImage], newValue: [UIImage]) {
+        // For non-downloaded chapters only
+        if !isDownloaded {
+            let imagesNowLoaded = !newValue.isEmpty
+            
+            if imagesNowLoaded {
+                // Set initial page based on reading direction for non-downloaded chapters
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    if self.readingDirection == .rightToLeft && !newValue.isEmpty {
+                        // For non-downloaded RTL, we need to start at the last original image
+                        self.currentPageIndex = newValue.count - 1
+                        print("RTL Online: Set initial page to \(self.currentPageIndex) for \(newValue.count) images")
+                    } else {
+                        self.currentPageIndex = 0
+                        print("LTR Online: Set initial page to 0 for \(newValue.count) images")
+                    }
+                    self.isChapterReady = true
+                }
+            }
+        }
+    }
+    
+    private func handleLoadedImagesChange(oldValue: [UIImage], newValue: [UIImage]) {
+        // For downloaded chapters
+        if isDownloaded && !newValue.isEmpty {
+            // Set initial page based on reading direction for downloaded chapters
+            if readingDirection == .rightToLeft {
+                currentPageIndex = newValue.count - 1
+                print("RTL Downloaded (onChange): Set initial page to \(currentPageIndex) for \(newValue.count) images")
+            } else {
+                currentPageIndex = 0
+                print("LTR Downloaded (onChange): Set initial page to 0 for \(newValue.count) images")
+            }
+            isChapterReady = true
+        }
+    }
 }
 
-// Updated TrackableScrollView with ScrollViewReader
+// MARK: - Supporting Views
+
 struct TrackableScrollView<Content: View>: View {
     let axes: Axis.Set
     let showsIndicators: Bool
@@ -384,7 +459,6 @@ struct TrackableScrollView<Content: View>: View {
     
     @State private var contentOffset: CGFloat = 0
     @State private var scrollViewSize: CGSize = .zero
-    @State private var scrollViewProxy: ScrollViewProxy?
     
     init(_ axes: Axis.Set = .horizontal,
          showsIndicators: Bool = false,
@@ -406,7 +480,6 @@ struct TrackableScrollView<Content: View>: View {
                                 Color.clear
                                     .onAppear {
                                         scrollViewSize = outerGeometry.size
-                                        scrollViewProxy = proxy
                                     }
                                     .onChange(of: innerGeometry.frame(in: .named("scrollView")).minX) { oldValue, newValue in
                                         contentOffset = -newValue
@@ -418,8 +491,6 @@ struct TrackableScrollView<Content: View>: View {
                 .coordinateSpace(name: "scrollView")
                 .onAppear {
                     scrollViewSize = outerGeometry.size
-                    scrollViewProxy = proxy
-                    // Scroll to initial page
                     DispatchQueue.main.async {
                         withAnimation(.easeInOut(duration: 0.3)) {
                             proxy.scrollTo(currentIndex, anchor: .center)
@@ -430,8 +501,6 @@ struct TrackableScrollView<Content: View>: View {
                     scrollViewSize = newSize
                 }
                 .onChange(of: currentIndex) { oldValue, newValue in
-                    // Only scroll when the index changes programmatically (from taps/swipes)
-                    // Not when it changes from scrolling
                     let isFromScroll = abs(contentOffset - CGFloat(newValue) * outerGeometry.size.width) < outerGeometry.size.width / 2
                     
                     if !isFromScroll {
@@ -491,74 +560,77 @@ struct ZoomableImageView: View {
                 .frame(width: geometry.size.width, height: geometry.size.height)
                 .background(Color.black)
                 .clipped()
-                .gesture(
-                    MagnificationGesture()
-                        .onChanged { value in
-                            guard isActive else { return }
-                            
-                            let delta = value / lastZoomScale
-                            lastZoomScale = value
-                            
-                            // Calculate new zoom scale with bounds
-                            let newScale = zoomScale * delta
-                            zoomScale = min(max(newScale, 1.0), 5.0)
-                            
-                            isZooming = zoomScale > 1.0
-                        }
-                        .onEnded { _ in
-                            guard isActive else { return }
-                            
-                            lastZoomScale = 1.0
-                            
-                            // Snap back to min/max if needed
-                            if zoomScale < 1.0 {
-                                withAnimation {
-                                    zoomScale = 1.0
-                                    offset = .zero
-                                    isZooming = false
-                                }
-                            }
-                        }
-                )
-                .simultaneousGesture(
-                    DragGesture()
-                        .onChanged { value in
-                            guard isActive && isZooming else { return }
-                            
-                            let maxOffsetX = (image.size.width * zoomScale - geometry.size.width) / 2
-                            let maxOffsetY = (image.size.height * zoomScale - geometry.size.height) / 2
-                            
-                            let newOffset = CGSize(
-                                width: offset.width + value.translation.width,
-                                height: offset.height + value.translation.height
-                            )
-                            
-                            // Apply bounds to offset
-                            offset = CGSize(
-                                width: min(max(newOffset.width, -maxOffsetX), maxOffsetX),
-                                height: min(max(newOffset.height, -maxOffsetY), maxOffsetY)
-                            )
-                        }
-                )
-                .simultaneousGesture(
-                    TapGesture(count: 2)
-                        .onEnded {
-                            guard isActive else { return }
-                            
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                                if zoomScale > 1.0 {
-                                    zoomScale = 1.0
-                                    offset = .zero
-                                    isZooming = false
-                                } else {
-                                    zoomScale = 2.0
-                                    isZooming = true
-                                }
-                                lastZoomScale = zoomScale
-                            }
-                        }
-                )
+                .gesture(magnificationGesture)
+                .simultaneousGesture(dragGesture(geometry: geometry))
+                .simultaneousGesture(doubleTapGesture)
         }
+    }
+    
+    private var magnificationGesture: some Gesture {
+        MagnificationGesture()
+            .onChanged { value in
+                guard isActive else { return }
+                
+                let delta = value / lastZoomScale
+                lastZoomScale = value
+                
+                let newScale = zoomScale * delta
+                zoomScale = min(max(newScale, 1.0), 5.0)
+                
+                isZooming = zoomScale > 1.0
+            }
+            .onEnded { _ in
+                guard isActive else { return }
+                
+                lastZoomScale = 1.0
+                
+                if zoomScale < 1.0 {
+                    withAnimation {
+                        zoomScale = 1.0
+                        offset = .zero
+                        isZooming = false
+                    }
+                }
+            }
+    }
+    
+    private func dragGesture(geometry: GeometryProxy) -> some Gesture {
+        DragGesture()
+            .onChanged { value in
+                guard isActive && isZooming else { return }
+                
+                let maxOffsetX = (image.size.width * zoomScale - geometry.size.width) / 2
+                let maxOffsetY = (image.size.height * zoomScale - geometry.size.height) / 2
+                
+                let newOffset = CGSize(
+                    width: offset.width + value.translation.width,
+                    height: offset.height + value.translation.height
+                )
+                
+                offset = CGSize(
+                    width: min(max(newOffset.width, -maxOffsetX), maxOffsetX),
+                    height: min(max(newOffset.height, -maxOffsetY), maxOffsetY)
+                )
+            }
+    }
+    
+    private var doubleTapGesture: some Gesture {
+        TapGesture(count: 2)
+            .onEnded {
+                guard isActive else { return }
+                
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    if zoomScale > 1.0 {
+                        zoomScale = 1.0
+                        offset = .zero
+                        isZooming = false
+                    } else {
+                        zoomScale = 2.0
+                        isZooming = true
+                    }
+                    lastZoomScale = zoomScale
+                }
+            }
     }
 }
 

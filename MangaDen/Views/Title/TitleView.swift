@@ -466,7 +466,7 @@ struct TitleView: View {
             .background(Color.blue.opacity(0.05))
             .cornerRadius(8)
         }
-        .padding(.top, 8)
+        .padding(.top, 4)
         .padding(.bottom, 16)
         .padding(.horizontal)
     }
