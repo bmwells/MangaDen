@@ -13,23 +13,33 @@ struct SettingsView: View {
     
     var body: some View {
         NavigationView {
-            Form {
-                Section(header: Text("Appearance")) {
-                    Toggle("Dark Mode", isOn: $isDarkMode)
+            VStack(spacing: 0) {
+                Form {
+                    
+                    // Appearance Settings
+                    Section(header: Text("Appearance")) {
+                        // Dark Mode
+                        Toggle("Dark Mode", isOn: $isDarkMode)
+                    }
                 }
                 
-                Section(header: Text("General")) {
-                    Text("Version 0.5")
-                        .foregroundColor(.secondary)
+                
+                
+                // Version at bottom of page
+                VStack {
+                    Divider()
+                    Text("Version 0.6")
+                        .font(.title3)
+                        .foregroundColor(.primary)
+                        .padding(.bottom, 74)
                 }
+                .background(Color(.systemGroupedBackground))
             }
             .navigationTitle("Settings")
-            .navigationBarTitleDisplayMode(.inline) // Add this for consistent title display
         }
-        .navigationViewStyle(StackNavigationViewStyle()) // Add this for iPad
+        .navigationViewStyle(StackNavigationViewStyle())
         .onAppear {
             tabBarManager.isTabBarHidden = false
         }
     }
 }
-

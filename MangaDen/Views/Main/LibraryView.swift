@@ -244,3 +244,7 @@ struct LibraryView: View {
         }
     }
 }
+
+#Preview {
+    ContentView()
+}
