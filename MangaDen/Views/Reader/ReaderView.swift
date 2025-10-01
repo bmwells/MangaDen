@@ -17,6 +17,26 @@ struct ReaderView: View {
     @State private var loadedImages: [UIImage] = []
     @State private var isLoadingFromStorage = false
     
+    // Computed property to get images in correct order based on reading direction
+    private var displayImages: [UIImage] {
+        let images = isDownloaded ? loadedImages : readerJava.images
+        if readingDirection == .rightToLeft {
+            return images.reversed()
+        }
+        return images
+    }
+    
+    // Computed property for displayed page number
+        private var displayedPageNumber: Int {
+            if readingDirection == .rightToLeft {
+                let totalPages = displayImages.count
+                return totalPages - currentPageIndex
+            } else {
+                return currentPageIndex + 1
+            }
+        }
+    
+    
     var isDownloaded: Bool {
         chapter.isDownloaded
     }
@@ -50,7 +70,7 @@ struct ReaderView: View {
                     }
                     .buttonStyle(.borderedProminent)
                 }
-            } else if loadedImages.isEmpty && readerJava.images.isEmpty {
+            } else if displayImages.isEmpty {
                 VStack {
                     Text("No Content")
                         .font(.title)
@@ -62,26 +82,23 @@ struct ReaderView: View {
             } else {
                 ZStack {
                     // Seamless scroll view for pages
-                    let images = isDownloaded ? loadedImages : readerJava.images
-                    if !images.isEmpty {
-                        GeometryReader { geometry in
-                            TrackableScrollView(currentIndex: $currentPageIndex) {
-                                LazyHStack(spacing: 0) {
-                                    ForEach(Array(images.enumerated()), id: \.offset) { index, image in
-                                        SinglePageView(
-                                            image: image,
-                                            zoomScale: $zoomScale,
-                                            lastZoomScale: $lastZoomScale,
-                                            isZooming: $isZooming,
-                                            isActive: index == currentPageIndex
-                                        )
-                                        .frame(width: geometry.size.width, height: geometry.size.height)
-                                        .id(index)
-                                    }
+                    GeometryReader { geometry in
+                        TrackableScrollView(currentIndex: $currentPageIndex) {
+                            LazyHStack(spacing: 0) {
+                                ForEach(Array(displayImages.enumerated()), id: \.offset) { index, image in
+                                    SinglePageView(
+                                        image: image,
+                                        zoomScale: $zoomScale,
+                                        lastZoomScale: $lastZoomScale,
+                                        isZooming: $isZooming,
+                                        isActive: index == currentPageIndex
+                                    )
+                                    .frame(width: geometry.size.width, height: geometry.size.height)
+                                    .id(index)
                                 }
                             }
-                            .disabled(isZooming)
                         }
+                        .disabled(isZooming)
                     }
                     
                     // Overlay tap areas for navigation (only when not zooming)
@@ -130,8 +147,7 @@ struct ReaderView: View {
                         Text("Chapter \(chapter.formattedChapterNumber)")
                             .font(.headline)
                             .foregroundColor(.white)
-                        let images = isDownloaded ? loadedImages : readerJava.images
-                        Text("\(currentPageIndex + 1)/\(images.count)")
+                        Text("\(displayedPageNumber)/\(displayImages.count)")
                             .font(.caption)
                             .foregroundColor(.white)
                     }
@@ -153,10 +169,18 @@ struct ReaderView: View {
             } else {
                 loadChapter()
             }
-            // Force hide with a small delay to ensure the view is fully presented
+            
+            // Set initial page based on reading direction
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                if readingDirection == .rightToLeft {
+                    // For RTL, start at the "first page" which is actually the last image
+                    let images = isDownloaded ? loadedImages : readerJava.images
+                    currentPageIndex = images.count > 0 ? images.count - 1 : 0
+                } else {
+                    // For LTR, start at the first page
+                    currentPageIndex = 0
+                }
                 tabBarManager.isTabBarHidden = true
-                print("ReaderView appeared - Tab bar hidden: \(tabBarManager.isTabBarHidden)")
             }
             
             // Mark chapter as read when opened
@@ -166,10 +190,8 @@ struct ReaderView: View {
             if !isDownloaded {
                 readerJava.clearCache()
             }
-            // Force show with a small delay
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 tabBarManager.isTabBarHidden = true
-                print("ReaderView disappeared - Tab bar hidden: \(tabBarManager.isTabBarHidden)")
             }
         }
         .statusBar(hidden: !showNavigationBars)
@@ -221,6 +243,11 @@ struct ReaderView: View {
                 DispatchQueue.main.async {
                     self.loadedImages = images
                     self.isLoadingFromStorage = false
+                    
+                    // Set initial page for RTL after images are loaded
+                    if self.readingDirection == .rightToLeft && !images.isEmpty {
+                        self.currentPageIndex = images.count - 1
+                    }
                 }
             } catch {
                 print("Error loading chapter from storage: \(error)")
@@ -232,7 +259,6 @@ struct ReaderView: View {
     }
     
     private func markChapterAsRead() {
-        // Notify that chapter has been read
         NotificationCenter.default.post(
             name: .chapterReadStatusChanged,
             object: nil,
@@ -241,30 +267,26 @@ struct ReaderView: View {
     }
     
     private func downloadCurrentImage() {
-        let images = isDownloaded ? loadedImages : readerJava.images
-        guard images.indices.contains(currentPageIndex) else {
+        guard displayImages.indices.contains(currentPageIndex) else {
             downloadAlertMessage = "No image available to download"
             showDownloadAlert = true
             return
         }
         
-        let image = images[currentPageIndex]
+        let image = displayImages[currentPageIndex]
         saveImageToPhotos(image)
     }
     
     private func saveImageToPhotos(_ image: UIImage) {
-        // Check photo library authorization status
         let status = PHPhotoLibrary.authorizationStatus(for: .addOnly)
         
         switch status {
         case .authorized, .limited:
-            // Already authorized, save the image
             UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
             downloadAlertMessage = "Image saved to Photos!"
             showDownloadAlert = true
             
         case .notDetermined:
-            // Request authorization
             PHPhotoLibrary.requestAuthorization(for: .addOnly) { newStatus in
                 DispatchQueue.main.async {
                     if newStatus == .authorized || newStatus == .limited {
@@ -289,53 +311,46 @@ struct ReaderView: View {
     }
     
     private func handleTapGesture(location: TapLocation) {
-        switch location {
-        case .left:
-            // Left side tap - depends on reading direction
-            if readingDirection == .leftToRight {
-                navigateToPreviousPage() // L→R: left tap = previous page
-            } else {
-                navigateToNextPage()    // L←R: left tap = next page
-            }
-        case .center:
-            withAnimation(.easeInOut(duration: 0.2)) {
-                showNavigationBars.toggle()
-            }
-        case .right:
-            // Right side tap - depends on reading direction
-            if readingDirection == .leftToRight {
-                navigateToNextPage()    // L→R: right tap = next page
-            } else {
-                navigateToPreviousPage() // L←R: right tap = previous page
+            switch location {
+            case .left:
+                // Left side tap
+                navigateToPreviousPage()
+                
+            case .center:
+                // Center tap
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    showNavigationBars.toggle()
+                }
+            case .right:
+                // Right side tap
+                navigateToNextPage()
             }
         }
-    }
-    
-    private func handleSwipeGesture(value: DragGesture.Value) {
-        guard !isZooming else { return }
         
-        let horizontalAmount = value.translation.width
-        
-        if horizontalAmount < -50 {
-            // Swipe left
-            if readingDirection == .leftToRight {
-                navigateToNextPage()    // L→R: swipe left = next page
-            } else {
-                navigateToPreviousPage() // L←R: swipe left = previous page
-            }
-        } else if horizontalAmount > 50 {
-            // Swipe right
-            if readingDirection == .leftToRight {
-                navigateToPreviousPage() // L→R: swipe right = previous page
-            } else {
-                navigateToNextPage()    // L←R: swipe right = next page
+        private func handleSwipeGesture(value: DragGesture.Value) {
+            guard !isZooming else { return }
+            
+            let horizontalAmount = value.translation.width
+            
+            if horizontalAmount < -50 {
+                // Swipe left
+                if readingDirection == .leftToRight {
+                    navigateToNextPage()    // L→R: swipe left = next page
+                } else {
+                    navigateToPreviousPage() // L←R: swipe left = previous page
+                }
+            } else if horizontalAmount > 50 {
+                // Swipe right
+                if readingDirection == .leftToRight {
+                    navigateToPreviousPage() // L→R: swipe right = previous page
+                } else {
+                    navigateToNextPage()    // L←R: swipe right = next page
+                }
             }
         }
-    }
     
     private func navigateToNextPage() {
-        let images = isDownloaded ? loadedImages : readerJava.images
-        guard currentPageIndex < images.count - 1 else { return }
+        guard currentPageIndex < displayImages.count - 1 else { return }
         currentPageIndex += 1
         resetZoom()
     }

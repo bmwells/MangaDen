@@ -482,6 +482,7 @@ struct TitleView: View {
                     ForEach(displayChapters) { chapter in
                         ChapterRowView(
                             chapter: chapter,
+                            readingDirection: readingDirection,
                             showDownloadMode: showDownloadMode,
                             showManageMode: showManageMode,
                             onDelete: { chapterToDelete = chapter; showDeleteChapterConfirmation = true },
@@ -542,6 +543,7 @@ struct TitleView: View {
     
     private struct ChapterRowView: View {
         let chapter: Chapter
+        let readingDirection: ReadingDirection
         let showDownloadMode: Bool
         let showManageMode: Bool
         let onDelete: () -> Void
@@ -580,7 +582,7 @@ struct TitleView: View {
                 }
                 
                 NavigationLink(
-                    destination: ReaderView(chapter: chapter, readingDirection: .rightToLeft)
+                    destination: ReaderView(chapter: chapter, readingDirection: readingDirection)
                 ) {
                     ChapterRowContent(
                         chapter: chapter,
