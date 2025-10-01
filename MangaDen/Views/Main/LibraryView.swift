@@ -143,6 +143,8 @@ struct LibraryView: View {
                                                 .foregroundColor(.primary)
                                                 .lineLimit(1)
                                                 .multilineTextAlignment(.center)
+                                                .padding(.top, 10)
+                                                .padding(.bottom, 15)
                     
                                             
                                             // Download info for downloaded titles
