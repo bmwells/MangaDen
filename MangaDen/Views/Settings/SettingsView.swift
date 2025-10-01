@@ -24,11 +24,12 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
+            .navigationBarTitleDisplayMode(.inline) // Add this for consistent title display
         }
+        .navigationViewStyle(StackNavigationViewStyle()) // Add this for iPad
         .onAppear {
             tabBarManager.isTabBarHidden = false
         }
     }
 }
-
 
