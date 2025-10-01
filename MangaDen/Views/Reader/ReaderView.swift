@@ -46,9 +46,49 @@ struct ReaderView: View {
             Color.black.ignoresSafeArea()
             mainContent
         }
+        .navigationBarBackButtonHidden(true) // Hide the default back button
+        .toolbar {
+            // Custom back button
+            ToolbarItem(placement: .navigationBarLeading) {
+                if showNavigationBars {
+                    Button(action: {
+                        dismiss()
+                    }) {
+                        Image(systemName: "chevron.left")
+                            .font(.title2)
+                            .foregroundColor(.white)
+                            .padding(8)
+                    }
+                }
+            }
+            
+            // Toolbar content
+            ToolbarItem(placement: .principal) {
+                if showNavigationBars {
+                    VStack {
+                        Text("Chapter \(chapter.formattedChapterNumber)")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                        Text("\(displayedPageNumber)/\(displayImages.count)")
+                            .font(.caption)
+                            .foregroundColor(.white)
+                    }
+                }
+            }
+            
+            ToolbarItem(placement: .navigationBarTrailing) {
+                if showNavigationBars {
+                    Button(action: downloadCurrentImage) {
+                        Image(systemName: "square.and.arrow.down")
+                            .font(.title3)
+                            .foregroundColor(.white)
+                            .padding(8)
+                    }
+                }
+            }
+        }
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarHidden(!showNavigationBars)
-        .toolbar { toolbarContent }
         .onAppear { onAppearAction() }
         .onDisappear { onDisappearAction() }
         .statusBar(hidden: !showNavigationBars)

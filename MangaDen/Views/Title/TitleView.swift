@@ -73,17 +73,32 @@ struct TitleView: View {
                 scrollOffset = offset
             }
         }
-        .navigationBarBackButtonHidden(false)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                Text("")
-            }
-            
-            ToolbarItem(placement: .navigationBarTrailing) {
-                optionsMenu
-            }
-        }
+        .navigationBarBackButtonHidden(true) // Hide the default back button
+                .toolbar {
+                    // Custom back button
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button(action: {
+                            dismiss()
+                        }) {
+                            Image(systemName: "chevron.left")
+                                .font(.title2)
+                                .foregroundColor(.blue)
+                                .foregroundColor(.primary)
+                                .padding(8)
+                        }
+                    }
+                    
+                    ToolbarItem(placement: .principal) {
+                        Text("")
+                    }
+                    
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        optionsMenu
+                            .font(.title2)
+                            .padding(8)
+                    }
+                }
+                .navigationBarTitleDisplayMode(.inline)
         // Apply the alerts and overlays directly
         .alert("Delete Title", isPresented: $showDeleteConfirmation) {
             Button("Cancel", role: .cancel) { }
