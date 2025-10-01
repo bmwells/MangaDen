@@ -758,11 +758,23 @@ struct TitleView: View {
     
     private func loadReadingDirection() {
         let directionKey = "readingDirection_\(title.id.uuidString)"
+        
+        // First try to load the title-specific setting
         if let savedDirection = UserDefaults.standard.string(forKey: directionKey),
            let direction = ReadingDirection(rawValue: savedDirection) {
             readingDirection = direction
+        } else {
+            // If no title-specific setting exists, use the global default from Settings
+            if let globalDefault = UserDefaults.standard.string(forKey: "defaultReadingDirection"),
+               let direction = ReadingDirection(rawValue: globalDefault) {
+                readingDirection = direction
+            } else {
+                // Fallback to rightToLeft if nothing is set
+                readingDirection = .rightToLeft
+            }
         }
     }
+
     
     private func saveReadingDirection() {
         let directionKey = "readingDirection_\(title.id.uuidString)"
@@ -1062,8 +1074,8 @@ struct ChapterRowContent: View {
 // MARK: - Other ENUM and STRUCT
 
 enum ReadingDirection: String, CaseIterable {
-    case leftToRight = "L→R"
-    case rightToLeft = "L←R"
+    case leftToRight = "leftToRight"
+    case rightToLeft = "rightToLeft"
 }
 
 enum ManageMode {
