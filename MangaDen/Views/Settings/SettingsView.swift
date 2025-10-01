@@ -12,7 +12,7 @@ struct SettingsView: View {
     @AppStorage("defaultReadingDirection") private var defaultReadingDirection: ReadingDirection = .rightToLeft
     @EnvironmentObject private var tabBarManager: TabBarManager
     @State private var showUninstallAllConfirmation = false
-    @State private var totalDownloadSize = "Calculating..." // ADD THIS
+    @State private var totalDownloadSize = "Calculating..." 
     
     var body: some View {
         NavigationView {

@@ -439,18 +439,19 @@ class ReaderViewJava: NSObject, ObservableObject {
     private func processAndDownloadImages(_ imageInfos: [EnhancedImageInfo], onComplete: ((Bool) -> Void)? = nil) {
         print("Processing \(imageInfos.count) images...")
         
-        // Much less aggressive filtering - only remove very small or obviously non-content images
+        // MINIMAL FILTERING - only remove obviously broken images
         let filteredImages = imageInfos.filter { image in
-            // Keep images that are either reasonably sized OR have clear manga/comic indicators in URL
-            let isReasonableSize = image.width > 100 && image.height > 100
-            let hasContentIndicators = image.src.contains("bp.blogspot.com") ||
-                                     image.src.contains("mangafox") ||
-                                     image.src.contains("lowee.us") ||
-                                     image.src.contains("/chapter/") ||
-                                     image.src.contains("page") ||
-                                     image.src.range(of: "\\d", options: .regularExpression) != nil
+            // Remove images with obviously invalid URLs
+            guard !image.src.isEmpty,
+                  image.src.hasPrefix("http"),
+                  !image.src.contains("+Math.random()"),
+                  !image.src.contains("javascript:"),
+                  !image.src.contains("data:text/html") else {
+                return false
+            }
             
-            return isReasonableSize || hasContentIndicators
+            // Keep ALL images that pass basic URL validation
+            return true
         }
         
         print("After filtering: \(filteredImages.count) images")
@@ -480,7 +481,11 @@ class ReaderViewJava: NSObject, ObservableObject {
             try? NSRegularExpression(pattern: "_(\\d+)\\.(jpg|jpeg|png|gif|webp)", options: []), // _003.jpg
             try? NSRegularExpression(pattern: "page[_-]?(\\d+)", options: [.caseInsensitive]), // page003, page_003
             try? NSRegularExpression(pattern: "/(\\d+)/[^/]+\\.(jpg|jpeg|png|gif|webp)", options: []), // /003/image.jpg
-            try? NSRegularExpression(pattern: "chapter[_-]?\\d+[_-]?(\\d+)", options: [.caseInsensitive]) // chapter1_003
+            try? NSRegularExpression(pattern: "chapter[_-]?\\d+[_-]?(\\d+)", options: [.caseInsensitive]), // chapter1_003
+            
+            // NEW: Pattern for blogspot URLs ending with /XX.webp (like /09.webp, /10.webp)
+            try? NSRegularExpression(pattern: "/(\\d+)\\.(webp|jpg|jpeg|png|gif)$", options: []),
+            try? NSRegularExpression(pattern: "/(\\d+)\\.(webp|jpg|jpeg|png|gif)\\?", options: [])
         ]
         
         print("=== Sorting \(sortedImages.count) images ===")
@@ -543,22 +548,6 @@ class ReaderViewJava: NSObject, ObservableObject {
         return removeDuplicates(sortedImages)
     }
 
-    private func extractPageNumber(from url: String, using patterns: [NSRegularExpression?]) -> Int? {
-        for pattern in patterns.compactMap({ $0 }) {
-            let matches = pattern.matches(in: url, options: [], range: NSRange(location: 0, length: url.count))
-            if let match = matches.last {
-                let range = Range(match.range(at: 1), in: url)!
-                let numberString = String(url[range])
-                // Handle "l003" format by removing the 'l' prefix if present
-                let cleanNumberString = numberString.replacingOccurrences(of: "^l", with: "", options: .regularExpression)
-                if let number = Int(cleanNumberString) {
-                    return number
-                }
-            }
-        }
-        return nil
-    }
-
     private func isMeaningfulPageNumber(in url: String, pageNumber: Int?) -> Bool {
         guard let pageNumber = pageNumber else { return false }
         
@@ -576,6 +565,20 @@ class ReaderViewJava: NSObject, ObservableObject {
             }
         }
         
+        // NEW: Check for blogspot URLs ending with /XX.webp pattern
+        if url.contains("blogger.googleusercontent.com") {
+            let blogspotPatterns = [
+                "/\(String(format: "%02d", pageNumber)).webp",
+                "/\(String(format: "%02d", pageNumber)).jpg",
+                "/\(String(format: "%02d", pageNumber)).png"
+            ]
+            for pattern in blogspotPatterns {
+                if url.contains(pattern) {
+                    return true
+                }
+            }
+        }
+        
         // For your specific case - if it's from mangafox with l000 format
         if url.contains("mangafox") && url.contains("/l\(pageNumber).") {
             return true
@@ -586,8 +589,41 @@ class ReaderViewJava: NSObject, ObservableObject {
             return true
         }
         
+        // NEW: Generic check - if the number appears at the end of the URL path before extension
+        if let lastPathComponent = URL(string: url)?.lastPathComponent {
+            let numberPatterns = [
+                "\(String(format: "%02d", pageNumber)).webp",
+                "\(String(format: "%02d", pageNumber)).jpg",
+                "\(String(format: "%02d", pageNumber)).png",
+                "\(pageNumber).webp",
+                "\(pageNumber).jpg",
+                "\(pageNumber).png"
+            ]
+            for pattern in numberPatterns {
+                if lastPathComponent == pattern || lastPathComponent.hasSuffix(pattern) {
+                    return true
+                }
+            }
+        }
+        
         // Otherwise, it's probably a random number from a file hash
         return false
+    }
+
+    private func extractPageNumber(from url: String, using patterns: [NSRegularExpression?]) -> Int? {
+        for pattern in patterns.compactMap({ $0 }) {
+            let matches = pattern.matches(in: url, options: [], range: NSRange(location: 0, length: url.count))
+            if let match = matches.last {
+                let range = Range(match.range(at: 1), in: url)!
+                let numberString = String(url[range])
+                // Handle "l003" format by removing the 'l' prefix if present
+                let cleanNumberString = numberString.replacingOccurrences(of: "^l", with: "", options: .regularExpression)
+                if let number = Int(cleanNumberString) {
+                    return number
+                }
+            }
+        }
+        return nil
     }
     
     private func removeDuplicates(_ images: [EnhancedImageInfo]) -> [EnhancedImageInfo] {

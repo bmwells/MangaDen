@@ -238,7 +238,7 @@ struct ReaderView: View {
         readerJava.loadChapter(url: url)
         
         // Set a timeout to ensure we don't get stuck in loading state
-        DispatchQueue.main.asyncAfter(deadline: .now() + 30) { // 30 second timeout
+        DispatchQueue.main.asyncAfter(deadline: .now() + 60) { // 60 second timeout
             if !isChapterReady && readerJava.images.isEmpty && readerJava.error == nil {
                 readerJava.error = "Loading timeout - please check your connection"
                 isChapterReady = true
