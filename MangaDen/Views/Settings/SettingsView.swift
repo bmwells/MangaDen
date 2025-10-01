@@ -11,6 +11,8 @@ struct SettingsView: View {
     @AppStorage("isDarkMode") private var isDarkMode = false
     @AppStorage("defaultReadingDirection") private var defaultReadingDirection: ReadingDirection = .rightToLeft
     @EnvironmentObject private var tabBarManager: TabBarManager
+    @State private var showUninstallAllConfirmation = false
+    @State private var totalDownloadSize = "Calculating..." // ADD THIS
     
     var body: some View {
         NavigationView {
@@ -45,7 +47,7 @@ struct SettingsView: View {
                                                 .stroke(Color.blue, lineWidth: 1)
                                         )
                                 }
-                                .buttonStyle(PlainButtonStyle()) 
+                                .buttonStyle(PlainButtonStyle())
                                 
                                 Button(action: { defaultReadingDirection = .rightToLeft }) {
                                     Text("L ← R")
@@ -66,8 +68,44 @@ struct SettingsView: View {
                         }
                     }
                     
+                    // Manage Storage
+                    Section(header: Text("Manage Storage")) {
+                        HStack(alignment: .center) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Uninstall All Downloads")
+                                    .foregroundColor(.primary)
+                                
+                                // Storage size display
+                                HStack {
+                                    Text("Total Download Size:")
+                                        .font(.footnote)
+                                        .foregroundColor(.gray)
+                                    Text(totalDownloadSize)
+                                        .font(.subheadline)
+                                        .foregroundColor(.blue)
+                                        .fontWeight(.medium)
+                                }
+                            }
+                            
+                            Spacer()
+                            
+                            Button(action: {
+                                showUninstallAllConfirmation = true
+                            }) {
+                                Image(systemName: "trash")
+                                    .font(.system(size: 25))
+                                    .foregroundColor(.red)
+                                    .padding(8)
+                                    .background(Color.red.opacity(0.1))
+                                    .cornerRadius(8)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
+                        .padding(.vertical, 4)
+                    }
                     
                 }
+                .listSectionSpacing(.compact)
                 
                 // Version at bottom of page
                 VStack {
@@ -80,10 +118,67 @@ struct SettingsView: View {
                 .background(Color(.systemGroupedBackground))
             }
             .navigationTitle("Settings")
+            .alert("Uninstall All Downloads", isPresented: $showUninstallAllConfirmation) {
+                Button("Cancel", role: .cancel) { }
+                Button("Uninstall All", role: .destructive) {
+                    // Add your uninstall logic here later
+                    print("Uninstall all downloads triggered")
+                }
+            } message: {
+                Text("Are you sure you want to uninstall ALL downloaded chapters? This will remove all downloaded content from the device and cannot be undone.")
+            }
         }
         .navigationViewStyle(StackNavigationViewStyle())
         .onAppear {
             tabBarManager.isTabBarHidden = false
+            totalDownloadSize = calculateTotalDownloadSize()
         }
+    }
+    
+    
+    private func calculateTotalDownloadSize() -> String {
+        do {
+            let fileManager = FileManager.default
+            guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+                return "0 MB"
+            }
+            
+            let downloadsDirectory = documentsDirectory.appendingPathComponent("Downloads")
+            
+            // Check if downloads directory exists
+            if fileManager.fileExists(atPath: downloadsDirectory.path) {
+                let chapterDirectories = try fileManager.contentsOfDirectory(at: downloadsDirectory, includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles])
+                
+                var totalSize: Int64 = 0
+                
+                for chapterDir in chapterDirectories {
+                    // Check if it's a directory (each chapter is in its own folder)
+                    let resourceValues = try chapterDir.resourceValues(forKeys: [.isDirectoryKey])
+                    if resourceValues.isDirectory == true {
+                        // Calculate size of all files in this chapter directory
+                        let chapterFiles = try fileManager.contentsOfDirectory(at: chapterDir, includingPropertiesForKeys: [.fileSizeKey, .totalFileAllocatedSizeKey])
+                        
+                        for file in chapterFiles {
+                            let fileResourceValues = try file.resourceValues(forKeys: [.fileSizeKey, .totalFileAllocatedSizeKey])
+                            totalSize += Int64(fileResourceValues.fileSize ?? fileResourceValues.totalFileAllocatedSize ?? 0)
+                        }
+                    }
+                }
+                
+                // Format the size
+                return formatFileSize(totalSize)
+            }
+        } catch {
+            print("Error calculating download size: \(error)")
+        }
+        
+        return "0 MB"
+    }
+    
+    private func formatFileSize(_ size: Int64) -> String {
+        let formatter = ByteCountFormatter()
+        formatter.allowedUnits = [.useMB, .useGB]
+        formatter.countStyle = .file
+        return formatter.string(fromByteCount: size)
     }
 }
