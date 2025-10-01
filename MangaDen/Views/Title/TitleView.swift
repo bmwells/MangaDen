@@ -422,18 +422,17 @@ struct TitleView: View {
     private var readingDirectionSelector: some View {
         HStack {
             Text("Reading direction:")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-            
-            Spacer()
+                .font(.system(size: 16))
+                .foregroundColor(.primary)
+
             
             HStack(spacing: 0) {
                 Button(action: {
                     readingDirection = .leftToRight
                     saveReadingDirection()
                 }) {
-                    Text("L→R")
-                        .font(.subheadline)
+                    Text("L → R")
+                        .font(.system(size: readingDirection == .leftToRight ? 18 : 12))
                         .fontWeight(.semibold)
                         .foregroundColor(readingDirection == .leftToRight ? .white : .blue)
                         .padding(.horizontal, 16)
@@ -450,8 +449,8 @@ struct TitleView: View {
                     readingDirection = .rightToLeft
                     saveReadingDirection()
                 }) {
-                    Text("L←R")
-                        .font(.subheadline)
+                    Text("L ← R")
+                        .font(.system(size: readingDirection == .rightToLeft ? 18 : 12))
                         .fontWeight(.semibold)
                         .foregroundColor(readingDirection == .rightToLeft ? .white : .blue)
                         .padding(.horizontal, 16)
@@ -468,6 +467,7 @@ struct TitleView: View {
             .cornerRadius(8)
         }
         .padding(.top, 8)
+        .padding(.bottom, 16)
         .padding(.horizontal)
     }
     
