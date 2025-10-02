@@ -472,28 +472,31 @@ class ReaderViewJava: NSObject, ObservableObject {
     private func intelligentImageSorting(_ images: [EnhancedImageInfo]) -> [EnhancedImageInfo] {
         var sortedImages = images
         
-        // More specific patterns that target actual page numbers, not random file hashes
+        // First, group by base image (remove size variants)
+        let groupedImages = groupByBaseImage(images)
+        
+        // Use the highest quality version from each group
+        let deduplicatedImages = selectBestQualityFromGroups(groupedImages)
+        
+        print("=== After deduplication: \(deduplicatedImages.count) unique images ===")
+        
+        // Patterns for extracting meaningful page numbers
         let patterns = [
-            // Specific patterns for common manga sites
-            try? NSRegularExpression(pattern: "/(l\\d+)\\.(jpg|jpeg|png|gif|webp)", options: []), // /l003.jpg
-            try? NSRegularExpression(pattern: "l(\\d+)\\.(jpg|jpeg|png|gif|webp)", options: []), // l003.jpg
-            try? NSRegularExpression(pattern: "/(\\d+)\\.(jpg|jpeg|png|gif|webp)", options: []), // /003.jpg
-            try? NSRegularExpression(pattern: "_(\\d+)\\.(jpg|jpeg|png|gif|webp)", options: []), // _003.jpg
-            try? NSRegularExpression(pattern: "page[_-]?(\\d+)", options: [.caseInsensitive]), // page003, page_003
-            try? NSRegularExpression(pattern: "/(\\d+)/[^/]+\\.(jpg|jpeg|png|gif|webp)", options: []), // /003/image.jpg
-            try? NSRegularExpression(pattern: "chapter[_-]?\\d+[_-]?(\\d+)", options: [.caseInsensitive]), // chapter1_003
+            // Blogspot patterns - match the number before .jpg
+            try? NSRegularExpression(pattern: "/(\\d+)\\.(jpg|jpeg|png|gif|webp)$", options: []),
+            try? NSRegularExpression(pattern: "/(\\d+)\\.(jpg|jpeg|png|gif|webp)\\?", options: []),
+            try? NSRegularExpression(pattern: "/(\\d+)\\.(jpg|jpeg|png|gif|webp)", options: []),
             
-            // NEW: Pattern for blogspot URLs ending with /XX.webp (like /09.webp, /10.webp)
-            try? NSRegularExpression(pattern: "/(\\d+)\\.(webp|jpg|jpeg|png|gif)$", options: []),
-            try? NSRegularExpression(pattern: "/(\\d+)\\.(webp|jpg|jpeg|png|gif)\\?", options: [])
+            // Other common patterns
+            try? NSRegularExpression(pattern: "/(l\\d+)\\.(jpg|jpeg|png|gif|webp)", options: []),
+            try? NSRegularExpression(pattern: "l(\\d+)\\.(jpg|jpeg|png|gif|webp)", options: []),
+            try? NSRegularExpression(pattern: "_(\\d+)\\.(jpg|jpeg|png|gif|webp)", options: []),
+            try? NSRegularExpression(pattern: "page[_-]?(\\d+)", options: [.caseInsensitive]),
         ]
         
-        print("=== Sorting \(sortedImages.count) images ===")
-        
-        // First, identify which images have meaningful page numbers vs random numbers
         var imageClassifications: [(image: EnhancedImageInfo, pageNumber: Int?, isMeaningful: Bool)] = []
         
-        for image in sortedImages {
+        for image in deduplicatedImages {
             let pageNumber = extractPageNumber(from: image.src, using: patterns)
             let isMeaningful = isMeaningfulPageNumber(in: image.src, pageNumber: pageNumber)
             
@@ -508,7 +511,7 @@ class ReaderViewJava: NSObject, ObservableObject {
             }
         }
         
-        // Sort with priority: meaningful page numbers > DOM position > random numbers
+        // Sort with priority: meaningful page numbers > DOM position
         let sortedClassifications = imageClassifications.sorted { item1, item2 in
             let (image1, num1, meaningful1) = item1
             let (image2, num2, meaningful2) = item2
@@ -537,76 +540,49 @@ class ReaderViewJava: NSObject, ObservableObject {
         print("=== Final order ===")
         for (index, classification) in sortedClassifications.enumerated() {
             if let pageNumber = classification.pageNumber, classification.isMeaningful {
-                print("Sorted \(index): \(pageNumber) - MEANINGFUL - \(classification.image.src)")
-            } else if let pageNumber = classification.pageNumber {
-                print("Sorted \(index): \(pageNumber) - RANDOM - \(classification.image.src)")
+                print("Sorted \(index): \(pageNumber) - \(classification.image.src)")
             } else {
-                print("Sorted \(index): NO NUMBER - \(classification.image.src)")
+                print("Sorted \(index): NO MEANINGFUL NUMBER - \(classification.image.src)")
             }
         }
         
-        return removeDuplicates(sortedImages)
+        return sortedImages
     }
 
     private func isMeaningfulPageNumber(in url: String, pageNumber: Int?) -> Bool {
         guard let pageNumber = pageNumber else { return false }
         
-        // Check if this looks like a meaningful page number (not a random hash)
-        let meaningfulIndicators = [
-            "/l\(pageNumber).", "/\(pageNumber).", "_\(pageNumber).",
-            "page\(pageNumber)", "page_\(pageNumber)", "Page\(pageNumber)",
-            "/\(pageNumber)/", "chapter.*\(pageNumber)"
-        ]
-        
-        // If URL contains any of these patterns with the page number, it's meaningful
-        for indicator in meaningfulIndicators {
-            if url.contains(indicator) {
-                return true
-            }
-        }
-        
-        // NEW: Check for blogspot URLs ending with /XX.webp pattern
+        // For blogspot URLs, check if the number appears right before the extension
         if url.contains("blogger.googleusercontent.com") {
-            let blogspotPatterns = [
-                "/\(String(format: "%02d", pageNumber)).webp",
-                "/\(String(format: "%02d", pageNumber)).jpg",
-                "/\(String(format: "%02d", pageNumber)).png"
+            let patterns = [
+                "/\(pageNumber)\\.jpg",
+                "/\(pageNumber)\\.webp",
+                "/\(pageNumber)\\.png",
+                "/\(String(format: "%02d", pageNumber))\\.jpg",
+                "/\(String(format: "%02d", pageNumber))\\.webp",
+                "/\(String(format: "%02d", pageNumber))\\.png"
             ]
-            for pattern in blogspotPatterns {
+            
+            for pattern in patterns {
                 if url.contains(pattern) {
                     return true
                 }
             }
-        }
-        
-        // For your specific case - if it's from mangafox with l000 format
-        if url.contains("mangafox") && url.contains("/l\(pageNumber).") {
-            return true
-        }
-        
-        // If it's from blogspot with numbered pages
-        if url.contains("bp.blogspot.com") && url.contains("/\(pageNumber).jpg") {
-            return true
-        }
-        
-        // NEW: Generic check - if the number appears at the end of the URL path before extension
-        if let lastPathComponent = URL(string: url)?.lastPathComponent {
-            let numberPatterns = [
-                "\(String(format: "%02d", pageNumber)).webp",
-                "\(String(format: "%02d", pageNumber)).jpg",
-                "\(String(format: "%02d", pageNumber)).png",
-                "\(pageNumber).webp",
-                "\(pageNumber).jpg",
-                "\(pageNumber).png"
-            ]
-            for pattern in numberPatterns {
-                if lastPathComponent == pattern || lastPathComponent.hasSuffix(pattern) {
-                    return true
+            
+            // Also check if it's in the final path component
+            if let lastPath = URL(string: url)?.lastPathComponent {
+                let numberFormats = [
+                    "\(pageNumber).jpg", "\(pageNumber).webp", "\(pageNumber).png",
+                    "\(String(format: "%02d", pageNumber)).jpg", "\(String(format: "%02d", pageNumber)).webp", "\(String(format: "%02d", pageNumber)).png"
+                ]
+                for format in numberFormats {
+                    if lastPath == format || lastPath.hasSuffix(format) {
+                        return true
+                    }
                 }
             }
         }
         
-        // Otherwise, it's probably a random number from a file hash
         return false
     }
 
@@ -624,6 +600,58 @@ class ReaderViewJava: NSObject, ObservableObject {
             }
         }
         return nil
+    }
+    
+    private func groupByBaseImage(_ images: [EnhancedImageInfo]) -> [String: [EnhancedImageInfo]] {
+        var groups: [String: [EnhancedImageInfo]] = [:]
+        
+        for image in images {
+            let baseUrl = getBaseImageUrl(image.src)
+            if groups[baseUrl] == nil {
+                groups[baseUrl] = []
+            }
+            groups[baseUrl]?.append(image)
+        }
+        
+        return groups
+    }
+
+    private func getBaseImageUrl(_ url: String) -> String {
+        // Remove size parameters from blogspot URLs
+        // Example: /s1600/03.jpg -> /03.jpg, /s1190/03.jpg -> /03.jpg
+        let pattern = "/s\\d+/"
+        if let regex = try? NSRegularExpression(pattern: pattern) {
+            let range = NSRange(location: 0, length: url.count)
+            return regex.stringByReplacingMatches(in: url, options: [], range: range, withTemplate: "/")
+        }
+        return url
+    }
+
+    private func selectBestQualityFromGroups(_ groups: [String: [EnhancedImageInfo]]) -> [EnhancedImageInfo] {
+        var bestImages: [EnhancedImageInfo] = []
+        
+        for (_, images) in groups {
+            // Prefer larger images (s1600 > s1190 > s1200)
+            if let bestImage = selectBestQualityImage(images) {
+                bestImages.append(bestImage)
+            }
+        }
+        
+        return bestImages
+    }
+
+    private func selectBestQualityImage(_ images: [EnhancedImageInfo]) -> EnhancedImageInfo? {
+        // Priority order: s1600 (largest) > s1200 > s1190 > others
+        let qualityOrder = ["s1600", "s1200", "s1190"]
+        
+        for quality in qualityOrder {
+            if let image = images.first(where: { $0.src.contains("/\(quality)/") }) {
+                return image
+            }
+        }
+        
+        // If no size found, return the first one
+        return images.first
     }
     
     private func removeDuplicates(_ images: [EnhancedImageInfo]) -> [EnhancedImageInfo] {
