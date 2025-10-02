@@ -204,6 +204,14 @@ struct ReaderView: View {
             DragGesture(minimumDistance: 50)
                 .onEnded { handleSwipeGesture(value: $0) }
         )
+        // Memory warning handler
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didReceiveMemoryWarningNotification)) { _ in
+            print("Memory warning received - clearing caches")
+            // Clear image cache on memory warning
+            if !isDownloaded {
+                readerJava.clearCache()
+            }
+        }
     }
     
     private var navigationOverlay: some View {
@@ -514,19 +522,21 @@ struct TrackableScrollView<Content: View>: View {
         GeometryReader { outerGeometry in
             ScrollViewReader { proxy in
                 ScrollView(axes, showsIndicators: showsIndicators) {
-                    content
-                        .background(
-                            GeometryReader { innerGeometry in
-                                Color.clear
-                                    .onAppear {
-                                        scrollViewSize = outerGeometry.size
-                                    }
-                                    .onChange(of: innerGeometry.frame(in: .named("scrollView")).minX) { oldValue, newValue in
-                                        contentOffset = -newValue
-                                        updateCurrentIndex(containerWidth: outerGeometry.size.width)
-                                    }
-                            }
-                        )
+                    LazyHStack(spacing: 0) { // CHANGED: Use LazyHStack for memory efficiency
+                        content
+                    }
+                    .background(
+                        GeometryReader { innerGeometry in
+                            Color.clear
+                                .onAppear {
+                                    scrollViewSize = outerGeometry.size
+                                }
+                                .onChange(of: innerGeometry.frame(in: .named("scrollView")).minX) { oldValue, newValue in
+                                    contentOffset = -newValue
+                                    updateCurrentIndex(containerWidth: outerGeometry.size.width)
+                                }
+                        }
+                    )
                 }
                 .coordinateSpace(name: "scrollView")
                 .onAppear {
@@ -578,6 +588,7 @@ struct SinglePageView: View {
             isZooming: $isZooming,
             isActive: isActive
         )
+        .id(image) // CHANGED: Use image as ID for better recycling
     }
 }
 
@@ -592,7 +603,10 @@ struct ZoomableImageView: View {
     
     var body: some View {
         GeometryReader { geometry in
-            Image(uiImage: image)
+            // CHANGED: Use lower resolution for preview to save memory
+            let displayImage = prepareImageForDisplay(image, maxDimension: 1200)
+            
+            Image(uiImage: displayImage)
                 .resizable()
                 .scaledToFit()
                 .scaleEffect(isActive ? zoomScale : 1.0)
@@ -603,7 +617,37 @@ struct ZoomableImageView: View {
                 .gesture(magnificationGesture)
                 .simultaneousGesture(dragGesture(geometry: geometry))
                 .simultaneousGesture(doubleTapGesture)
+                .onChange(of: isActive) { oldValue, newValue in
+                    // Reset zoom when page changes
+                    if !newValue && zoomScale != 1.0 {
+                        zoomScale = 1.0
+                        offset = .zero
+                        isZooming = false
+                    }
+                }
         }
+    }
+    
+    // Prepare image for display with memory optimization
+    private func prepareImageForDisplay(_ image: UIImage, maxDimension: CGFloat) -> UIImage {
+        let size = image.size
+        
+        // If image is already small enough, return as-is
+        if size.width <= maxDimension && size.height <= maxDimension {
+            return image
+        }
+        
+        // Calculate scale factor to fit within max dimension
+        let scaleFactor = min(maxDimension / size.width, maxDimension / size.height)
+        let newSize = CGSize(width: size.width * scaleFactor, height: size.height * scaleFactor)
+        
+        // Render at lower resolution for memory savings
+        UIGraphicsBeginImageContextWithOptions(newSize, false, 0.8) // Lower quality for memory
+        image.draw(in: CGRect(origin: .zero, size: newSize))
+        let scaledImage = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+        
+        return scaledImage ?? image
     }
     
     private var magnificationGesture: some Gesture {
