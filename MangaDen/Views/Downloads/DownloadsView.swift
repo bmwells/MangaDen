@@ -9,6 +9,7 @@ import SwiftUI
 
 struct DownloadsView: View {
     @StateObject private var downloadManager = DownloadManager.shared
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         NavigationView {
@@ -18,6 +19,7 @@ struct DownloadsView: View {
                     HStack {
                         Text("Downloading")
                             .font(.headline)
+                            .foregroundColor(.primary)
                         
                         Spacer()
                         
@@ -59,7 +61,7 @@ struct DownloadsView: View {
                 }
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.gray.opacity(0.1))
+                .background(Color(.systemGray6))
                 .cornerRadius(12)
                 
                 // Completed Downloads Section
@@ -67,6 +69,7 @@ struct DownloadsView: View {
                     HStack {
                         Text("Completed")
                             .font(.headline)
+                            .foregroundColor(.primary)
                         
                         Spacer()
                         
@@ -97,7 +100,7 @@ struct DownloadsView: View {
                 }
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.gray.opacity(0.1))
+                .background(Color(.systemGray6))
                 .cornerRadius(12)
                 
                 // Failed Downloads Section
@@ -105,6 +108,7 @@ struct DownloadsView: View {
                     HStack {
                         Text("Failed")
                             .font(.headline)
+                            .foregroundColor(.primary)
                         
                         Spacer()
                         
@@ -135,13 +139,14 @@ struct DownloadsView: View {
                 }
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.gray.opacity(0.1))
+                .background(Color(.systemGray6))
                 .cornerRadius(12)
                 
                 Spacer()
             }
             .padding()
             .navigationTitle("Downloads")
+            .background(Color(.systemGroupedBackground))
         }
         .navigationViewStyle(StackNavigationViewStyle())
     }
@@ -150,6 +155,7 @@ struct DownloadsView: View {
 // Download Task Row Views
 struct DownloadTaskRow: View {
     let task: DownloadTask
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         HStack {
@@ -157,6 +163,7 @@ struct DownloadTaskRow: View {
                 Text("Chapter \(task.chapter.formattedChapterNumber)")
                     .font(.subheadline)
                     .fontWeight(.medium)
+                    .foregroundColor(.primary)
                 
                 if let title = task.chapter.title {
                     Text(title)
@@ -193,9 +200,9 @@ struct DownloadTaskRow: View {
             .foregroundColor(.red)
         }
         .padding()
-        .background(Color.white)
+        .background(Color(.systemBackground))
         .cornerRadius(8)
-        .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+        .shadow(color: .black.opacity(colorScheme == .dark ? 0.3 : 0.1), radius: 2, x: 0, y: 1)
     }
     
     private func formatTime(_ timeInterval: TimeInterval) -> String {
@@ -208,6 +215,7 @@ struct DownloadTaskRow: View {
 
 struct CompletedDownloadRow: View {
     let task: DownloadTask
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         HStack {
@@ -218,6 +226,7 @@ struct CompletedDownloadRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Chapter \(task.chapter.formattedChapterNumber)")
                     .font(.subheadline)
+                    .foregroundColor(.primary)
                 
                 if let title = task.chapter.title {
                     Text(title)
@@ -225,8 +234,13 @@ struct CompletedDownloadRow: View {
                         .foregroundColor(.secondary)
                 }
                 
-                if let fileSize = task.chapter.fileSize {
-                    Text(formatFileSize(fileSize))
+                // Use the fileSize from the DownloadTask instead of the chapter
+                if task.fileSize > 0 {
+                    Text(formatFileSize(task.fileSize))
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                } else if let chapterFileSize = task.chapter.fileSize, chapterFileSize > 0 {
+                    Text(formatFileSize(chapterFileSize))
                         .font(.caption2)
                         .foregroundColor(.secondary)
                 }
@@ -240,19 +254,21 @@ struct CompletedDownloadRow: View {
         }
         .padding(.horizontal)
         .padding(.vertical, 8)
+        .background(Color(.systemBackground))
+        .cornerRadius(6)
     }
     
     private func formatFileSize(_ size: Int64) -> String {
-        if size >= 1_000_000_000 {
-            return String(format: "%.1f GB", Double(size) / 1_000_000_000.0)
-        } else {
-            return String(format: "%.0f MB", Double(size) / 1_000_000.0)
-        }
+        let formatter = ByteCountFormatter()
+        formatter.allowedUnits = [.useMB, .useGB]
+        formatter.countStyle = .file
+        return formatter.string(fromByteCount: size)
     }
 }
 
 struct FailedDownloadRow: View {
     let task: DownloadTask
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         HStack {
@@ -263,6 +279,7 @@ struct FailedDownloadRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Chapter \(task.chapter.formattedChapterNumber)")
                     .font(.subheadline)
+                    .foregroundColor(.primary)
                 
                 if let title = task.chapter.title {
                     Text(title)
@@ -288,5 +305,7 @@ struct FailedDownloadRow: View {
         }
         .padding(.horizontal)
         .padding(.vertical, 8)
+        .background(Color(.systemBackground))
+        .cornerRadius(6)
     }
 }

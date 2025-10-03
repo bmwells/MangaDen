@@ -172,7 +172,7 @@ struct ManageModeControls: View {
                     }) {
                         HStack {
                             Image(systemName: "exclamationmark.triangle")
-                            Text("Uninstall ALL Chapters")
+                            Text("Uninstall ALL Downloaded Chapters")
                             Spacer()
                         }
                         .padding()
@@ -569,7 +569,7 @@ extension View {
                     Text("Are you sure you want to \(manageMode == .hideFromList ? "hide" : "uninstall") \"\(chapter.title ?? "Chapter \(chapter.formattedChapterNumber)")\"?")
                 }
             }
-            .alert("Uninstall All Chapters", isPresented: showUninstallAllConfirmation) {
+            .alert("Uninstall All Downloaded Chapters", isPresented: showUninstallAllConfirmation) {
                 Button("Cancel", role: .cancel) { }
                 Button("Uninstall All", role: .destructive) {
                     // Handled in TitleView

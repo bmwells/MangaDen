@@ -78,6 +78,7 @@ struct DownloadTask: Identifiable, Codable {
     var error: String?
     var startTime: Date
     var estimatedTimeRemaining: TimeInterval?
+    var fileSize: Int64
     
     init(chapter: Chapter) {
         self.id = UUID()
@@ -87,6 +88,7 @@ struct DownloadTask: Identifiable, Codable {
         self.error = nil
         self.startTime = Date()
         self.estimatedTimeRemaining = nil
+        self.fileSize = 0
     }
 }
 

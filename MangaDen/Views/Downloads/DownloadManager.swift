@@ -265,6 +265,7 @@ class DownloadManager: ObservableObject {
             var completedTask = self.downloadQueue[index]
             completedTask.status = .completed
             completedTask.progress = 1.0
+            completedTask.fileSize = fileSize // Set the file size here
             
             self.downloadQueue.remove(at: index)
             self.completedDownloads.append(completedTask)
