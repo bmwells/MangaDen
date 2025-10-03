@@ -12,7 +12,8 @@ struct SettingsView: View {
     @AppStorage("defaultReadingDirection") private var defaultReadingDirection: ReadingDirection = .rightToLeft
     @EnvironmentObject private var tabBarManager: TabBarManager
     @State private var showUninstallAllConfirmation = false
-    @State private var totalDownloadSize = "Calculating..." 
+    @State private var totalDownloadSize = "Calculating..."
+    @State private var isUninstalling = false
     
     var body: some View {
         NavigationView {
@@ -89,17 +90,22 @@ struct SettingsView: View {
                             
                             Spacer()
                             
-                            Button(action: {
-                                showUninstallAllConfirmation = true
-                            }) {
-                                Image(systemName: "trash")
-                                    .font(.system(size: 25))
-                                    .foregroundColor(.red)
-                                    .padding(8)
-                                    .background(Color.red.opacity(0.1))
-                                    .cornerRadius(8)
+                            if isUninstalling {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                            } else {
+                                Button(action: {
+                                    showUninstallAllConfirmation = true
+                                }) {
+                                    Image(systemName: "trash")
+                                        .font(.system(size: 25))
+                                        .foregroundColor(.red)
+                                        .padding(8)
+                                        .background(Color.red.opacity(0.1))
+                                        .cornerRadius(8)
+                                }
+                                .buttonStyle(PlainButtonStyle())
                             }
-                            .buttonStyle(PlainButtonStyle())
                         }
                         .padding(.vertical, 4)
                     }
@@ -121,8 +127,7 @@ struct SettingsView: View {
             .alert("Uninstall All Downloads", isPresented: $showUninstallAllConfirmation) {
                 Button("Cancel", role: .cancel) { }
                 Button("Uninstall All", role: .destructive) {
-                    // Add your uninstall logic here later
-                    print("Uninstall all downloads triggered")
+                    uninstallAllDownloads()
                 }
             } message: {
                 Text("Are you sure you want to uninstall ALL downloaded chapters? This will remove all downloaded content from the device and cannot be undone.")
@@ -135,6 +140,95 @@ struct SettingsView: View {
         }
     }
     
+    private func uninstallAllDownloads() {
+        isUninstalling = true
+        
+        // Perform the uninstall operation
+        DispatchQueue.global(qos: .userInitiated).async {
+            uninstallAllChaptersForAllTitles()
+            
+            DispatchQueue.main.async {
+                isUninstalling = false
+                totalDownloadSize = "0 MB"
+                
+                // Clear DownloadManager state
+                DownloadManager.shared.clearCompleted()
+                DownloadManager.shared.clearQueue()
+                DownloadManager.shared.clearFailed()
+                
+                // Notify the app that titles have been updated
+                NotificationCenter.default.post(name: .titleUpdated, object: nil)
+            }
+        }
+    }
+    
+    private func uninstallAllChaptersForAllTitles() {
+        do {
+            let fileManager = FileManager.default
+            guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+                print("Error: Could not access documents directory")
+                return
+            }
+            
+            // Remove the entire Downloads directory
+            let downloadsDirectory = documentsDirectory.appendingPathComponent("Downloads")
+            if fileManager.fileExists(atPath: downloadsDirectory.path) {
+                try fileManager.removeItem(at: downloadsDirectory)
+                print("Removed entire Downloads directory")
+            }
+            
+            // Recreate empty Downloads directory
+            try fileManager.createDirectory(at: downloadsDirectory, withIntermediateDirectories: true)
+            
+            // Update all title files to mark all chapters as not downloaded
+            updateAllTitleFiles()
+            
+            print("Successfully uninstalled all downloads for all titles")
+            
+        } catch {
+            print("Error uninstalling all downloads: \(error)")
+        }
+    }
+    
+    private func updateAllTitleFiles() {
+        do {
+            let fileManager = FileManager.default
+            guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+                return
+            }
+            
+            let titlesDirectory = documentsDirectory.appendingPathComponent("Titles")
+            
+            // Check if titles directory exists
+            if fileManager.fileExists(atPath: titlesDirectory.path) {
+                let titleFiles = try fileManager.contentsOfDirectory(at: titlesDirectory, includingPropertiesForKeys: nil)
+                
+                for titleFile in titleFiles where titleFile.pathExtension == "json" {
+                    do {
+                        let data = try Data(contentsOf: titleFile)
+                        var title = try JSONDecoder().decode(Title.self, from: data)
+                        
+                        // Update all chapters to not downloaded
+                        for index in title.chapters.indices {
+                            title.chapters[index].isDownloaded = false
+                            title.chapters[index].fileSize = 0
+                        }
+                        
+                        // Save the updated title
+                        let updatedData = try JSONEncoder().encode(title)
+                        try updatedData.write(to: titleFile)
+                        
+                        print("Updated title: \(title.title)")
+                        
+                    } catch {
+                        print("Error updating title file \(titleFile.lastPathComponent): \(error)")
+                    }
+                }
+            }
+        } catch {
+            print("Error accessing title files: \(error)")
+        }
+    }
     
     private func calculateTotalDownloadSize() -> String {
         do {
@@ -148,6 +242,11 @@ struct SettingsView: View {
             // Check if downloads directory exists
             if fileManager.fileExists(atPath: downloadsDirectory.path) {
                 let chapterDirectories = try fileManager.contentsOfDirectory(at: downloadsDirectory, includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles])
+                
+                // If directory exists but is empty, return "0 MB"
+                if chapterDirectories.isEmpty {
+                    return "0 MB"
+                }
                 
                 var totalSize: Int64 = 0
                 
@@ -163,6 +262,11 @@ struct SettingsView: View {
                             totalSize += Int64(fileResourceValues.fileSize ?? fileResourceValues.totalFileAllocatedSize ?? 0)
                         }
                     }
+                }
+                
+                // If total size is 0, return "0 MB"
+                if totalSize == 0 {
+                    return "0 MB"
                 }
                 
                 // Format the size
