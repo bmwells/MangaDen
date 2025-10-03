@@ -18,13 +18,6 @@ class ReaderViewJava: NSObject, ObservableObject {
     private var currentURL: URL?
     private var imageCache: [String: UIImage] = [:]
     private var extractionResults: [ExtractionResult] = []
-    private let imageProcessor = ImageProcessor()
-    private let extractionStrategies = ExtractionStrategies()
-    
-    // MARK: - Timeout Configuration
-    private let totalExtractionTimeout: TimeInterval = 180.0 // 180 seconds total timeout
-    private var extractionTimeoutTimer: Timer?
-    private var isExtractionTimedOut = false
     
     func loadChapter(url: URL) {
         isLoading = true
@@ -32,10 +25,6 @@ class ReaderViewJava: NSObject, ObservableObject {
         images = []
         currentURL = url
         extractionResults = []
-        isExtractionTimedOut = false
-        
-        // Start the global timeout timer
-        startExtractionTimeoutTimer()
         
         let webConfiguration = WKWebViewConfiguration()
         webConfiguration.websiteDataStore = .nonPersistent()
@@ -48,81 +37,38 @@ class ReaderViewJava: NSObject, ObservableObject {
         webView.load(request)
     }
     
-    // MARK: - Timeout Management
-    
-    private func startExtractionTimeoutTimer() {
-        extractionTimeoutTimer?.invalidate()
-        isExtractionTimedOut = false
-        
-        extractionTimeoutTimer = Timer.scheduledTimer(withTimeInterval: totalExtractionTimeout, repeats: false) { [weak self] _ in
-            guard let self = self else { return }
-            
-            Task { @MainActor in
-                self.isExtractionTimedOut = true
-                print("EXTRACTION TIMEOUT: 180 seconds elapsed - stopping all extraction processes")
-                
-                self.error = "Extraction timed out after 180 seconds"
-                self.isLoading = false
-                self.cleanupExtraction()
-            }
-        }
-    }
-    
-    private func stopExtractionTimeoutTimer() {
-        extractionTimeoutTimer?.invalidate()
-        extractionTimeoutTimer = nil
-    }
-    
-    private func cleanupExtraction() {
-        stopExtractionTimeoutTimer()
-        webView?.stopLoading()
-    }
-    
-    // MARK: - Enhanced Extraction with Strategy 5
+    // MARK: - Enhanced Extraction with Comparison
     
     private func executeAllExtractionStrategies(webView: WKWebView, onComplete: @escaping (Bool) -> Void) {
-        // Check if we've already timed out
-        guard !isExtractionTimedOut else {
-            print("EXTRACTION: Skipping strategies - already timed out")
-            onComplete(false)
-            return
-        }
-        
         let dispatchGroup = DispatchGroup()
         var strategyResults: [ExtractionResult] = []
-        var completedStrategies = 0
         
-        print("EXTRACTION: Starting all extraction strategies including Strategy 5")
+        // Strategy 1: Direct DOM inspection
+        dispatchGroup.enter()
+        attemptExtractionStrategy1(webView: webView) { images in
+            strategyResults.append(ExtractionResult(strategy: 1, images: images))
+            dispatchGroup.leave()
+        }
         
-        // Execute strategies 1-4 first
-        let strategies = [
-            extractionStrategies.attemptExtractionStrategy1,
-            extractionStrategies.attemptExtractionStrategy2,
-            extractionStrategies.attemptExtractionStrategy3,
-            extractionStrategies.attemptExtractionStrategy4
-        ]
+        // Strategy 2: Scroll-triggered loading
+        dispatchGroup.enter()
+        attemptExtractionStrategy2(webView: webView) { images in
+            strategyResults.append(ExtractionResult(strategy: 2, images: images))
+            dispatchGroup.leave()
+        }
         
-        for (index, strategy) in strategies.enumerated() {
-            // Check timeout before starting each strategy
-            guard !isExtractionTimedOut else {
-                print("EXTRACTION: Stopping strategy \(index + 1) - timeout reached")
-                break
-            }
-            
-            dispatchGroup.enter()
-            print("EXTRACTION: Starting Strategy \(index + 1)")
-            
-            strategy(webView) { images in
-                // Check if we timed out during strategy execution
-                if !self.isExtractionTimedOut {
-                    strategyResults.append(ExtractionResult(strategy: index + 1, images: images))
-                    completedStrategies += 1
-                    print("EXTRACTION: Strategy \(index + 1) completed with \(images.count) images (completed: \(completedStrategies)/4)")
-                } else {
-                    print("EXTRACTION: Strategy \(index + 1) result ignored - timeout reached")
-                }
-                dispatchGroup.leave()
-            }
+        // Strategy 3: HTML source regex
+        dispatchGroup.enter()
+        attemptExtractionStrategy3(webView: webView) { images in
+            strategyResults.append(ExtractionResult(strategy: 3, images: images))
+            dispatchGroup.leave()
+        }
+        
+        // Strategy 4: Position-based DOM
+        dispatchGroup.enter()
+        attemptExtractionStrategy4(webView: webView) { images in
+            strategyResults.append(ExtractionResult(strategy: 4, images: images))
+            dispatchGroup.leave()
         }
         
         dispatchGroup.notify(queue: .main) { [weak self] in
@@ -131,69 +77,15 @@ class ReaderViewJava: NSObject, ObservableObject {
                 return
             }
             
-            // Check timeout before proceeding
-            guard !self.isExtractionTimedOut else {
-                print("EXTRACTION: Stopping after strategies 1-4 - timeout reached")
-                onComplete(false)
-                return
-            }
-            
-            print("EXTRACTION: ALL STRATEGIES 1-4 COMPLETED")
-            let totalImages = strategyResults.reduce(0) { $0 + $1.images.count }
-            let maxImagesFromSingleStrategy = strategyResults.map { $0.images.count }.max() ?? 0
-            
-            print("EXTRACTION: Strategies 1-4 found \(totalImages) total images")
-            for result in strategyResults {
-                print("EXTRACTION: Strategy \(result.strategy) found \(result.images.count) images")
-            }
-            
             self.extractionResults = strategyResults
+            let bestOrder = self.findBestImageOrder(from: strategyResults)
             
-            // Decision logic for Strategy 5
-            let shouldTryStrategy5 = maxImagesFromSingleStrategy <= 10
-            
-            if shouldTryStrategy5 {
-                print("EXTRACTION: STRATEGY 5 TRIGGERED - No strategy found more than 10 images (max: \(maxImagesFromSingleStrategy))")
-                print("EXTRACTION: STARTING STRATEGY 5 - Page Menu Extraction")
-                
-                // Stop timeout timer during Strategy 5 since it has its own early stopping
-                self.stopExtractionTimeoutTimer()
-                
-                self.extractionStrategies.attemptExtractionStrategy5(webView: webView) { [weak self] strategy5Images in
-                    guard let self = self else {
-                        onComplete(false)
-                        return
-                    }
-                    
-                    // Restart timeout timer for the download phase
-                    self.startExtractionTimeoutTimer()
-                    
-                    print("EXTRACTION: STRATEGY 5 COMPLETED - Found \(strategy5Images.count) images")
-                    strategyResults.append(ExtractionResult(strategy: 5, images: strategy5Images))
-                    self.extractionResults = strategyResults
-                    
-                    let bestOrder = self.findBestImageOrder(from: strategyResults)
-                    print("EXTRACTION: Final best order has \(bestOrder.count) images")
-                    
-                    if bestOrder.isEmpty {
-                        print("EXTRACTION: No images found after all strategies including Strategy 5")
-                        self.stopExtractionTimeoutTimer()
-                        onComplete(false)
-                    } else {
-                        self.processAndDownloadImages(bestOrder, onComplete: onComplete)
-                    }
-                }
+            if bestOrder.isEmpty {
+                print("No images found after all strategies")
+                onComplete(false)
             } else {
-                let bestOrder = self.findBestImageOrder(from: strategyResults)
-                print("EXTRACTION: Sufficient images found (max: \(maxImagesFromSingleStrategy) per strategy), skipping Strategy 5")
-                print("EXTRACTION: Best order has \(bestOrder.count) images")
-                
-                if bestOrder.isEmpty {
-                    self.stopExtractionTimeoutTimer()
-                    onComplete(false)
-                } else {
-                    self.processAndDownloadImages(bestOrder, onComplete: onComplete)
-                }
+                print("Best order found with \(bestOrder.count) images")
+                self.processAndDownloadImages(bestOrder, onComplete: onComplete)
             }
         }
     }
@@ -212,36 +104,334 @@ class ReaderViewJava: NSObject, ObservableObject {
             print("Strategy \(result.strategy) found \(result.images.count) images")
         }
         
-        // Strategy selection logic:
-        // 1. Prefer strategies that found more images
-        // 2. If Strategy 5 found images, consider using it
-        // 3. Remove duplicates across strategies
-        
-        var allImages: [EnhancedImageInfo] = []
-        var seenURLs = Set<String>()
-        
-        // Process strategies in order of preference
-        let preferredOrder = [5, 2, 1, 4, 3] // Strategy 5 first if available, then 2, etc.
-        
-        for strategyNum in preferredOrder {
-            if let result = nonEmptyResults.first(where: { $0.strategy == strategyNum }) {
-                for image in result.images {
-                    if !seenURLs.contains(image.src) {
-                        seenURLs.insert(image.src)
-                        allImages.append(image)
-                    }
-                }
-            }
-        }
-        
-        // If we still don't have images, use the strategy with the most images
-        if allImages.isEmpty, let bestResult = nonEmptyResults.max(by: { $0.images.count < $1.images.count }) {
+        // Instead of grouping by count, use the strategy that found the most images
+        if let bestResult = nonEmptyResults.max(by: { $0.images.count < $1.images.count }) {
             print("Using strategy \(bestResult.strategy) with \(bestResult.images.count) images (most found)")
             return bestResult.images
         }
         
-        print("Final combined image count: \(allImages.count)")
-        return allImages
+        return []
+    }
+    
+    // MARK: - Fixed Extraction Strategies
+    
+    private func attemptExtractionStrategy1(webView: WKWebView, completion: @escaping ([EnhancedImageInfo]) -> Void) {
+        let jsScript = """
+        (function() {
+            var images = [];
+            var imgElements = document.querySelectorAll('img');
+            
+            for (var i = 0; i < imgElements.length; i++) {
+                var img = imgElements[i];
+                if (img.src && isImageUrl(img.src)) {
+                    var rect = img.getBoundingClientRect();
+                    images.push({
+                        src: img.src,
+                        width: rect.width,
+                        height: rect.height,
+                        position: i,
+                        naturalWidth: img.naturalWidth,
+                        naturalHeight: img.naturalHeight
+                    });
+                }
+            }
+            
+            var lazyImages = document.querySelectorAll('img[data-src]');
+            for (var i = 0; i < lazyImages.length; i++) {
+                var img = lazyImages[i];
+                if (img.dataset.src && isImageUrl(img.dataset.src)) {
+                    var rect = img.getBoundingClientRect();
+                    images.push({
+                        src: img.dataset.src,
+                        width: rect.width,
+                        height: rect.height,
+                        position: imgElements.length + i,
+                        isLazy: true
+                    });
+                }
+            }
+            
+            function isImageUrl(url) {
+                // More permissive URL matching
+                return url.match(/\\.(jpg|jpeg|png|gif|webp|bmp)(?:\\?|$)/i) &&
+                       (url.includes('bp.blogspot.com') ||
+                        url.includes('blogspot') ||
+                        url.includes('mangafox') ||
+                        url.includes('lowee.us') ||
+                        url.includes('/chapter/') ||
+                        url.includes('/Chapter/') ||
+                        url.includes('page') ||
+                        url.includes('Page') ||
+                        url.match(/\\d/)); // Any URL containing numbers
+            }
+            
+            return images;
+        })();
+        """
+        
+        webView.evaluateJavaScript(jsScript) { result, error in
+            if let error = error {
+                print("Strategy 1 failed: \(error)")
+                completion([])
+                return
+            }
+            
+            guard let imageDicts = result as? [[String: Any]] else {
+                completion([])
+                return
+            }
+            
+            let imageInfos = self.parseImageDicts(imageDicts)
+            print("Strategy 1 parsed \(imageInfos.count) images")
+            completion(imageInfos)
+        }
+    }
+    
+    private func attemptExtractionStrategy2(webView: WKWebView, completion: @escaping ([EnhancedImageInfo]) -> Void) {
+        let jsScript = """
+        (function() {
+            // Scroll multiple times to trigger all lazy loading
+            var scrollHeight = document.body.scrollHeight;
+            var scrollStep = scrollHeight / 3;
+            
+            for (var i = 0; i <= scrollHeight; i += scrollStep) {
+                window.scrollTo(0, i);
+            }
+            
+            // Final scroll to bottom
+            window.scrollTo(0, scrollHeight);
+            
+            // Wait for images to load
+            var startTime = Date.now();
+            while (Date.now() - startTime < 2000) {
+                // Busy wait for 2 seconds
+            }
+            
+            var images = [];
+            var imgElements = document.querySelectorAll('img');
+            
+            for (var i = 0; i < imgElements.length; i++) {
+                var img = imgElements[i];
+                var src = img.currentSrc || img.src;
+                if (src && isImageUrl(src)) {
+                    var rect = img.getBoundingClientRect();
+                    images.push({
+                        src: src,
+                        width: rect.width,
+                        height: rect.height,
+                        position: i,
+                        naturalWidth: img.naturalWidth,
+                        naturalHeight: img.naturalHeight
+                    });
+                }
+            }
+            
+            // Check various data attributes
+            var dataAttrs = ['data-src', 'data-url', 'data-image', 'data-original', 'data-lazy-src', 'data-lazyload'];
+            for (var i = 0; i < dataAttrs.length; i++) {
+                var attr = dataAttrs[i];
+                var elements = document.querySelectorAll('[' + attr + ']');
+                for (var j = 0; j < elements.length; j++) {
+                    var el = elements[j];
+                    var value = el.getAttribute(attr);
+                    if (value && isImageUrl(value)) {
+                        images.push({
+                            src: value,
+                            width: el.offsetWidth,
+                            height: el.offsetHeight,
+                            position: imgElements.length + j,
+                            fromAttribute: attr
+                        });
+                    }
+                }
+            }
+            
+            function isImageUrl(url) {
+                // More permissive URL matching
+                return url.match(/\\.(jpg|jpeg|png|gif|webp|bmp)(?:\\?|$)/i) &&
+                       (url.includes('bp.blogspot.com') ||
+                        url.includes('blogspot') ||
+                        url.includes('mangafox') ||
+                        url.includes('lowee.us') ||
+                        url.includes('/chapter/') ||
+                        url.includes('/Chapter/') ||
+                        url.includes('page') ||
+                        url.includes('Page') ||
+                        url.match(/\\d/)); // Any URL containing numbers
+            }
+            
+            return images;
+        })();
+        """
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            webView.evaluateJavaScript(jsScript) { result, error in
+                if let error = error {
+                    print("Strategy 2 failed: \(error)")
+                    completion([])
+                    return
+                }
+                
+                guard let imageDicts = result as? [[String: Any]] else {
+                    completion([])
+                    return
+                }
+                
+                let imageInfos = self.parseImageDicts(imageDicts)
+                print("Strategy 2 parsed \(imageInfos.count) images")
+                completion(imageInfos)
+            }
+        }
+    }
+    
+    private func attemptExtractionStrategy3(webView: WKWebView, completion: @escaping ([EnhancedImageInfo]) -> Void) {
+        let jsScript = """
+        (function() {
+            var html = document.documentElement.outerHTML;
+            var imageUrls = [];
+            
+            // Multiple regex patterns to catch different URL formats
+            var patterns = [
+                /https?:[^"']*\\.(?:jpg|jpeg|png|gif|webp|bmp)(?:\\?[^"']*)?/gi,
+                /"([^"]*\\.(?:jpg|jpeg|png|gif|webp|bmp)[^"]*)"/gi,
+                /'([^']*\\.(?:jpg|jpeg|png|gif|webp|bmp)[^']*)'/gi
+            ];
+            
+            var allMatches = [];
+            patterns.forEach(function(pattern) {
+                var matches = html.match(pattern);
+                if (matches) {
+                    allMatches = allMatches.concat(matches);
+                }
+            });
+            
+            if (allMatches.length > 0) {
+                var uniqueUrls = [...new Set(allMatches)];
+                uniqueUrls.forEach(function(url, index) {
+                    // Clean up URLs from quotes
+                    var cleanUrl = url.replace(/^["']|["']$/g, '');
+                    if (isRelevantImage(cleanUrl)) {
+                        imageUrls.push({
+                            src: cleanUrl,
+                            width: 0,
+                            height: 0,
+                            position: index,
+                            fromHtml: true
+                        });
+                    }
+                });
+            }
+            
+            function isRelevantImage(url) {
+                // Less aggressive filtering
+                if (url.includes('avatar') || url.includes('icon') || url.includes('logo') ||
+                    url.includes('ads') || url.includes('banner') || url.length < 10) {
+                    return false;
+                }
+                
+                return url.includes('bp.blogspot.com') ||
+                       url.includes('blogspot') ||
+                       url.includes('mangafox') ||
+                       url.includes('lowee.us') ||
+                       url.includes('/chapter/') ||
+                       url.includes('/Chapter/') ||
+                       url.includes('page') ||
+                       url.includes('Page') ||
+                       /\\d/.test(url);
+            }
+            
+            return imageUrls;
+        })();
+        """
+        
+        webView.evaluateJavaScript(jsScript) { result, error in
+            if let error = error {
+                print("Strategy 3 failed: \(error)")
+                completion([])
+                return
+            }
+            
+            guard let imageDicts = result as? [[String: Any]] else {
+                completion([])
+                return
+            }
+            
+            let imageInfos = self.parseImageDicts(imageDicts)
+            print("Strategy 3 parsed \(imageInfos.count) images")
+            completion(imageInfos)
+        }
+    }
+    
+    private func attemptExtractionStrategy4(webView: WKWebView, completion: @escaping ([EnhancedImageInfo]) -> Void) {
+        let jsScript = """
+        (function() {
+            function getElementTop(element) {
+                var rect = element.getBoundingClientRect();
+                return rect.top + window.pageYOffset;
+            }
+            
+            var images = [];
+            var imgElements = Array.from(document.querySelectorAll('img'));
+            
+            // Much less restrictive filtering - only filter very small images
+            var visibleImages = imgElements
+                .filter(img => img.src && isRelevantImage(img.src) && img.naturalWidth > 50)
+                .map(img => ({
+                    src: img.src,
+                    width: img.naturalWidth,
+                    height: img.naturalHeight,
+                    position: getElementTop(img)
+                }));
+            
+            function isRelevantImage(url) {
+                return url.includes('bp.blogspot.com') ||
+                       url.includes('blogspot') ||
+                       url.includes('mangafox') ||
+                       url.includes('lowee.us') ||
+                       url.includes('/chapter/') ||
+                       url.includes('/Chapter/') ||
+                       url.includes('page') ||
+                       url.includes('Page') ||
+                       /\\d/.test(url);
+            }
+            
+            visibleImages.sort((a, b) => a.position - b.position);
+            return JSON.stringify(visibleImages);
+        })();
+        """
+        
+        webView.evaluateJavaScript(jsScript) { result, error in
+            if let error = error {
+                print("Strategy 4 failed: \(error)")
+                completion([])
+                return
+            }
+            
+            if let jsonString = result as? String,
+               let jsonData = jsonString.data(using: .utf8) {
+                do {
+                    let positionedImages = try JSONDecoder().decode([PositionedImageInfo].self, from: jsonData)
+                    let enhancedImages = positionedImages.map { positionedImage in
+                        EnhancedImageInfo(
+                            src: positionedImage.src,
+                            width: positionedImage.width,
+                            height: positionedImage.height,
+                            position: positionedImage.position,
+                            alt: "",
+                            className: "",
+                            id: ""
+                        )
+                    }
+                    print("Strategy 4 parsed \(enhancedImages.count) images")
+                    completion(enhancedImages)
+                } catch {
+                    print("Strategy 4 JSON decode failed: \(error)")
+                    completion([])
+                }
+            } else {
+                completion([])
+            }
+        }
     }
     
     // MARK: - Improved Processing
@@ -249,7 +439,7 @@ class ReaderViewJava: NSObject, ObservableObject {
     private func processAndDownloadImages(_ imageInfos: [EnhancedImageInfo], onComplete: ((Bool) -> Void)? = nil) {
         print("Processing \(imageInfos.count) images...")
         
-        // Enhanced filtering - remove problematic URLs
+        // MINIMAL FILTERING - only remove obviously broken images
         let filteredImages = imageInfos.filter { image in
             // Remove images with obviously invalid URLs
             guard !image.src.isEmpty,
@@ -260,61 +450,232 @@ class ReaderViewJava: NSObject, ObservableObject {
                 return false
             }
             
-            // Remove known problematic domains or paths
-            let problematicPatterns = [
-                "logo-sm.png",
-                "assets/sites/mangafire/logo",
-                "avatar",
-                "icon",
-                "banner",
-                "ads"
-            ]
-            
-            for pattern in problematicPatterns {
-                if image.src.contains(pattern) {
-                    return false
-                }
-            }
-            
-            // Keep images that look like actual manga pages
-            return image.src.contains("/h/p.jpg") ||
-                   image.src.contains("mangafox") ||
-                   image.src.contains("mfcdn")
+            // Keep ALL images that pass basic URL validation
+            return true
         }
         
-        print("After filtering: \(filteredImages.count) images (removed \(imageInfos.count - filteredImages.count) problematic URLs)")
+        print("After filtering: \(filteredImages.count) images")
         
         if filteredImages.isEmpty {
-            print("No valid manga images found after filtering")
-            onComplete?(false)
+            print("No images passed filtering, trying with all images...")
+            // If filtering removes everything, use the original images
+            downloadImages(from: imageInfos, onComplete: onComplete)
             return
         }
         
-        let sortedImages = imageProcessor.intelligentImageSorting(filteredImages)
+        let sortedImages = intelligentImageSorting(filteredImages)
         print("Final order: \(sortedImages.count) images")
         
         downloadImages(from: sortedImages, onComplete: onComplete)
     }
     
+    private func intelligentImageSorting(_ images: [EnhancedImageInfo]) -> [EnhancedImageInfo] {
+        var sortedImages = images
+        
+        // First, group by base image (remove size variants)
+        let groupedImages = groupByBaseImage(images)
+        
+        // Use the highest quality version from each group
+        let deduplicatedImages = selectBestQualityFromGroups(groupedImages)
+        
+        print("=== After deduplication: \(deduplicatedImages.count) unique images ===")
+        
+        // Patterns for extracting meaningful page numbers
+        let patterns = [
+            // Blogspot patterns - match the number before .jpg
+            try? NSRegularExpression(pattern: "/(\\d+)\\.(jpg|jpeg|png|gif|webp)$", options: []),
+            try? NSRegularExpression(pattern: "/(\\d+)\\.(jpg|jpeg|png|gif|webp)\\?", options: []),
+            try? NSRegularExpression(pattern: "/(\\d+)\\.(jpg|jpeg|png|gif|webp)", options: []),
+            
+            // Other common patterns
+            try? NSRegularExpression(pattern: "/(l\\d+)\\.(jpg|jpeg|png|gif|webp)", options: []),
+            try? NSRegularExpression(pattern: "l(\\d+)\\.(jpg|jpeg|png|gif|webp)", options: []),
+            try? NSRegularExpression(pattern: "_(\\d+)\\.(jpg|jpeg|png|gif|webp)", options: []),
+            try? NSRegularExpression(pattern: "page[_-]?(\\d+)", options: [.caseInsensitive]),
+        ]
+        
+        var imageClassifications: [(image: EnhancedImageInfo, pageNumber: Int?, isMeaningful: Bool)] = []
+        
+        for image in deduplicatedImages {
+            let pageNumber = extractPageNumber(from: image.src, using: patterns)
+            let isMeaningful = isMeaningfulPageNumber(in: image.src, pageNumber: pageNumber)
+            
+            imageClassifications.append((image, pageNumber, isMeaningful))
+            
+            if let pageNumber = pageNumber, isMeaningful {
+                print("Image: \(pageNumber) - MEANINGFUL - \(image.src)")
+            } else if let pageNumber = pageNumber {
+                print("Image: \(pageNumber) - RANDOM - \(image.src)")
+            } else {
+                print("Image: NO NUMBER - \(image.src)")
+            }
+        }
+        
+        // Sort with priority: meaningful page numbers > DOM position
+        let sortedClassifications = imageClassifications.sorted { item1, item2 in
+            let (image1, num1, meaningful1) = item1
+            let (image2, num2, meaningful2) = item2
+            
+            // Both have meaningful page numbers
+            if meaningful1 && meaningful2, let num1 = num1, let num2 = num2 {
+                return num1 < num2
+            }
+            // Only image1 has meaningful page number
+            else if meaningful1 {
+                return true
+            }
+            // Only image2 has meaningful page number
+            else if meaningful2 {
+                return false
+            }
+            // Neither has meaningful page numbers, use DOM position
+            else {
+                return image1.position < image2.position
+            }
+        }
+        
+        // Extract just the images from the sorted classifications
+        sortedImages = sortedClassifications.map { $0.image }
+        
+        print("=== Final order ===")
+        for (index, classification) in sortedClassifications.enumerated() {
+            if let pageNumber = classification.pageNumber, classification.isMeaningful {
+                print("Sorted \(index): \(pageNumber) - \(classification.image.src)")
+            } else {
+                print("Sorted \(index): NO MEANINGFUL NUMBER - \(classification.image.src)")
+            }
+        }
+        
+        return sortedImages
+    }
+
+    private func isMeaningfulPageNumber(in url: String, pageNumber: Int?) -> Bool {
+        guard let pageNumber = pageNumber else { return false }
+        
+        // For blogspot URLs, check if the number appears right before the extension
+        if url.contains("blogger.googleusercontent.com") {
+            let patterns = [
+                "/\(pageNumber)\\.jpg",
+                "/\(pageNumber)\\.webp",
+                "/\(pageNumber)\\.png",
+                "/\(String(format: "%02d", pageNumber))\\.jpg",
+                "/\(String(format: "%02d", pageNumber))\\.webp",
+                "/\(String(format: "%02d", pageNumber))\\.png"
+            ]
+            
+            for pattern in patterns {
+                if url.contains(pattern) {
+                    return true
+                }
+            }
+            
+            // Also check if it's in the final path component
+            if let lastPath = URL(string: url)?.lastPathComponent {
+                let numberFormats = [
+                    "\(pageNumber).jpg", "\(pageNumber).webp", "\(pageNumber).png",
+                    "\(String(format: "%02d", pageNumber)).jpg", "\(String(format: "%02d", pageNumber)).webp", "\(String(format: "%02d", pageNumber)).png"
+                ]
+                for format in numberFormats {
+                    if lastPath == format || lastPath.hasSuffix(format) {
+                        return true
+                    }
+                }
+            }
+        }
+        
+        return false
+    }
+
+    private func extractPageNumber(from url: String, using patterns: [NSRegularExpression?]) -> Int? {
+        for pattern in patterns.compactMap({ $0 }) {
+            let matches = pattern.matches(in: url, options: [], range: NSRange(location: 0, length: url.count))
+            if let match = matches.last {
+                let range = Range(match.range(at: 1), in: url)!
+                let numberString = String(url[range])
+                // Handle "l003" format by removing the 'l' prefix if present
+                let cleanNumberString = numberString.replacingOccurrences(of: "^l", with: "", options: .regularExpression)
+                if let number = Int(cleanNumberString) {
+                    return number
+                }
+            }
+        }
+        return nil
+    }
+    
+    private func groupByBaseImage(_ images: [EnhancedImageInfo]) -> [String: [EnhancedImageInfo]] {
+        var groups: [String: [EnhancedImageInfo]] = [:]
+        
+        for image in images {
+            let baseUrl = getBaseImageUrl(image.src)
+            if groups[baseUrl] == nil {
+                groups[baseUrl] = []
+            }
+            groups[baseUrl]?.append(image)
+        }
+        
+        return groups
+    }
+
+    private func getBaseImageUrl(_ url: String) -> String {
+        // Remove size parameters from blogspot URLs
+        // Example: /s1600/03.jpg -> /03.jpg, /s1190/03.jpg -> /03.jpg
+        let pattern = "/s\\d+/"
+        if let regex = try? NSRegularExpression(pattern: pattern) {
+            let range = NSRange(location: 0, length: url.count)
+            return regex.stringByReplacingMatches(in: url, options: [], range: range, withTemplate: "/")
+        }
+        return url
+    }
+
+    private func selectBestQualityFromGroups(_ groups: [String: [EnhancedImageInfo]]) -> [EnhancedImageInfo] {
+        var bestImages: [EnhancedImageInfo] = []
+        
+        for (_, images) in groups {
+            // Prefer larger images (s1600 > s1190 > s1200)
+            if let bestImage = selectBestQualityImage(images) {
+                bestImages.append(bestImage)
+            }
+        }
+        
+        return bestImages
+    }
+
+    private func selectBestQualityImage(_ images: [EnhancedImageInfo]) -> EnhancedImageInfo? {
+        // Priority order: s1600 (largest) > s1200 > s1190 > others
+        let qualityOrder = ["s1600", "s1200", "s1190"]
+        
+        for quality in qualityOrder {
+            if let image = images.first(where: { $0.src.contains("/\(quality)/") }) {
+                return image
+            }
+        }
+        
+        // If no size found, return the first one
+        return images.first
+    }
+    
+    private func removeDuplicates(_ images: [EnhancedImageInfo]) -> [EnhancedImageInfo] {
+        var seen = Set<String>()
+        var result: [EnhancedImageInfo] = []
+        
+        for image in images {
+            if !seen.contains(image.src) {
+                seen.insert(image.src)
+                result.append(image)
+            }
+        }
+        
+        return result
+    }
+    
     // MARK: - Download and Cache
+    
     private func downloadImages(from imageInfos: [EnhancedImageInfo], onComplete: ((Bool) -> Void)? = nil) {
         Task {
             var downloadedImages: [UIImage] = []
             
-            // Further reduce limit for memory safety
-            let maxImagesToDownload = min(50, imageInfos.count) // Max images to download is 50
-            let imagesToDownload = Array(imageInfos.prefix(maxImagesToDownload))
-            
-            print("Downloading \(imagesToDownload.count) images (limited from \(imageInfos.count))")
-            
-            for (index, imageInfo) in imagesToDownload.enumerated() {
-                // Check if we've been cancelled or timed out
-                if self.isExtractionTimedOut {
-                    print("Download cancelled - extraction timed out")
-                    break
-                }
-                
-                print("Downloading \(index + 1)/\(imagesToDownload.count): \(imageInfo.src)")
+            for (index, imageInfo) in imageInfos.enumerated() {
+                print("Downloading \(index + 1)/\(imageInfos.count): \(imageInfo.src)")
                 
                 if let cachedImage = getCachedImage(for: imageInfo.src) {
                     downloadedImages.append(cachedImage)
@@ -327,23 +688,11 @@ class ReaderViewJava: NSObject, ObservableObject {
                 }
                 
                 do {
-                    // Try normal download first
-                    var request = URLRequest(url: url)
-                    request.timeoutInterval = 30
-                    request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
-                    
-                    let (data, _) = try await URLSession.shared.data(for: request)
+                    let (data, _) = try await URLSession.shared.data(from: url)
                     if let image = UIImage(data: data) {
-                        // CHANGED: More aggressive scaling for memory safety
-                        let scaledImage = scaleImageForMemorySafety(image)
-                        cacheImage(scaledImage, for: imageInfo.src)
-                        downloadedImages.append(scaledImage)
+                        cacheImage(image, for: imageInfo.src)
+                        downloadedImages.append(image)
                         print("Downloaded image \(index + 1)")
-                        
-                        // CHANGED: Add small delay between downloads to reduce memory pressure
-                        if index < imagesToDownload.count - 1 {
-                            try await Task.sleep(nanoseconds: 100_000_000) // 0.1 second
-                        }
                     }
                 } catch {
                     print("Download failed for \(imageInfo.src): \(error)")
@@ -351,11 +700,8 @@ class ReaderViewJava: NSObject, ObservableObject {
             }
             
             await MainActor.run {
-                // Only consider it successful if we got more than just the logo
-                let hasMeaningfulImages = downloadedImages.count > 1
-                
-                if !hasMeaningfulImages {
-                    self.error = "Failed to download manga images"
+                if downloadedImages.isEmpty {
+                    self.error = "Failed to download any images"
                     onComplete?(false)
                 } else {
                     self.images = downloadedImages
@@ -363,98 +709,8 @@ class ReaderViewJava: NSObject, ObservableObject {
                     onComplete?(true)
                 }
                 self.isLoading = false
-                self.stopExtractionTimeoutTimer()
             }
         }
-    }
-
-    // More aggressive image scaling for memory safety
-    private func scaleImageForMemorySafety(_ image: UIImage) -> UIImage {
-        let maxDimension: CGFloat = 1600 // Max dimension of 1600 px for panel images
-        
-        let size = image.size
-        if size.width <= maxDimension && size.height <= maxDimension {
-            return image
-        }
-        
-        let scaleFactor = min(maxDimension / size.width, maxDimension / size.height)
-        let newSize = CGSize(width: size.width * scaleFactor, height: size.height * scaleFactor)
-        
-        // CHANGED: Use lower quality for significant memory savings
-        UIGraphicsBeginImageContextWithOptions(newSize, false, 0.8)
-        image.draw(in: CGRect(origin: .zero, size: newSize))
-        let scaledImage = UIGraphicsGetImageFromCurrentImageContext()
-        UIGraphicsEndImageContext()
-        
-        return scaledImage ?? image
-    }
-    
-    private func downloadWithAlternativeApproach(url: URL) async -> UIImage? {
-        // Try different approaches for problematic domains
-        do {
-            // Approach 1: Try with ephemeral session (no caching)
-            let ephemeralConfig = URLSessionConfiguration.ephemeral
-            ephemeralConfig.timeoutIntervalForRequest = 30
-            let ephemeralSession = URLSession(configuration: ephemeralConfig)
-            
-            var request = URLRequest(url: url)
-            request.timeoutInterval = 30
-            request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
-            // Add some headers that might help
-            request.setValue("image/webp,image/apng,image/*,*/*;q=0.8", forHTTPHeaderField: "Accept")
-            request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
-            
-            let (data, _) = try await ephemeralSession.data(for: request)
-            return UIImage(data: data)
-        } catch {
-            print("Alternative download also failed: \(error)")
-            
-            // Approach 2: Try converting http to https or vice versa
-            if var components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
-                if components.scheme == "https" {
-                    components.scheme = "http"
-                } else if components.scheme == "http" {
-                    components.scheme = "https"
-                }
-                
-                if let modifiedURL = components.url {
-                    print("Trying modified URL: \(modifiedURL.absoluteString)")
-                    do {
-                        let (data, _) = try await URLSession.shared.data(from: modifiedURL)
-                        return UIImage(data: data)
-                    } catch {
-                        print("Modified URL also failed: \(error)")
-                    }
-                }
-            }
-        }
-        
-        return nil
-    }
-    
-    private func scaleImageIfNeeded(_ image: UIImage) -> UIImage {
-        let maxDimension: CGFloat = 2000 // Limit image size to prevent memory issues
-        
-        let size = image.size
-        if size.width <= maxDimension && size.height <= maxDimension {
-            return image
-        }
-        
-        let scaleFactor = min(maxDimension / size.width, maxDimension / size.height)
-        let newSize = CGSize(width: size.width * scaleFactor, height: size.height * scaleFactor)
-        
-        UIGraphicsBeginImageContextWithOptions(newSize, false, 1.0)
-        image.draw(in: CGRect(origin: .zero, size: newSize))
-        let scaledImage = UIGraphicsGetImageFromCurrentImageContext()
-        UIGraphicsEndImageContext()
-        
-        return scaledImage ?? image
-    }
-    
-    private func isLogoImage(_ image: UIImage?) -> Bool {
-        guard let image = image else { return true }
-        // Simple heuristic: logo images are usually small
-        return image.size.width < 200 && image.size.height < 200
     }
     
     private func getCachedImage(for key: String) -> UIImage? {
@@ -471,7 +727,6 @@ class ReaderViewJava: NSObject, ObservableObject {
         webView?.stopLoading()
         webView = nil
         currentURL = nil
-        stopExtractionTimeoutTimer()
         
         WKWebsiteDataStore.default().removeData(
             ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(),
@@ -480,7 +735,7 @@ class ReaderViewJava: NSObject, ObservableObject {
         )
     }
     
-    // MARK: - Retry Logic with Strategy 5
+    // MARK: - Retry Logic
     
     private func attemptImageExtraction(attempt: Int, maxAttempts: Int, onComplete: ((Bool) -> Void)? = nil) {
         let delay = Double(attempt) * 2.0
@@ -509,20 +764,30 @@ class ReaderViewJava: NSObject, ObservableObject {
         }
     }
     
-    // MARK: - Debug Information
+    // MARK: - Image Dict Parsing
     
-    func getExtractionDebugInfo() -> String {
-        var debugInfo = "Extraction Results:\n"
-        debugInfo += "Total Strategies: \(extractionResults.count)\n"
+    private func parseImageDicts(_ dicts: [[String: Any]]) -> [EnhancedImageInfo] {
+        var imageInfos: [EnhancedImageInfo] = []
         
-        for result in extractionResults {
-            debugInfo += "Strategy \(result.strategy): \(result.images.count) images\n"
+        for dict in dicts {
+            if let src = dict["src"] as? String {
+                let width = (dict["width"] as? NSNumber)?.intValue ?? (dict["width"] as? Int) ?? (dict["naturalWidth"] as? Int) ?? 0
+                let height = (dict["height"] as? NSNumber)?.intValue ?? (dict["height"] as? Int) ?? (dict["naturalHeight"] as? Int) ?? 0
+                let position = (dict["position"] as? NSNumber)?.doubleValue ?? (dict["position"] as? Double) ?? 0
+                
+                imageInfos.append(EnhancedImageInfo(
+                    src: src,
+                    width: width,
+                    height: height,
+                    position: position,
+                    alt: "",
+                    className: "",
+                    id: ""
+                ))
+            }
         }
         
-        debugInfo += "Final Images: \(images.count)\n"
-        debugInfo += "Cache Size: \(imageCache.count)"
-        
-        return debugInfo
+        return imageInfos
     }
 }
 
@@ -569,7 +834,6 @@ extension ReaderViewJava: WKNavigationDelegate {
         Task { @MainActor in
             self.error = "Failed to load page: \(error.localizedDescription)"
             self.isLoading = false
-            self.cleanupExtraction()
         }
     }
     
@@ -577,7 +841,6 @@ extension ReaderViewJava: WKNavigationDelegate {
         Task { @MainActor in
             self.error = "Failed to load page: \(error.localizedDescription)"
             self.isLoading = false
-            self.cleanupExtraction()
         }
     }
 }

@@ -9,8 +9,6 @@
 /* Begin PBXBuildFile section */
 		27130DAF2E8DF4FE006FF48A /* ChapterRows.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27130DAE2E8DF4FE006FF48A /* ChapterRows.swift */; };
 		27130DB12E8DF51E006FF48A /* TitleComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27130DB02E8DF51E006FF48A /* TitleComponents.swift */; };
-		27130DB32E8DFBCE006FF48A /* ImageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27130DB22E8DFBCE006FF48A /* ImageProcessor.swift */; };
-		27130DB52E8DFBDB006FF48A /* ExtractionStrategies.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27130DB42E8DFBDB006FF48A /* ExtractionStrategies.swift */; };
 		271345C22E5D07B000BC7435 /* MangaDenApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271345C12E5D07B000BC7435 /* MangaDenApp.swift */; };
 		271345C42E5D07B000BC7435 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271345C32E5D07B000BC7435 /* ContentView.swift */; };
 		271345C62E5D07B100BC7435 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 271345C52E5D07B100BC7435 /* Assets.xcassets */; };
@@ -55,8 +53,6 @@
 /* Begin PBXFileReference section */
 		27130DAE2E8DF4FE006FF48A /* ChapterRows.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChapterRows.swift; sourceTree = "<group>"; };
 		27130DB02E8DF51E006FF48A /* TitleComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TitleComponents.swift; sourceTree = "<group>"; };
-		27130DB22E8DFBCE006FF48A /* ImageProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageProcessor.swift; sourceTree = "<group>"; };
-		27130DB42E8DFBDB006FF48A /* ExtractionStrategies.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtractionStrategies.swift; sourceTree = "<group>"; };
 		271345BE2E5D07B000BC7435 /* MangaDen.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MangaDen.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		271345C12E5D07B000BC7435 /* MangaDenApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MangaDenApp.swift; sourceTree = "<group>"; };
 		271345C32E5D07B000BC7435 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -137,8 +133,6 @@
 			isa = PBXGroup;
 			children = (
 				271346112E68084100BC7435 /* ReaderViewJAVA.swift */,
-				27130DB22E8DFBCE006FF48A /* ImageProcessor.swift */,
-				27130DB42E8DFBDB006FF48A /* ExtractionStrategies.swift */,
 				271346072E67B4F700BC7435 /* ReaderView.swift */,
 			);
 			path = Reader;
@@ -390,11 +384,9 @@
 			files = (
 				271346102E68062A00BC7435 /* AddTitleJAVA.swift in Sources */,
 				271345C42E5D07B000BC7435 /* ContentView.swift in Sources */,
-				27130DB32E8DFBCE006FF48A /* ImageProcessor.swift in Sources */,
 				27130DAF2E8DF4FE006FF48A /* ChapterRows.swift in Sources */,
 				271346082E67B4F700BC7435 /* ReaderView.swift in Sources */,
 				2793268B2E835FFE001AA1AC /* TabBarManager.swift in Sources */,
-				27130DB52E8DFBDB006FF48A /* ExtractionStrategies.swift in Sources */,
 				271345F02E5D28C200BC7435 /* DownloadsView.swift in Sources */,
 				271346022E618AA500BC7435 /* JSONViewerView.swift in Sources */,
 				271345EE2E5D28A500BC7435 /* AddTitleView.swift in Sources */,
