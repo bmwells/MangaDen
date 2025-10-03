@@ -139,7 +139,7 @@ struct LibraryView: View {
                                             // Title Text below Image
                                             Text(title.title)
                                                 .font(.custom("AndaleMono", size: 20))
-                                                .tracking(0.6) // Letter spacing
+                                                .tracking(0.5) // Letter spacing
                                                 .fontWeight(.semibold)
                                                 .foregroundColor(.primary)
                                                 .lineLimit(2)
@@ -148,19 +148,6 @@ struct LibraryView: View {
                                                 .padding(.horizontal, 4) // Horizontal padding for better text wrapping
                                                 .minimumScaleFactor(0.8)
 
-                                            
-                                            // Download info for downloaded titles
-                                            if title.isDownloaded && !title.downloadedChapters.isEmpty {
-                                                HStack(spacing: 4) {
-                                                    Text("\(title.downloadedChapters.count) Chp\(title.downloadedChapters.count > 1 ? "s" : "")")
-                                                        .font(.caption2)
-                                                        .fontWeight(.medium)
-                                                    
-                                                    Text("[\(title.formattedDownloadSize)]")
-                                                        .font(.caption2)
-                                                        .foregroundColor(.secondary)
-                                                }
-                                            }
                                         }
                                         .frame(height: 40) // Fixed height for entire text container
                                         .frame(maxWidth: .infinity) // Ensure consistent width
