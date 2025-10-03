@@ -12,6 +12,7 @@ struct SettingsView: View {
     @AppStorage("defaultReadingDirection") private var defaultReadingDirection: ReadingDirection = .rightToLeft
     @EnvironmentObject private var tabBarManager: TabBarManager
     @State private var showUninstallAllConfirmation = false
+    @State private var showNoDownloadsAlert = false
     @State private var totalDownloadSize = "Calculating..."
     @State private var isUninstalling = false
     
@@ -95,7 +96,11 @@ struct SettingsView: View {
                                     .scaleEffect(0.8)
                             } else {
                                 Button(action: {
-                                    showUninstallAllConfirmation = true
+                                    if totalDownloadSize == "0 MB" {
+                                        showNoDownloadsAlert = true
+                                    } else {
+                                        showUninstallAllConfirmation = true
+                                    }
                                 }) {
                                     Image(systemName: "trash")
                                         .font(.system(size: 25))
@@ -131,6 +136,11 @@ struct SettingsView: View {
                 }
             } message: {
                 Text("Are you sure you want to uninstall ALL downloaded chapters? This will remove all downloaded content from the device and cannot be undone.")
+            }
+            .alert("No Downloads", isPresented: $showNoDownloadsAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text("No chapters are currently downloaded to device.")
             }
         }
         .navigationViewStyle(StackNavigationViewStyle())

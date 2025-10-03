@@ -242,7 +242,7 @@ struct LibraryView: View {
             }
             
             titles = loadedTitles
-            print("Loaded \(titles.count) titles from library")
+            print("Loaded \(titles.count - 1) titles from library")
         } catch {
             print("Error loading titles: \(error)")
         }
