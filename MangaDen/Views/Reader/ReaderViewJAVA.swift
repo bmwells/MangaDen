@@ -13,6 +13,7 @@ class ReaderViewJava: NSObject, ObservableObject {
     @Published var images: [UIImage] = []
     @Published var isLoading: Bool = false
     @Published var error: String?
+    @Published var downloadProgress: String = ""
     
     private var webView: WKWebView?
     private var currentURL: URL?
@@ -115,6 +116,7 @@ class ReaderViewJava: NSObject, ObservableObject {
     
     // MARK: - Fixed Extraction Strategies
     
+    // MARK: - Strategy 1
     private func attemptExtractionStrategy1(webView: WKWebView, completion: @escaping ([EnhancedImageInfo]) -> Void) {
         let jsScript = """
         (function() {
@@ -187,6 +189,7 @@ class ReaderViewJava: NSObject, ObservableObject {
         }
     }
     
+    // MARK: - Strategy 2
     private func attemptExtractionStrategy2(webView: WKWebView, completion: @escaping ([EnhancedImageInfo]) -> Void) {
         let jsScript = """
         (function() {
@@ -284,6 +287,7 @@ class ReaderViewJava: NSObject, ObservableObject {
         }
     }
     
+    // MARK: - Strategy 3
     private func attemptExtractionStrategy3(webView: WKWebView, completion: @escaping ([EnhancedImageInfo]) -> Void) {
         let jsScript = """
         (function() {
@@ -362,6 +366,7 @@ class ReaderViewJava: NSObject, ObservableObject {
         }
     }
     
+    // MARK: - Strategy 4
     private func attemptExtractionStrategy4(webView: WKWebView, completion: @escaping ([EnhancedImageInfo]) -> Void) {
         let jsScript = """
         (function() {
@@ -671,47 +676,57 @@ class ReaderViewJava: NSObject, ObservableObject {
     // MARK: - Download and Cache
     
     private func downloadImages(from imageInfos: [EnhancedImageInfo], onComplete: ((Bool) -> Void)? = nil) {
-        Task {
-            var downloadedImages: [UIImage] = []
-            
-            for (index, imageInfo) in imageInfos.enumerated() {
-                print("Downloading \(index + 1)/\(imageInfos.count): \(imageInfo.src)")
+            Task {
+                var downloadedImages: [UIImage] = []
+                let totalImages = imageInfos.count
                 
-                if let cachedImage = getCachedImage(for: imageInfo.src) {
-                    downloadedImages.append(cachedImage)
-                    continue
-                }
-                
-                guard let url = URL(string: imageInfo.src) else {
-                    print("Invalid URL: \(imageInfo.src)")
-                    continue
-                }
-                
-                do {
-                    let (data, _) = try await URLSession.shared.data(from: url)
-                    if let image = UIImage(data: data) {
-                        cacheImage(image, for: imageInfo.src)
-                        downloadedImages.append(image)
-                        print("Downloaded image \(index + 1)")
+                for (index, imageInfo) in imageInfos.enumerated() {
+                    // Update download progress
+                    let progress = "\(index + 1) / \(totalImages)"
+                    await MainActor.run {
+                        self.downloadProgress = progress
                     }
-                } catch {
-                    print("Download failed for \(imageInfo.src): \(error)")
+                    
+                    print("Downloading \(index + 1)/\(totalImages): \(imageInfo.src)")
+                    
+                    if let cachedImage = getCachedImage(for: imageInfo.src) {
+                        downloadedImages.append(cachedImage)
+                        continue
+                    }
+                    
+                    guard let url = URL(string: imageInfo.src) else {
+                        print("Invalid URL: \(imageInfo.src)")
+                        continue
+                    }
+                    
+                    do {
+                        let (data, _) = try await URLSession.shared.data(from: url)
+                        if let image = UIImage(data: data) {
+                            cacheImage(image, for: imageInfo.src)
+                            downloadedImages.append(image)
+                            print("Downloaded image \(index + 1)")
+                        }
+                    } catch {
+                        print("Download failed for \(imageInfo.src): \(error)")
+                    }
                 }
-            }
-            
-            await MainActor.run {
-                if downloadedImages.isEmpty {
-                    self.error = "Failed to download any images"
-                    onComplete?(false)
-                } else {
-                    self.images = downloadedImages
-                    print("Successfully downloaded \(downloadedImages.count) images")
-                    onComplete?(true)
+                
+                await MainActor.run {
+                    // Clear progress when done
+                    self.downloadProgress = ""
+                    
+                    if downloadedImages.isEmpty {
+                        self.error = "Failed to download any images"
+                        onComplete?(false)
+                    } else {
+                        self.images = downloadedImages
+                        print("Successfully downloaded \(downloadedImages.count) images")
+                        onComplete?(true)
+                    }
+                    self.isLoading = false
                 }
-                self.isLoading = false
             }
         }
-    }
     
     private func getCachedImage(for key: String) -> UIImage? {
         return imageCache[key]

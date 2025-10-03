@@ -17,6 +17,7 @@ struct ReaderView: View {
     @State private var loadedImages: [UIImage] = []
     @State private var isLoadingFromStorage = false
     @State private var isChapterReady = false
+    @State private var downloadProgress: String = ""
     
     // Computed property to get images in correct order based on reading direction
     private var displayImages: [UIImage] {
@@ -47,46 +48,7 @@ struct ReaderView: View {
             mainContent
         }
         .navigationBarBackButtonHidden(true) // Hide the default back button
-        .toolbar {
-            // Custom back button
-            ToolbarItem(placement: .navigationBarLeading) {
-                if showNavigationBars {
-                    Button(action: {
-                        dismiss()
-                    }) {
-                        Image(systemName: "chevron.left")
-                            .font(.title2)
-                            .foregroundColor(.white)
-                            .padding(8)
-                    }
-                }
-            }
-            
-            // Toolbar content
-            ToolbarItem(placement: .principal) {
-                if showNavigationBars {
-                    VStack {
-                        Text("Chapter \(chapter.formattedChapterNumber)")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                        Text("\(displayedPageNumber)/\(displayImages.count)")
-                            .font(.caption)
-                            .foregroundColor(.white)
-                    }
-                }
-            }
-            
-            ToolbarItem(placement: .navigationBarTrailing) {
-                if showNavigationBars {
-                    Button(action: downloadCurrentImage) {
-                        Image(systemName: "square.and.arrow.down")
-                            .font(.title3)
-                            .foregroundColor(.white)
-                            .padding(8)
-                    }
-                }
-            }
-        }
+        .toolbar(content: toolbarContent)
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarHidden(!showNavigationBars)
         .onAppear { onAppearAction() }
@@ -99,11 +61,18 @@ struct ReaderView: View {
         } message: {
             Text(downloadAlertMessage)
         }
-        .onChange(of: readerJava.images) { handleImagesChange(oldValue: $0, newValue: $1) }
-        .onChange(of: loadedImages) { handleLoadedImagesChange(oldValue: $0, newValue: $1) }
+        .onChange(of: readerJava.images) { oldValue, newValue in
+            handleImagesChange(oldValue: oldValue, newValue: newValue)
+        }
+        .onChange(of: loadedImages) { oldValue, newValue in
+            handleLoadedImagesChange(oldValue: oldValue, newValue: newValue)
+        }
+        .onChange(of: readerJava.downloadProgress) { oldValue, newValue in
+            updateDownloadProgress(progress: newValue)
+        }
     }
     
-    // MARK: - Subviews
+    // MARK: - Main Content Views
     
     @ViewBuilder
     private var mainContent: some View {
@@ -115,7 +84,7 @@ struct ReaderView: View {
     }
     
     private var loadingView: some View {
-        VStack {
+        VStack(spacing: 16) {
             ProgressView()
                 .scaleEffect(1.5)
                 .tint(.white)
@@ -123,20 +92,23 @@ struct ReaderView: View {
             Text("Loading chapter...")
                 .font(.headline)
                 .foregroundColor(.white)
-                .padding(.top, 20)
+            
+            if !downloadProgress.isEmpty {
+                Text(downloadProgress)
+                    .font(.subheadline)
+                    .foregroundColor(.white.opacity(0.8))
+                    .transition(.opacity)
+            }
         }
+        .animation(.easeInOut(duration: 0.3), value: downloadProgress)
     }
     
     @ViewBuilder
     private var contentView: some View {
         if isLoadingFromStorage && isDownloaded {
-            ProgressView("Loading from storage...")
-                .scaleEffect(1.5)
-                .foregroundColor(.white)
+            storageLoadingView
         } else if readerJava.isLoading && !isDownloaded {
-            ProgressView("Loading chapter...")
-                .scaleEffect(1.5)
-                .foregroundColor(.white)
+            onlineLoadingView
         } else if let error = readerJava.error, !isDownloaded {
             errorView(error: error)
         } else if displayImages.isEmpty {
@@ -144,6 +116,18 @@ struct ReaderView: View {
         } else {
             readerContentView
         }
+    }
+    
+    private var storageLoadingView: some View {
+        ProgressView("Loading from storage...")
+            .scaleEffect(1.5)
+            .foregroundColor(.white)
+    }
+    
+    private var onlineLoadingView: some View {
+        ProgressView("Loading chapter...")
+            .scaleEffect(1.5)
+            .foregroundColor(.white)
     }
     
     private func errorView(error: String) -> some View {
@@ -223,26 +207,59 @@ struct ReaderView: View {
             .frame(maxWidth: .infinity)
     }
     
+    // MARK: - Toolbar Content
+    
     @ToolbarContentBuilder
-    private var toolbarContent: some ToolbarContent {
-        if showNavigationBars {
-            ToolbarItem(placement: .principal) {
-                VStack {
-                    Text("Chapter \(chapter.formattedChapterNumber)")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                    Text("\(displayedPageNumber)/\(displayImages.count)")
-                        .font(.caption)
-                        .foregroundColor(.white)
-                }
+    private func toolbarContent() -> some ToolbarContent {
+        ToolbarItem(placement: .navigationBarLeading) {
+            if showNavigationBars {
+                backButton
             }
-            
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: downloadCurrentImage) {
-                    Image(systemName: "square.and.arrow.down")
-                        .font(.title3)
-                }
+        }
+        
+        ToolbarItem(placement: .principal) {
+            if showNavigationBars {
+                titleView
             }
+        }
+        
+        ToolbarItem(placement: .navigationBarTrailing) {
+            if showNavigationBars {
+                downloadButton
+            }
+        }
+    }
+    
+    // Custom Back Button
+    private var backButton: some View {
+        Button(action: {
+            dismiss()
+        }) {
+            Image(systemName: "chevron.left")
+                .font(.title2)
+                .foregroundColor(.white)
+                .padding(8)
+        }
+    }
+    
+    private var titleView: some View {
+        VStack {
+            Text("Chapter \(chapter.formattedChapterNumber)")
+                .font(.headline)
+                .foregroundColor(.white)
+            Text("\(displayedPageNumber)/\(displayImages.count)")
+                .font(.caption)
+                .foregroundColor(.white)
+        }
+    }
+    
+    // Download Button
+    private var downloadButton: some View {
+        Button(action: downloadCurrentImage) {
+            Image(systemName: "square.and.arrow.down")
+                .font(.title3)
+                .foregroundColor(.white)
+                .padding(8)
         }
     }
     
@@ -451,6 +468,12 @@ struct ReaderView: View {
     
     // MARK: - Helper Methods
     
+    private func updateDownloadProgress(progress: String) {
+        DispatchQueue.main.async {
+            self.downloadProgress = progress
+        }
+    }
+    
     private func handleImagesChange(oldValue: [UIImage], newValue: [UIImage]) {
         // For non-downloaded chapters only
         if !isDownloaded {
@@ -468,6 +491,8 @@ struct ReaderView: View {
                         print("LTR Online: Set initial page to 0 for \(newValue.count) images")
                     }
                     self.isChapterReady = true
+                    // Clear download progress when chapter is ready
+                    self.downloadProgress = ""
                 }
             }
         }
