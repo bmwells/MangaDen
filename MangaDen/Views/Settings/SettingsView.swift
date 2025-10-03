@@ -115,11 +115,11 @@ struct SettingsView: View {
                 
                 // Version at bottom of page
                 VStack {
-                    Divider()
-                    Text("Version 0.6")
+                    Text("Version 0.8")
                         .font(.title3)
                         .foregroundColor(.primary)
                         .padding(.bottom, 74)
+                        .frame(maxWidth: .infinity)
                 }
                 .background(Color(.systemGroupedBackground))
             }
