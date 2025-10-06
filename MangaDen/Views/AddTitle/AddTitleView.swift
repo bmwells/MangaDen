@@ -116,18 +116,35 @@ struct TitleHelpView: View {
                             Text("OR")
                                 .font(.title2)
                                 .bold()
-                            Text("Use the In App Browser (**Recommended**)")
+                            Text("Use the In-App Browser (**Recommended**)")
+                                .padding(.bottom, 15)
                         }
                         Spacer()
                     }
                     
+                    // In-App Browser Guide
+                    Text("In-App Browser Guide")
+                        .font(.title2)
+                        .bold()
+                        .underline()
+                        .padding(.bottom, 20)
+                    
+                    // Supported Sites
+                    Text("Supported Sites")
+                        .font(.title3)
+                        .bold()
+                        .underline()
+                        .padding(.bottom, 20)
+                    
+                    // Tips
                     Text("Tips:")
                         .padding(-4)
                         .font(.title3)
                         .bold()
                         .underline()
                         .tracking(1.5)
-                    Text("• Tip 1 \n• Tip 2 \n• Tip 3 \n ")
+                    Text("• Swipe down from the top of the page to exit pages such as this one or the In-App browser")
+                    Text("• Tip 2")
                 }
                 .padding()
             }

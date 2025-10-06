@@ -326,21 +326,166 @@ struct SettingsHelpView: View {
         NavigationView {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
+                    // Settings Guide
                     Text("Settings Guide")
-                        .font(.title2)
+                        .font(.title)
                         .bold()
+                        .underline()
+                        .padding(.bottom, 20)
                     
                     Text("**Display Settings**")
                         .font(.headline)
-                    Text("• **Dark Mode**: Toggle between light and dark appearance")
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    Text("**Dark Mode:** Toggle between light and dark app appearance.")
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    
+                    //Divider
+                    Rectangle()
+                        .frame(height: 1)
+                        .foregroundColor(.gray.opacity(0.3))
+                        .frame(width: UIScreen.main.bounds.width * 0.6)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                    
                     
                     Text("**User Preferences**")
                         .font(.headline)
-                    Text("• **Reading Direction**: Choose between Left to Right (L to R) or Right to Left (L to R) manga reading direction")
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    Text("**Reading Direction**: Choose between Left to Right (L to R) or Right to Left (L to R) reading direction.")
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    
+                    //Divider
+                    Rectangle()
+                        .frame(height: 1)
+                        .foregroundColor(.gray.opacity(0.3))
+                        .frame(width: UIScreen.main.bounds.width * 0.6)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                    
                     
                     Text("**Manage Storage**")
                         .font(.headline)
-                    Text("• **Uninstall All Downloads**: Remove all downloaded chapters from your device to free up storage space")
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    Text("**Uninstall All Downloads**: Remove all downloaded chapters from your device to free up storage space.")
+                    
+                    
+                    //Divider
+                    Rectangle()
+                        .frame(height: 1)
+                        .foregroundColor(.gray.opacity(0.3))
+                        .frame(width: UIScreen.main.bounds.width * 0.6)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .padding(.bottom, 30)
+                    
+                    
+                    
+                    // Title Guide
+                    Text("Title Guide")
+                        .font(.title)
+                        .bold()
+                        .underline()
+                        .padding(.bottom, 20)
+                    
+                    Text("**Refresh Title**")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    Text("Checks for new chapters.")
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    
+                    //Divider
+                    Rectangle()
+                        .frame(height: 1)
+                        .foregroundColor(.gray.opacity(0.3))
+                        .frame(width: UIScreen.main.bounds.width * 0.6)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                    
+
+                    Text("**Edit Title Info**")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    Text("Modify the title, author, status, or cover image.")
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    
+                    //Divider
+                    Rectangle()
+                        .frame(height: 1)
+                        .foregroundColor(.gray.opacity(0.3))
+                        .frame(width: UIScreen.main.bounds.width * 0.6)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                    
+
+                    Text("**Download Chapters**")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    Text("Download multiple chapters for offline reading.")
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    
+                    //Divider
+                    Rectangle()
+                        .frame(height: 1)
+                        .foregroundColor(.gray.opacity(0.3))
+                        .frame(width: UIScreen.main.bounds.width * 0.6)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                    
+
+                    Text("**Manage Chapters**")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    Text("Uninstall downloaded chapters or hide chapters from the list.")
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
+                    
+                    //Divider
+                    Rectangle()
+                        .frame(height: 1)
+                        .foregroundColor(.gray.opacity(0.3))
+                        .frame(width: UIScreen.main.bounds.width * 0.6)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                    
+
+                    Text("**Archive Title**")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    Text("Moves the title from the Reading section to the Archive section.")
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
+                    
+                    //Divider
+                    Rectangle()
+                        .frame(height: 1)
+                        .foregroundColor(.gray.opacity(0.3))
+                        .frame(width: UIScreen.main.bounds.width * 0.6)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+
+                    Text("**Delete Title**")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    Text("Permanently removes the title from your library.")
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    
+                    //Divider
+                    Rectangle()
+                        .frame(height: 1)
+                        .foregroundColor(.gray.opacity(0.3))
+                        .frame(width: UIScreen.main.bounds.width * 0.6)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .padding(.bottom, 20)
+                    
+                    // Tips
+                    Text("Tips:")
+                        .padding(-4)
+                        .font(.title3)
+                        .bold()
+                        .underline()
+                        .tracking(1.5)
+                    Text("• Swipe down from the top of the page to exit pages such as this one or the In-App browser")
                     
                 }
                 .padding()
