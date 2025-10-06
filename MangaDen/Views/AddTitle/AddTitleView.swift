@@ -15,7 +15,7 @@ struct AddTitleView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 20) {
-                Text("Add Manga")
+                Text("Add Title to Library")
                     .font(.title)
                     .padding(.top, 30)
 
@@ -34,7 +34,7 @@ struct AddTitleView: View {
                         }) {
                             Image(systemName: "doc.on.clipboard")
                                 .foregroundColor(.blue)
-                                .font(.system(size: 18))
+                                .font(.title2)
                         }
                         .padding(.trailing, 10)
                     }
@@ -46,11 +46,14 @@ struct AddTitleView: View {
                 Button("Add") {
                 }
                 .buttonStyle(.bordered)
+                .font(.title2)
+                .padding(.horizontal)
+               
                 
                 
                 // OR divider
                 Text("OR")
-                    .font(.headline)
+                    .font(.title3)
                     .foregroundColor(.gray)
 
                 // In App Browser Button
@@ -58,6 +61,7 @@ struct AddTitleView: View {
                     showBrowser = true
                 }) {
                     Label("Open In-App Browser", systemImage: "safari")
+                        .font(.title2)
                         .frame(maxWidth: .infinity)
                         .padding()
                         .background(Color.blue)

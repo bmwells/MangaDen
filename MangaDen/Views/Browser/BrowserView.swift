@@ -100,21 +100,20 @@ struct BrowserView: View {
             .padding(.vertical, 6)
             .background(Color(.systemGray6))
 
-            // Add Title Button Row
+            // MARK: Controls Row
             HStack {
                 Spacer()
-                
-                // Add Title Button
+                // Add Title Button (Center)
                 Button(action: addTitleToLibrary) {
                     if isAddingTitle {
                         ProgressView()
                             .scaleEffect(0.8)
                     } else {
                         Text("Add Title")
-                            .font(.system(size: 14, weight: .semibold))
-                            .padding(.horizontal, 12)
+                            .font(.system(size: 18, weight: .semibold))
+                            .padding(.horizontal, 20)
                             .padding(.vertical, 6)
-                            .background(bothJSONsExist ? Color.blue : Color.gray)
+                            .background(bothJSONsExist ? Color.green : Color.red)
                             .foregroundColor(.white)
                             .cornerRadius(8)
                     }
@@ -122,57 +121,42 @@ struct BrowserView: View {
                 .disabled(!bothJSONsExist || isAddingTitle)
                 
                 Spacer()
-            }
-            .padding(.vertical, 4)
-            .background(Color(.systemGray5))
-
-            // Chapter indicator with range
-            HStack {
-                HStack(spacing: 8) {
-                    Text("chapter")
-                        .font(.system(size: 12, weight: .semibold))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(containsChapter ? Color.green.opacity(0.2) : Color.red.opacity(0.2))
-                        .foregroundColor(containsChapter ? .green : .red)
-                        .cornerRadius(4)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 4)
-                                .stroke(containsChapter ? Color.green : Color.red, lineWidth: 1)
-                        )
+                
+                // Refresh, Chapter Range and JSON Viewer (Right)
+                HStack(spacing: 12) {
+                    // Refresh Button
+                    Button(action: {
+                        // Refresh JSON data for current page
+                        findChapters()
+                        findMetadata()
+                    }) {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 20))
+                            .foregroundColor(.blue)
+                    }
                     
+                    // Chapter Range
                     Text(chapterRange)
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.system(size: 16, weight: .medium))
                         .foregroundColor(.secondary)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
                         .background(Color.gray.opacity(0.1))
                         .cornerRadius(3)
+                    
+                    // JSON Viewer Button
+                    Button(action: {
+                        showJSONViewer.toggle()
+                    }) {
+                        Image(systemName: "list.bullet")
+                            .font(.system(size: 20))
+                            .foregroundColor(.blue)
+                    }
                 }
-                
-                Spacer()
-                
-                // MARK: Button to show metadata (replaces JSON button)
-                Button(action: {
-                    showMetadataView.toggle()
-                }) {
-                    Image(systemName: "info.circle")
-                        .font(.system(size: 16))
-                        .foregroundColor(mangaMetadata != nil ? .blue : .gray)
-                }
-                .disabled(mangaMetadata == nil)
-                
-                // MARK: Button to open JSONView (keep but make secondary)
-                Button(action: {
-                    showJSONViewer.toggle()
-                }) {
-                    Image(systemName: "list.bullet")
-                        .font(.system(size: 16))
-                        .foregroundColor(.blue)
-                }
+                .padding(.trailing)
             }
-            .padding(.horizontal)
-            .padding(.vertical, 4)
+            .padding(.vertical, 8)
+            .background(Color(.systemGray5))
 
             // Error message
             if showError {
@@ -191,6 +175,9 @@ struct BrowserView: View {
                 .edgesIgnoringSafeArea(.bottom)
         }
         .onAppear {
+            // Clear both JSON files when browser is opened
+            clearJSONCache()
+            
             // Load a default page if no URL is specified
             if urlString.isEmpty {
                 urlString = "https://google.com/"
@@ -207,6 +194,7 @@ struct BrowserView: View {
                 checkJSONsExist()
             }
         }
+        
         .onReceive(NotificationCenter.default.publisher(for: .didUpdateWebViewNav)) { notification in
             if let info = notification.userInfo as? [String: Any] {
                 canGoBack = info["canGoBack"] as? Bool ?? false
@@ -439,6 +427,43 @@ struct BrowserView: View {
         if let metadata = AddTitleJAVA.loadMangaMetadata() {
             self.mangaMetadata = metadata
         }
+    }
+    
+    // Clear JSON Cache when browser is opened
+    private func clearJSONCache() {
+        let fileManager = FileManager.default
+        guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            return
+        }
+        
+        let chaptersFile = documentsDirectory.appendingPathComponent("chapters.json")
+        let metadataFile = documentsDirectory.appendingPathComponent("manga_metadata.json")
+        
+        // Clear chapters.json
+        if fileManager.fileExists(atPath: chaptersFile.path) {
+            do {
+                try "".write(to: chaptersFile, atomically: true, encoding: .utf8)
+                print("Cleared chapters.json")
+            } catch {
+                print("Error clearing chapters.json: \(error)")
+            }
+        }
+        
+        // Clear manga_metadata.json
+        if fileManager.fileExists(atPath: metadataFile.path) {
+            do {
+                try "".write(to: metadataFile, atomically: true, encoding: .utf8)
+                print("Cleared manga_metadata.json")
+            } catch {
+                print("Error clearing manga_metadata.json: \(error)")
+            }
+        }
+        
+        // Reset UI state
+        bothJSONsExist = false
+        containsChapter = false
+        chapterRange = "0-0-0"
+        mangaMetadata = nil
     }
     
     private func checkJSONsExist() {
