@@ -38,38 +38,32 @@ class ReaderViewJava: NSObject, ObservableObject {
         webView.load(request)
     }
     
-    // MARK: - Enhanced Extraction with Comparison
-    
+    // MARK: - Execute All Strategies
+        
     private func executeAllExtractionStrategies(webView: WKWebView, onComplete: @escaping (Bool) -> Void) {
         let dispatchGroup = DispatchGroup()
         var strategyResults: [ExtractionResult] = []
+        var completedStrategies = 0
         
-        // Strategy 1: Direct DOM inspection
-        dispatchGroup.enter()
-        attemptExtractionStrategy1(webView: webView) { images in
-            strategyResults.append(ExtractionResult(strategy: 1, images: images))
-            dispatchGroup.leave()
-        }
+        print("EXTRACTION: Starting all extraction strategies")
         
-        // Strategy 2: Scroll-triggered loading
-        dispatchGroup.enter()
-        attemptExtractionStrategy2(webView: webView) { images in
-            strategyResults.append(ExtractionResult(strategy: 2, images: images))
-            dispatchGroup.leave()
-        }
+        // Execute strategies 1-3 first
+        let strategies = [
+            self.attemptExtractionStrategy1,
+            self.attemptExtractionStrategy2,
+            self.attemptExtractionStrategy3
+        ]
         
-        // Strategy 3: HTML source regex
-        dispatchGroup.enter()
-        attemptExtractionStrategy3(webView: webView) { images in
-            strategyResults.append(ExtractionResult(strategy: 3, images: images))
-            dispatchGroup.leave()
-        }
-        
-        // Strategy 4: Position-based DOM
-        dispatchGroup.enter()
-        attemptExtractionStrategy4(webView: webView) { images in
-            strategyResults.append(ExtractionResult(strategy: 4, images: images))
-            dispatchGroup.leave()
+        for (index, strategy) in strategies.enumerated() {
+            dispatchGroup.enter()
+            print("EXTRACTION: Starting Strategy \(index + 1)")
+            
+            strategy(webView) { images in
+                strategyResults.append(ExtractionResult(strategy: index + 1, images: images))
+                completedStrategies += 1
+                print("EXTRACTION: Strategy \(index + 1) completed with \(images.count) images (completed: \(completedStrategies)/3)")
+                dispatchGroup.leave()
+            }
         }
         
         dispatchGroup.notify(queue: .main) { [weak self] in
@@ -78,19 +72,53 @@ class ReaderViewJava: NSObject, ObservableObject {
                 return
             }
             
-            self.extractionResults = strategyResults
-            let bestOrder = self.findBestImageOrder(from: strategyResults)
+            print("EXTRACTION: ALL STRATEGIES 1-3 COMPLETED")
+            let totalImages = strategyResults.reduce(0) { $0 + $1.images.count }
+            let maxImagesFromSingleStrategy = strategyResults.map { $0.images.count }.max() ?? 0
             
-            if bestOrder.isEmpty {
-                print("No images found after all strategies")
-                onComplete(false)
+            print("EXTRACTION: Strategies 1-3 found \(totalImages) total images")
+            for result in strategyResults {
+                print("EXTRACTION: Strategy \(result.strategy) found \(result.images.count) images")
+            }
+            
+            // Only try Strategy 4 if no single strategy found more than 10 images
+            let shouldTryStrategy4 = maxImagesFromSingleStrategy <= 10
+            
+            if shouldTryStrategy4 {
+                print("EXTRACTION: STRATEGY 4 TRIGGERED - No strategy found more than 10 images (max: \(maxImagesFromSingleStrategy))")
+                print("EXTRACTION: STARTING STRATEGY 4 - Page Menu Extraction")
+                self.attemptExtractionStrategy4(webView: webView) { strategy4Images in
+                    print("EXTRACTION: STRATEGY 4 COMPLETED - Found \(strategy4Images.count) images")
+                    strategyResults.append(ExtractionResult(strategy: 4, images: strategy4Images))
+                    
+                    let allImages = strategyResults.flatMap { $0.images }
+                    print("EXTRACTION: FINAL RESULTS - \(allImages.count) total images after Strategy 4")
+                    
+                    if allImages.isEmpty {
+                        print("EXTRACTION: No images found after all strategies")
+                        onComplete(false)
+                    } else {
+                        print("EXTRACTION: Processing and downloading \(allImages.count) images")
+                        self.processAndDownloadImages(allImages, onComplete: onComplete)
+                    }
+                }
             } else {
-                print("Best order found with \(bestOrder.count) images")
-                self.processAndDownloadImages(bestOrder, onComplete: onComplete)
+                let allImages = strategyResults.flatMap { $0.images }
+                print("EXTRACTION: Sufficient images found (max: \(maxImagesFromSingleStrategy) per strategy), skipping Strategy 4")
+                
+                if allImages.isEmpty {
+                    print("EXTRACTION: No images found in strategies 1-3")
+                    onComplete(false)
+                } else {
+                    print("EXTRACTION: Processing and downloading \(allImages.count) images from strategies 1-3")
+                    self.processAndDownloadImages(allImages, onComplete: onComplete)
+                }
             }
         }
     }
     
+    
+    // MARK: - Image Order
     private func findBestImageOrder(from results: [ExtractionResult]) -> [EnhancedImageInfo] {
         print("Analyzing results from \(results.count) strategies...")
         
@@ -114,7 +142,7 @@ class ReaderViewJava: NSObject, ObservableObject {
         return []
     }
     
-    // MARK: - Fixed Extraction Strategies
+    // MARK: - Extraction Strategies
     
     // MARK: - Strategy 1
     private func attemptExtractionStrategy1(webView: WKWebView, completion: @escaping ([EnhancedImageInfo]) -> Void) {
@@ -193,104 +221,6 @@ class ReaderViewJava: NSObject, ObservableObject {
     private func attemptExtractionStrategy2(webView: WKWebView, completion: @escaping ([EnhancedImageInfo]) -> Void) {
         let jsScript = """
         (function() {
-            // Scroll multiple times to trigger all lazy loading
-            var scrollHeight = document.body.scrollHeight;
-            var scrollStep = scrollHeight / 3;
-            
-            for (var i = 0; i <= scrollHeight; i += scrollStep) {
-                window.scrollTo(0, i);
-            }
-            
-            // Final scroll to bottom
-            window.scrollTo(0, scrollHeight);
-            
-            // Wait for images to load
-            var startTime = Date.now();
-            while (Date.now() - startTime < 2000) {
-                // Busy wait for 2 seconds
-            }
-            
-            var images = [];
-            var imgElements = document.querySelectorAll('img');
-            
-            for (var i = 0; i < imgElements.length; i++) {
-                var img = imgElements[i];
-                var src = img.currentSrc || img.src;
-                if (src && isImageUrl(src)) {
-                    var rect = img.getBoundingClientRect();
-                    images.push({
-                        src: src,
-                        width: rect.width,
-                        height: rect.height,
-                        position: i,
-                        naturalWidth: img.naturalWidth,
-                        naturalHeight: img.naturalHeight
-                    });
-                }
-            }
-            
-            // Check various data attributes
-            var dataAttrs = ['data-src', 'data-url', 'data-image', 'data-original', 'data-lazy-src', 'data-lazyload'];
-            for (var i = 0; i < dataAttrs.length; i++) {
-                var attr = dataAttrs[i];
-                var elements = document.querySelectorAll('[' + attr + ']');
-                for (var j = 0; j < elements.length; j++) {
-                    var el = elements[j];
-                    var value = el.getAttribute(attr);
-                    if (value && isImageUrl(value)) {
-                        images.push({
-                            src: value,
-                            width: el.offsetWidth,
-                            height: el.offsetHeight,
-                            position: imgElements.length + j,
-                            fromAttribute: attr
-                        });
-                    }
-                }
-            }
-            
-            function isImageUrl(url) {
-                // More permissive URL matching
-                return url.match(/\\.(jpg|jpeg|png|gif|webp|bmp)(?:\\?|$)/i) &&
-                       (url.includes('bp.blogspot.com') ||
-                        url.includes('blogspot') ||
-                        url.includes('mangafox') ||
-                        url.includes('lowee.us') ||
-                        url.includes('/chapter/') ||
-                        url.includes('/Chapter/') ||
-                        url.includes('page') ||
-                        url.includes('Page') ||
-                        url.match(/\\d/)); // Any URL containing numbers
-            }
-            
-            return images;
-        })();
-        """
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            webView.evaluateJavaScript(jsScript) { result, error in
-                if let error = error {
-                    print("Strategy 2 failed: \(error)")
-                    completion([])
-                    return
-                }
-                
-                guard let imageDicts = result as? [[String: Any]] else {
-                    completion([])
-                    return
-                }
-                
-                let imageInfos = self.parseImageDicts(imageDicts)
-                print("Strategy 2 parsed \(imageInfos.count) images")
-                completion(imageInfos)
-            }
-        }
-    }
-    
-    // MARK: - Strategy 3
-    private func attemptExtractionStrategy3(webView: WKWebView, completion: @escaping ([EnhancedImageInfo]) -> Void) {
-        let jsScript = """
-        (function() {
             var html = document.documentElement.outerHTML;
             var imageUrls = [];
             
@@ -366,8 +296,8 @@ class ReaderViewJava: NSObject, ObservableObject {
         }
     }
     
-    // MARK: - Strategy 4
-    private func attemptExtractionStrategy4(webView: WKWebView, completion: @escaping ([EnhancedImageInfo]) -> Void) {
+    // MARK: - Strategy 3
+    private func attemptExtractionStrategy3(webView: WKWebView, completion: @escaping ([EnhancedImageInfo]) -> Void) {
         let jsScript = """
         (function() {
             function getElementTop(element) {
@@ -407,7 +337,7 @@ class ReaderViewJava: NSObject, ObservableObject {
         
         webView.evaluateJavaScript(jsScript) { result, error in
             if let error = error {
-                print("Strategy 4 failed: \(error)")
+                print("Strategy 3 failed: \(error)")
                 completion([])
                 return
             }
@@ -427,10 +357,10 @@ class ReaderViewJava: NSObject, ObservableObject {
                             id: ""
                         )
                     }
-                    print("Strategy 4 parsed \(enhancedImages.count) images")
+                    print("Strategy 3 parsed \(enhancedImages.count) images")
                     completion(enhancedImages)
                 } catch {
-                    print("Strategy 4 JSON decode failed: \(error)")
+                    print("Strategy 3 JSON decode failed: \(error)")
                     completion([])
                 }
             } else {
@@ -438,6 +368,218 @@ class ReaderViewJava: NSObject, ObservableObject {
             }
         }
     }
+    
+    // MARK: - Strategy 4: Page Navigation
+        private func attemptExtractionStrategy4(webView: WKWebView, completion: @escaping ([EnhancedImageInfo]) -> Void) {
+            print("STRATEGY 4: Starting simplified page menu extraction")
+            
+            // Simplified detection script
+            let detectionScript = """
+            (function() {
+                // Look for obvious page navigation elements
+                var pageElements = [];
+                
+                // Check for pagination containers
+                var paginationSelectors = [
+                    '.pagination',
+                    '.page-nav',
+                    '.pages',
+                    '.page-numbers',
+                    '.pager',
+                    '[class*="page"]',
+                    '[id*="page"]'
+                ];
+                
+                for (var i = 0; i < paginationSelectors.length; i++) {
+                    var elements = document.querySelectorAll(paginationSelectors[i]);
+                    elements.forEach(function(el) {
+                        if (el.textContent && el.textContent.match(/\\d/)) {
+                            pageElements.push({
+                                type: 'container',
+                                element: el.outerHTML.substring(0, 200),
+                                text: el.textContent.trim().substring(0, 100)
+                            });
+                        }
+                    });
+                }
+                
+                // Look for page links/buttons
+                var allClickables = document.querySelectorAll('a, button, [onclick]');
+                var pageLinks = [];
+                
+                for (var i = 0; i < allClickables.length; i++) {
+                    var el = allClickables[i];
+                    var text = (el.textContent || el.innerText || '').trim();
+                    
+                    if (text.match(/Page\\s*\\d+/i) ||
+                        text.match(/\\d+\\s*\\/\\s*\\d+/) ||
+                        text.match(/^\\d+$/) && text.length < 4) {
+                        
+                        pageLinks.push({
+                            index: i,
+                            text: text,
+                            tag: el.tagName
+                        });
+                    }
+                }
+                
+                return {
+                    pageContainers: pageElements,
+                    pageLinks: pageLinks,
+                    summary: {
+                        containers: pageElements.length,
+                        links: pageLinks.length
+                    }
+                };
+            })();
+            """
+            
+            webView.evaluateJavaScript(detectionScript) { [weak self] result, error in
+                if let error = error {
+                    print("Strategy 4 - Detection failed: \(error)")
+                    completion([])
+                    return
+                }
+                
+                print("Strategy 4 - Detection completed")
+                
+                guard let detectionData = result as? [String: Any],
+                      let pageLinks = detectionData["pageLinks"] as? [[String: Any]] else {
+                    print("Strategy 4 - No page navigation detected")
+                    completion([])
+                    return
+                }
+                
+                let linkCount = pageLinks.count
+                print("Strategy 4 - Found \(linkCount) page links")
+                
+                if linkCount > 0 {
+                    // Instead of complex navigation, just extract from current page
+                    // and simulate multiple page loads by modifying the URL
+                    self?.extractWithSimulatedPagination(webView: webView,
+                                                       pageLinks: pageLinks,
+                                                       completion: completion)
+                } else {
+                    completion([])
+                }
+            }
+        }
+        
+    private func extractWithSimulatedPagination(webView: WKWebView,
+                                              pageLinks: [[String: Any]],
+                                              completion: @escaping ([EnhancedImageInfo]) -> Void) {
+        print("Strategy 4 - Using simulated pagination with \(pageLinks.count) links")
+        
+        var allImages: [EnhancedImageInfo] = []
+        let maxPagesToExtract = min(30, pageLinks.count) // Max 30 pages to click
+        var consecutiveSameImageCount = 0
+        var lastImageCount = 0
+        
+        func extractPage(_ pageIndex: Int) {
+            guard pageIndex < maxPagesToExtract else {
+                // All pages processed
+                let uniqueImages = self.removeDuplicateImages(allImages)
+                
+                // FILTER OUT IMAGES WITH THE EXACT LOGO SIZE (79x97) IN STRATEGY 4
+                let filteredImages = uniqueImages.filter { image in
+                    if image.width == 79 && image.height == 97 {
+                        print("Strategy 4 - Filtering out logo-sized image: \(image.src) - size: \(image.width)×\(image.height)")
+                        return false
+                    }
+                    return true
+                }
+                
+                print("Strategy 4 - Completed extracting pages, found \(filteredImages.count) unique images after filtering")
+                completion(filteredImages)
+                return
+            }
+            
+            print("Strategy 4 - Extracting page \(pageIndex + 1)/\(maxPagesToExtract)")
+            
+            let clickScript = """
+            (function() {
+                var pageLinks = \(self.convertToJSONString(pageLinks));
+                if (pageLinks.length > \(pageIndex)) {
+                    var linkInfo = pageLinks[\(pageIndex)];
+                    var elements = document.querySelectorAll('a, button, [onclick]');
+                    if (elements.length > linkInfo.index) {
+                        elements[linkInfo.index].click();
+                        return { success: true, page: \(pageIndex + 1) };
+                    }
+                }
+                return { success: false };
+            })();
+            """
+            
+            webView.evaluateJavaScript(clickScript) { clickResult, error in
+                if let error = error {
+                    print("Strategy 4 - Page \(pageIndex) click failed: \(error)")
+                }
+                
+                // Wait for navigation
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { // Wait 1 seconds between page change
+                    self.extractCurrentPageImages(webView: webView) { images in
+                        let currentImageCount = images.count
+                        print("Strategy 4 - Page \(pageIndex + 1) yielded \(currentImageCount) images")
+                        
+                        // Check if we're getting the same number of images consecutively
+                        if currentImageCount == lastImageCount {
+                            consecutiveSameImageCount += 1
+                            print("Strategy 4 - Consecutive same image count: \(consecutiveSameImageCount)")
+                        } else {
+                            consecutiveSameImageCount = 0
+                        }
+                        
+                        lastImageCount = currentImageCount
+                        allImages.append(contentsOf: images)
+                        
+                        // Stop early if last two pages had same image count
+                        if consecutiveSameImageCount >= 2 {
+                            print("Strategy 4 - Stopping early: last 2 pages yielded same number of images (\(currentImageCount))")
+                            let uniqueImages = self.removeDuplicateImages(allImages)
+                            print("Strategy 4 - Completed extracting pages early, found \(uniqueImages.count) unique images")
+                            completion(uniqueImages)
+                        } else {
+                            // Continue to next page
+                            extractPage(pageIndex + 1)
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Start extraction
+        extractPage(0)
+    }
+    
+    private func extractCurrentPageImages(webView: WKWebView, completion: @escaping ([EnhancedImageInfo]) -> Void) {
+            // Use Strategy 1 for current page extraction as it's the most reliable
+            attemptExtractionStrategy1(webView: webView, completion: completion)
+        }
+        
+        private func removeDuplicateImages(_ images: [EnhancedImageInfo]) -> [EnhancedImageInfo] {
+            var seen = Set<String>()
+            var result: [EnhancedImageInfo] = []
+            
+            for image in images {
+                if !seen.contains(image.src) {
+                    seen.insert(image.src)
+                    result.append(image)
+                }
+            }
+            
+            return result
+        }
+        
+        private func convertToJSONString(_ object: Any) -> String {
+            guard let data = try? JSONSerialization.data(withJSONObject: object, options: []),
+                  let jsonString = String(data: data, encoding: .utf8) else {
+                return "[]"
+            }
+            return jsonString
+        }
+    
+    
     
     // MARK: - Improved Processing
     
@@ -659,74 +801,96 @@ class ReaderViewJava: NSObject, ObservableObject {
         return images.first
     }
     
-    private func removeDuplicates(_ images: [EnhancedImageInfo]) -> [EnhancedImageInfo] {
-        var seen = Set<String>()
-        var result: [EnhancedImageInfo] = []
-        
-        for image in images {
-            if !seen.contains(image.src) {
-                seen.insert(image.src)
-                result.append(image)
-            }
-        }
-        
-        return result
-    }
     
     // MARK: - Download and Cache
     
     private func downloadImages(from imageInfos: [EnhancedImageInfo], onComplete: ((Bool) -> Void)? = nil) {
-            Task {
-                var downloadedImages: [UIImage] = []
-                let totalImages = imageInfos.count
-                
-                for (index, imageInfo) in imageInfos.enumerated() {
-                    // Update download progress
-                    let progress = "\(index + 1) / \(totalImages)"
-                    await MainActor.run {
-                        self.downloadProgress = progress
-                    }
-                    
-                    print("Downloading \(index + 1)/\(totalImages): \(imageInfo.src)")
-                    
-                    if let cachedImage = getCachedImage(for: imageInfo.src) {
-                        downloadedImages.append(cachedImage)
-                        continue
-                    }
-                    
-                    guard let url = URL(string: imageInfo.src) else {
-                        print("Invalid URL: \(imageInfo.src)")
-                        continue
-                    }
-                    
-                    do {
-                        let (data, _) = try await URLSession.shared.data(from: url)
-                        if let image = UIImage(data: data) {
-                            cacheImage(image, for: imageInfo.src)
-                            downloadedImages.append(image)
-                            print("Downloaded image \(index + 1)")
-                        }
-                    } catch {
-                        print("Download failed for \(imageInfo.src): \(error)")
-                    }
+        Task {
+            var downloadedImages: [UIImage] = []
+            let totalImages = imageInfos.count
+            var successfulDownloads = 0
+            
+            print("DOWNLOAD: Starting download of \(totalImages) images")
+            
+            for (index, imageInfo) in imageInfos.enumerated() {
+                // Update download progress
+                let progress = "\(index + 1) / \(totalImages)"
+                await MainActor.run {
+                    self.downloadProgress = progress
                 }
                 
-                await MainActor.run {
-                    // Clear progress when done
-                    self.downloadProgress = ""
+                print("DOWNLOAD: [\(index + 1)/\(totalImages)] Attempting: \(imageInfo.src)")
+                
+                // Check cache first
+                if let cachedImage = getCachedImage(for: imageInfo.src) {
+                    print("DOWNLOAD: [\(index + 1)] Using cached image")
+                    downloadedImages.append(cachedImage)
+                    successfulDownloads += 1
+                    continue
+                }
+                
+                // Validate and create URL
+                guard let url = URL(string: imageInfo.src) else {
+                    print("DOWNLOAD: [\(index + 1)] Invalid URL: \(imageInfo.src)")
+                    continue
+                }
+                
+                print("DOWNLOAD: [\(index + 1)] Downloading from: \(url)")
+                
+                do {
+                    // Create a proper URLRequest with timeout
+                    var request = URLRequest(url: url)
+                    request.timeoutInterval = 30.0
+                    request.cachePolicy = .reloadIgnoringLocalCacheData
                     
-                    if downloadedImages.isEmpty {
-                        self.error = "Failed to download any images"
-                        onComplete?(false)
+                    let (data, response) = try await URLSession.shared.data(for: request)
+                    
+                    // Check if we got a valid response
+                    if let httpResponse = response as? HTTPURLResponse {
+                        print("DOWNLOAD: [\(index + 1)] HTTP Status: \(httpResponse.statusCode)")
+                        
+                        if httpResponse.statusCode == 200, let image = UIImage(data: data) {
+                            // FINAL SIZE FILTER - check actual downloaded image size
+                            if image.size.width <= 100.0 && image.size.height <= 100.0 {
+                                print("DOWNLOAD: [\(index + 1)] FILTERED OUT - Logo sized image: \(image.size)")
+                                continue // Skip this image
+                            }
+                            cacheImage(image, for: imageInfo.src)
+                            downloadedImages.append(image)
+                            successfulDownloads += 1
+                            print("DOWNLOAD: [\(index + 1)] SUCCESS - Image size: \(image.size)")
+                        } else {
+                            print("DOWNLOAD: [\(index + 1)] FAILED - Invalid status code or image data")
+                        }
                     } else {
-                        self.images = downloadedImages
-                        print("Successfully downloaded \(downloadedImages.count) images")
-                        onComplete?(true)
+                        print("DOWNLOAD: [\(index + 1)] FAILED - No HTTP response")
                     }
+                } catch {
+                    print("DOWNLOAD: [\(index + 1)] ERROR: \(error.localizedDescription)")
+                }
+            }
+            
+            await MainActor.run {
+                // Clear progress when done
+                self.downloadProgress = ""
+                
+                print("DOWNLOAD: Completed - \(successfulDownloads)/\(totalImages) successful downloads")
+                
+                if downloadedImages.isEmpty {
+                    print("DOWNLOAD: CRITICAL - No images were successfully downloaded")
+                    self.error = "Failed to download any images. Please check your connection."
                     self.isLoading = false
+                    onComplete?(false)
+                } else {
+                    print("DOWNLOAD: SUCCESS - Setting \(downloadedImages.count) images to display")
+                    // Set images and update loading state
+                    self.images = downloadedImages
+                    self.isLoading = false
+                    onComplete?(true)
                 }
             }
         }
+    }
     
     private func getCachedImage(for key: String) -> UIImage? {
         return imageCache[key]
@@ -755,25 +919,35 @@ class ReaderViewJava: NSObject, ObservableObject {
     private func attemptImageExtraction(attempt: Int, maxAttempts: Int, onComplete: ((Bool) -> Void)? = nil) {
         let delay = Double(attempt) * 2.0
         
-        print("Attempt \(attempt) of \(maxAttempts) - waiting \(delay) seconds")
+        print("RETRY: Attempt \(attempt) of \(maxAttempts) - waiting \(delay) seconds")
         
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
             guard let self = self, let webView = self.webView else {
+                print("RETRY: WebView no longer available, stopping")
                 onComplete?(false)
                 return
             }
             
+            print("RETRY: Starting extraction attempt \(attempt)")
             self.executeAllExtractionStrategies(webView: webView) { [weak self] success in
-                if success || attempt >= maxAttempts {
-                    if !success && attempt >= maxAttempts {
-                        Task { @MainActor in
-                            self?.error = "No suitable images found after \(maxAttempts) attempts"
-                            self?.isLoading = false
-                        }
+                guard let self = self else {
+                    onComplete?(false)
+                    return
+                }
+                
+                if success {
+                    print("RETRY: SUCCESS on attempt \(attempt) - stopping retries")
+                    onComplete?(true)
+                } else if attempt >= maxAttempts {
+                    print("RETRY: MAX ATTEMPTS REACHED (\(maxAttempts)) - giving up")
+                    Task { @MainActor in
+                        self.error = "No suitable images found after \(maxAttempts) attempts"
+                        self.isLoading = false
                     }
-                    onComplete?(success)
+                    onComplete?(false)
                 } else {
-                    self?.attemptImageExtraction(attempt: attempt + 1, maxAttempts: maxAttempts, onComplete: onComplete)
+                    print("RETRY: Attempt \(attempt) failed, will retry")
+                    self.attemptImageExtraction(attempt: attempt + 1, maxAttempts: maxAttempts, onComplete: onComplete)
                 }
             }
         }
