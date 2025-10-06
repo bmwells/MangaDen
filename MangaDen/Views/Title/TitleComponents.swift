@@ -117,7 +117,7 @@ struct DownloadModeControls: View {
     var body: some View {
         HStack {
             Button("Download All") {
-                downloadManager.downloadAllChapters(chapters: title.chapters)
+                downloadManager.downloadAllChapters(chapters: title.chapters, titleId: title.id)
             }
             .buttonStyle(.borderedProminent)
             .disabled(title.chapters.allSatisfy { $0.isDownloaded })
@@ -236,40 +236,56 @@ struct ReadingDirectionSelector: View {
                 .foregroundColor(.primary)
 
             HStack(spacing: 0) {
-                Button(action: {
-                    readingDirection = .leftToRight
-                    onDirectionChanged()
-                }) {
-                    Text("L → R")
-                        .font(.system(size: readingDirection == .leftToRight ? 18 : 12))
-                        .fontWeight(.semibold)
-                        .foregroundColor(readingDirection == .leftToRight ? .white : .blue)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(readingDirection == .leftToRight ? Color.blue : Color.blue.opacity(0.1))
-                        .cornerRadius(8)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color.blue, lineWidth: 2)
-                        )
-                }
 
                 Button(action: {
                     readingDirection = .rightToLeft
                     onDirectionChanged()
                 }) {
-                    Text("L ← R")
-                        .font(.system(size: readingDirection == .rightToLeft ? 18 : 12))
-                        .fontWeight(.semibold)
-                        .foregroundColor(readingDirection == .rightToLeft ? .white : .blue)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(readingDirection == .rightToLeft ? Color.blue : Color.blue.opacity(0.1))
-                        .cornerRadius(8)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color.blue, lineWidth: 2)
-                        )
+                    HStack(spacing: 4) {
+                        Text("L")
+                            .font(.system(size: readingDirection == .rightToLeft ? 18 : 12))
+                        
+                        Text("←")
+                            .font(.system(size: readingDirection == .rightToLeft ? 28 : 22)) // Larger arrow
+                        
+                        Text("R")
+                            .font(.system(size: readingDirection == .rightToLeft ? 18 : 12))
+                    }
+                    .fontWeight(.semibold)
+                    .foregroundColor(readingDirection == .rightToLeft ? .white : .blue)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(readingDirection == .rightToLeft ? Color.blue : Color.blue.opacity(0.1))
+                    .cornerRadius(8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.blue, lineWidth: 2)
+                    )
+                }
+                Button(action: {
+                    readingDirection = .leftToRight
+                    onDirectionChanged()
+                }) {
+                    HStack(spacing: 4) {
+                        Text("L")
+                            .font(.system(size: readingDirection == .leftToRight ? 18 : 12))
+                        
+                        Text("→")
+                            .font(.system(size: readingDirection == .leftToRight ? 28 : 22)) // Larger arrow
+                        
+                        Text("R")
+                            .font(.system(size: readingDirection == .leftToRight ? 18 : 12))
+                    }
+                    .fontWeight(.semibold)
+                    .foregroundColor(readingDirection == .leftToRight ? .white : .blue)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(readingDirection == .leftToRight ? Color.blue : Color.blue.opacity(0.1))
+                    .cornerRadius(8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.blue, lineWidth: 2)
+                    )
                 }
             }
             .background(Color.blue.opacity(0.05))
@@ -280,7 +296,6 @@ struct ReadingDirectionSelector: View {
         .padding(.horizontal)
     }
 }
-
 // MARK: - Chapters List Section
 struct ChaptersListSection: View {
     let displayChapters: [Chapter]
@@ -610,4 +625,8 @@ extension View {
             }
         }
     }
+}
+
+#Preview {
+    ContentView()
 }

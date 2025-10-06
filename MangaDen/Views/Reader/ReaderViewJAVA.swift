@@ -144,7 +144,7 @@ class ReaderViewJava: NSObject, ObservableObject {
     
     // MARK: - Extraction Strategies
     
-    // MARK: - Strategy 1
+    // MARK: - Strategy 1 (Direct DOM inspection)
     private func attemptExtractionStrategy1(webView: WKWebView, completion: @escaping ([EnhancedImageInfo]) -> Void) {
         let jsScript = """
         (function() {
@@ -217,7 +217,7 @@ class ReaderViewJava: NSObject, ObservableObject {
         }
     }
     
-    // MARK: - Strategy 2
+    // MARK: - Strategy 2 (HTML source regex)
     private func attemptExtractionStrategy2(webView: WKWebView, completion: @escaping ([EnhancedImageInfo]) -> Void) {
         let jsScript = """
         (function() {
@@ -296,7 +296,7 @@ class ReaderViewJava: NSObject, ObservableObject {
         }
     }
     
-    // MARK: - Strategy 3
+    // MARK: - Strategy 3 (Position-based DOM)
     private func attemptExtractionStrategy3(webView: WKWebView, completion: @escaping ([EnhancedImageInfo]) -> Void) {
         let jsScript = """
         (function() {
@@ -369,7 +369,7 @@ class ReaderViewJava: NSObject, ObservableObject {
         }
     }
     
-    // MARK: - Strategy 4: Page Navigation
+    // MARK: - Strategy 4 (Page Navigation)
         private func attemptExtractionStrategy4(webView: WKWebView, completion: @escaping ([EnhancedImageInfo]) -> Void) {
             print("STRATEGY 4: Starting simplified page menu extraction")
             

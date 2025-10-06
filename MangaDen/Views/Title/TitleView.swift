@@ -1,6 +1,7 @@
 import SwiftUI
 import PhotosUI
 import WebKit
+import Network
 
 struct TitleView: View {
     let title: Title
@@ -28,10 +29,20 @@ struct TitleView: View {
     @State private var showRefreshResult = false
     @State private var refreshResultMessage = ""
     @State private var newChaptersCount = 0
+    @State private var isOfflineMode = false
     @Environment(\.dismiss) private var dismiss
     
-    // Filter chapters based on current tab and manage mode
+    // Network monitor to detect offline mode
+    private let networkMonitor = NWPathMonitor()
+    @State private var networkStatus: NWPath.Status = .satisfied
+    
+    // Filter chapters based on current tab, manage mode, and offline status
     var displayChapters: [Chapter] {
+        // If we're in offline mode, only show downloaded chapters
+        if isOfflineMode {
+            return title.downloadedChapters.filter { !hiddenChapterURLs.contains($0.url) }
+        }
+        
         if showManageMode && manageMode == .uninstallDownloaded {
             return title.downloadedChapters
         } else {
@@ -44,6 +55,11 @@ struct TitleView: View {
         GeometryReader { geometry in
             ScrollView {
                 VStack(spacing: 0) {
+                    // Offline mode indicator - only show when offline
+                    if isOfflineMode {
+                        OfflineModeBanner()
+                    }
+                    
                     TitleCoverImageSection(
                         title: title,
                         scrollOffset: scrollOffset,
@@ -142,6 +158,7 @@ struct TitleView: View {
                 )
                 .font(.title2)
                 .padding(8)
+                .disabled(isOfflineMode && isRefreshing) // Only disable refresh when offline
             }
         }
         .navigationBarTitleDisplayMode(.inline)
@@ -170,6 +187,10 @@ struct TitleView: View {
         }
         .refreshOverlay(isRefreshing: isRefreshing)
         .onAppear(perform: onAppearActions)
+        .onDisappear {
+            // Stop network monitoring when view disappears
+            networkMonitor.cancel()
+        }
     }
     
     // MARK: - Lifecycle
@@ -181,11 +202,42 @@ struct TitleView: View {
         editedStatus = title.status
         manageMode = !title.downloadedChapters.isEmpty ? .uninstallDownloaded : .hideFromList
         tabBarManager.isTabBarHidden = true
+        
+        // Start network monitoring
+        startNetworkMonitoring()
+        
         print("TitleView appeared - Tab bar hidden: \(tabBarManager.isTabBarHidden)")
+        print("Offline mode: \(isOfflineMode)")
+    }
+    
+    // MARK: - Network Monitoring
+    private func startNetworkMonitoring() {
+        networkMonitor.pathUpdateHandler = { path in
+            DispatchQueue.main.async {
+                self.networkStatus = path.status
+                self.isOfflineMode = path.status != .satisfied
+                
+                if self.isOfflineMode {
+                    print("Offline mode detected - showing only downloaded chapters")
+                } else {
+                    print("Online mode - showing all chapters")
+                }
+            }
+        }
+        
+        let queue = DispatchQueue(label: "NetworkMonitor")
+        networkMonitor.start(queue: queue)
     }
     
     // MARK: - Refresh Title Function
     private func refreshTitle() {
+        // Don't allow refresh in offline mode
+        guard !isOfflineMode else {
+            refreshResultMessage = "Cannot refresh while offline"
+            showRefreshResult = true
+            return
+        }
+        
         isRefreshing = true
         
         let webView = WKWebView()
@@ -479,6 +531,24 @@ struct TitleView: View {
     }
 }
 
+// MARK: - Offline Mode Banner
+struct OfflineModeBanner: View {
+    var body: some View {
+        HStack {
+            Image(systemName: "wifi.slash")
+                .font(.title)
+                .foregroundColor(.orange)
+            Text("Offline Mode")
+                .font(.headline)
+                .foregroundColor(.orange)
+        }
+        .padding(8)
+        .background(Color.white.opacity(0.1))
+        .cornerRadius(8)
+        .padding(.horizontal)
+    }
+}
+
 // MARK: - Supporting Types
 enum ReadingDirection: String, CaseIterable {
     case leftToRight = "leftToRight"
@@ -495,14 +565,12 @@ struct ViewOffsetKey: PreferenceKey {
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value += nextValue()
     }
-    
-    
-}// TitleView
+}
 
+
+// TitleView
 
 
 #Preview {
     ContentView()
 }
-
-

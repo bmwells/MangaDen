@@ -44,9 +44,34 @@ class DownloadManager: ObservableObject {
         }
     }
     
-    func downloadAllChapters(chapters: [Chapter]) {
+    func downloadAllChapters(chapters: [Chapter], titleId: UUID) {
+        // Load hidden chapters for this title
+        let hiddenKey = "hiddenChapters_\(titleId.uuidString)"
+        let hiddenChapterURLs = UserDefaults.standard.array(forKey: hiddenKey) as? [String] ?? []
+        
         for chapter in chapters {
-            addToDownloadQueue(chapter: chapter)
+            // Skip hidden chapters
+            if hiddenChapterURLs.contains(chapter.url) {
+                print("Skipping hidden chapter: \(chapter.title ?? "Chapter \(chapter.formattedChapterNumber)")")
+                continue
+            }
+            
+            // Check if already in queue or completed
+            guard !downloadQueue.contains(where: { $0.chapter.id == chapter.id }) &&
+                  !completedDownloads.contains(where: { $0.chapter.id == chapter.id }) &&
+                  !failedDownloads.contains(where: { $0.chapter.id == chapter.id }) else {
+                continue
+            }
+            
+            let task = DownloadTask(chapter: chapter)
+            downloadQueue.append(task)
+        }
+        
+        saveDownloadState()
+        
+        // Start downloading if not already
+        if !isDownloading && !downloadQueue.isEmpty {
+            startNextDownload()
         }
     }
     

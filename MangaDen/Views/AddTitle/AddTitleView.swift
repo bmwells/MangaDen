@@ -92,37 +92,42 @@ struct AddTitleView: View {
         }
         // Help sheet
         .sheet(isPresented: $showHelp) {
-            HelpView()
+            TitleHelpView()
         }
     }
 } // AddTitleView
 
 // MARK: Help View
-struct HelpView: View {
+struct TitleHelpView: View {
     var body: some View {
         NavigationView {
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("How to Add Manga")
-                        .font(.title2)
+                VStack(alignment: .leading, spacing: 16) { // Changed from .center to .leading
+                    Text("How to Add Titles")
+                        .underline()
+                        .font(.title)
                         .bold()
+                        .frame(maxWidth: .infinity, alignment: .center) // Keep title centered
                     
-                    Text("1. Paste the manga URL directly into the text field using the clipboard button.")
-                    Text("2. Or open the in-app browser to navigate to your manga site and copy the URL.")
+                    HStack {
+                        Spacer()
+                        VStack(alignment: .center, spacing: 4) {
+                            Text("Paste a valid title page's URL into text box")
+                            Text("OR")
+                                .font(.title2)
+                                .bold()
+                            Text("Use the In App Browser (**Recommended**)")
+                        }
+                        Spacer()
+                    }
                     
-                    Image(systemName: "doc.on.clipboard")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 120)
-                        .foregroundColor(.blue)
-                        .padding(.vertical)
-
-                    Text("When you’re ready, press **Open In-App Browser** to explore and save your manga.")
-                        .padding(.bottom, 10)
-
                     Text("Tips:")
-                        .font(.headline)
-                    Text("• Make sure the URL is valid.\n• If the page doesn’t load, try refreshing.\n• You can always paste directly into the text box.")
+                        .padding(-4)
+                        .font(.title3)
+                        .bold()
+                        .underline()
+                        .tracking(1.5)
+                    Text("• Tip 1 \n• Tip 2 \n• Tip 3 \n ")
                 }
                 .padding()
             }
@@ -132,3 +137,6 @@ struct HelpView: View {
     }
 }
 
+#Preview {
+    TitleHelpView()
+}

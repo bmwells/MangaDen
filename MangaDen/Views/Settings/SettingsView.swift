@@ -15,6 +15,7 @@ struct SettingsView: View {
     @State private var showNoDownloadsAlert = false
     @State private var totalDownloadSize = "Calculating..."
     @State private var isUninstalling = false
+    @State private var showHelp = false
     
     var body: some View {
         NavigationView {
@@ -38,7 +39,7 @@ struct SettingsView: View {
                             
                             HStack(spacing: 0) {
                                 Button(action: { defaultReadingDirection = .leftToRight }) {
-                                    Text("L → R")
+                                    Text("L to R")
                                         .font(.system(size: 14, weight: .medium))
                                         .foregroundColor(defaultReadingDirection == .leftToRight ? .white : .blue)
                                         .frame(width: 60, height: 32)
@@ -52,7 +53,7 @@ struct SettingsView: View {
                                 .buttonStyle(PlainButtonStyle())
                                 
                                 Button(action: { defaultReadingDirection = .rightToLeft }) {
-                                    Text("L ← R")
+                                    Text("R to L")
                                         .font(.system(size: 14, weight: .medium))
                                         .foregroundColor(defaultReadingDirection == .rightToLeft ? .white : .blue)
                                         .frame(width: 60, height: 32)
@@ -74,7 +75,7 @@ struct SettingsView: View {
                     Section(header: Text("Manage Storage")) {
                         HStack(alignment: .center) {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("Uninstall All Downloads")
+                                Text("Uninstall ALL Downloads")
                                     .foregroundColor(.primary)
                                 
                                 // Storage size display
@@ -118,6 +119,25 @@ struct SettingsView: View {
                 }
                 .listSectionSpacing(.compact)
                 
+                // Help Button
+                HStack {
+                    Spacer()
+                    Button(action: {
+                        showHelp = true
+                    }) {
+                        Image(systemName: "questionmark")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 24, height: 24)
+                            .foregroundColor(.blue)
+                            .padding(20)
+                            .background(Circle().fill(Color.gray.opacity(0.2)))
+                    }
+                    Spacer()
+                }
+                .padding(.vertical, 20)
+                .background(Color(.systemGroupedBackground))
+                
                 // Version at bottom of page
                 VStack {
                     Text("Version 0.8")
@@ -129,7 +149,7 @@ struct SettingsView: View {
                 .background(Color(.systemGroupedBackground))
             }
             .navigationTitle("Settings")
-            .alert("Uninstall All Downloads", isPresented: $showUninstallAllConfirmation) {
+            .alert("Uninstall ALL Downloads", isPresented: $showUninstallAllConfirmation) {
                 Button("Cancel", role: .cancel) { }
                 Button("Uninstall All", role: .destructive) {
                     uninstallAllDownloads()
@@ -141,6 +161,9 @@ struct SettingsView: View {
                 Button("OK", role: .cancel) { }
             } message: {
                 Text("No chapters are currently downloaded to device.")
+            }
+            .sheet(isPresented: $showHelp) {
+                SettingsHelpView()
             }
         }
         .navigationViewStyle(StackNavigationViewStyle())
@@ -295,4 +318,40 @@ struct SettingsView: View {
         formatter.countStyle = .file
         return formatter.string(fromByteCount: size)
     }
+}
+
+// MARK: Settings Help View
+struct SettingsHelpView: View {
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Settings Guide")
+                        .font(.title2)
+                        .bold()
+                    
+                    Text("**Display Settings**")
+                        .font(.headline)
+                    Text("• **Dark Mode**: Toggle between light and dark appearance")
+                    
+                    Text("**User Preferences**")
+                        .font(.headline)
+                    Text("• **Reading Direction**: Choose between Left to Right (L to R) or Right to Left (L to R) manga reading direction")
+                    
+                    Text("**Manage Storage**")
+                        .font(.headline)
+                    Text("• **Uninstall All Downloads**: Remove all downloaded chapters from your device to free up storage space")
+                    
+                }
+                .padding()
+            }
+            .navigationTitle("Help")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+}
+
+
+#Preview {
+    SettingsHelpView()
 }
