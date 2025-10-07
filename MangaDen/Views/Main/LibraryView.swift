@@ -104,8 +104,8 @@ struct LibraryView: View {
                                             Image(uiImage: uiImage)
                                                 .resizable()
                                                 .scaledToFill()
-                                                .frame(width: UIDevice.current.userInterfaceIdiom == .pad ? 210 : 150,
-                                                       height: UIDevice.current.userInterfaceIdiom == .pad ? 280 : 200)
+                                                .frame(width: UIDevice.current.userInterfaceIdiom == .pad ? 226.8 : 180,
+                                                       height: UIDevice.current.userInterfaceIdiom == .pad ? 302.4 : 240)
                                                 .cornerRadius(12)
                                                 .clipped()
                                                 .overlay(
@@ -138,20 +138,16 @@ struct LibraryView: View {
                                         VStack(spacing: 4) {
                                             // Title Text below Image
                                             Text(title.title)
-                                                .font(.custom("AndaleMono", size: 20))
+                                                .font(.custom("AndaleMono", size: 23))
                                                 .tracking(0.5) // Letter spacing
-                                                .fontWeight(.semibold)
+                                                .fontWeight(.bold)
                                                 .foregroundColor(.primary)
                                                 .lineLimit(2)
                                                 .multilineTextAlignment(.center)
                                                 .fixedSize(horizontal: false, vertical: true)
-                                                .padding(.horizontal, 4) // Horizontal padding for better text wrapping
-                                                .minimumScaleFactor(0.8)
-
                                         }
                                         .frame(height: 40) // Fixed height for entire text container
-                                        .frame(maxWidth: .infinity) // Ensure consistent width
-                                        .padding(.horizontal, 4)
+                                        .frame(maxWidth: UIScreen.main.bounds.width * 0.5) // 50% of screen width allowed for title text line
                                     }
                                 }
                                 .buttonStyle(PlainButtonStyle())
