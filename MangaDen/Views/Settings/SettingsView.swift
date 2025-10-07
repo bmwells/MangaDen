@@ -21,15 +21,12 @@ struct SettingsView: View {
         NavigationView {
             VStack(spacing: 0) {
                 Form {
-                    
-                    // Display Settings
-                    Section(header: Text("Display")) {
-                        // Dark Mode
-                        Toggle("Dark Mode", isOn: $isDarkMode)
-                    }
-                    
                     // User Preferences
                     Section(header: Text("User Preferences")) {
+                        
+                        // Dark Mode
+                        Toggle("Dark Mode", isOn: $isDarkMode)
+                        
                         HStack {
                             Text("Reading Direction")
                                 .foregroundColor(.primary)
@@ -45,10 +42,6 @@ struct SettingsView: View {
                                         .frame(width: 60, height: 32)
                                         .background(defaultReadingDirection == .leftToRight ? Color.blue : Color.clear)
                                         .cornerRadius(6)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 6)
-                                                .stroke(Color.blue, lineWidth: 1)
-                                        )
                                 }
                                 .buttonStyle(PlainButtonStyle())
                                 
@@ -59,10 +52,7 @@ struct SettingsView: View {
                                         .frame(width: 60, height: 32)
                                         .background(defaultReadingDirection == .rightToLeft ? Color.blue : Color.clear)
                                         .cornerRadius(6)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 6)
-                                                .stroke(Color.blue, lineWidth: 1)
-                                        )
+                                        
                                 }
                                 .buttonStyle(PlainButtonStyle())
                             }
