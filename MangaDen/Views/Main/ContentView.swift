@@ -53,12 +53,12 @@ struct ContentView: View {
                             if index < 2 {
                                 Rectangle()
                                     .fill(isDarkMode ? Color.white.opacity(0.3) : Color.white.opacity(0.4))
-                                    .frame(width: 1, height: 80)
+                                    .frame(width: 1, height: 65)
                             }
                         }
                     }
-                    .frame(height: 80)
-                    .background(isDarkMode ? Color.gray.opacity(0.9) : Color.blue)
+                    .frame(height: 65)
+                    .background(isDarkMode ? Color(.systemGray2) : Color.blue) // Background color for the bottom bar
                     .overlay(
                         RoundedRectangle(cornerRadius: 0)
                             .stroke(isDarkMode ? Color.white.opacity(0.2) : Color.blue.opacity(0.3), lineWidth: 1)

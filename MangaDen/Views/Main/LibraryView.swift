@@ -161,8 +161,8 @@ struct LibraryView: View {
                                             Image(uiImage: uiImage)
                                                 .resizable()
                                                 .scaledToFill()
-                                                .frame(width: UIDevice.current.userInterfaceIdiom == .pad ? 226.8 : 180,
-                                                       height: UIDevice.current.userInterfaceIdiom == .pad ? 302.4 : 240)
+                                                .frame(width: UIDevice.current.userInterfaceIdiom == .pad ? 225 : 175,
+                                                       height: UIDevice.current.userInterfaceIdiom == .pad ? 270 : 260)
                                                 .cornerRadius(12)
                                                 .clipped()
                                                 .overlay(
@@ -213,7 +213,7 @@ struct LibraryView: View {
                         .padding(16)
                     }
                 }
-                .padding(.bottom, 45)
+                .padding(.bottom, 0)
                 .background(Color(.systemGroupedBackground))
             }
             .preferredColorScheme(effectiveColorScheme)
