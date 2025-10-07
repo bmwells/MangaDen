@@ -32,6 +32,11 @@ struct TitleView: View {
     @State private var isOfflineMode = false
     @Environment(\.dismiss) private var dismiss
     
+    // Scrollbar state
+    @State private var scrollProxy: ScrollViewProxy?
+    @State private var scrollViewContentSize: CGFloat = 0
+    @State private var visibleChapterRange: (min: Double, max: Double) = (0, 0)
+    
     // Network monitor to detect offline mode
     private let networkMonitor = NWPathMonitor()
     @State private var networkStatus: NWPath.Status = .satisfied
@@ -51,73 +56,107 @@ struct TitleView: View {
         }
     }
     
+    private var shouldShowChapterScrollbar: Bool {
+        // Show scrollbar when we've scrolled past the cover image area
+        return scrollOffset > 150 && !displayChapters.isEmpty
+    }
+    
     var body: some View {
         GeometryReader { geometry in
-            ScrollView {
-                VStack(spacing: 0) {
-                    // Offline mode indicator - only show when offline
-                    if isOfflineMode {
-                        OfflineModeBanner()
+            ZStack(alignment: .trailing) {
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        VStack(spacing: 0) {
+                            // Offline mode indicator - only show when offline
+                            if isOfflineMode {
+                                OfflineModeBanner()
+                            }
+                            
+                            TitleCoverImageSection(
+                                title: title,
+                                scrollOffset: scrollOffset,
+                                selectedCoverImage: $selectedCoverImage,
+                                geometry: geometry
+                            )
+                            
+                            TitleInfoSection(
+                                title: title,
+                                editedTitle: editedTitle,
+                                editedAuthor: editedAuthor,
+                                editedStatus: editedStatus,
+                                scrollOffset: scrollOffset
+                            )
+                            
+                            if showDownloadMode {
+                                DownloadModeControls(
+                                    title: title,
+                                    showDownloadMode: $showDownloadMode
+                                )
+                            }
+                            
+                            if showManageMode {
+                                ManageModeControls(
+                                    title: title,
+                                    manageMode: $manageMode,
+                                    showManageMode: $showManageMode,
+                                    showUninstallAllConfirmation: $showUninstallAllConfirmation
+                                )
+                            }
+                            
+                            if !showDownloadMode && !showManageMode {
+                                ReadingDirectionSelector(
+                                    readingDirection: $readingDirection,
+                                    onDirectionChanged: saveReadingDirection
+                                )
+                            }
+                            
+                            Divider()
+                            
+                            ChaptersListSection(
+                                displayChapters: displayChapters,
+                                readingDirection: readingDirection,
+                                showDownloadMode: showDownloadMode,
+                                showManageMode: showManageMode,
+                                onDeleteChapter: { chapterToDelete = $0; showDeleteChapterConfirmation = true },
+                                onMarkAsRead: markChapterAsRead
+                            )
+                            .background(
+                                GeometryReader { contentGeometry in
+                                    Color.clear
+                                        .onAppear {
+                                            scrollViewContentSize = contentGeometry.size.height
+                                        }
+                                        .onChange(of: contentGeometry.size.height) { _, newHeight in
+                                            scrollViewContentSize = newHeight
+                                        }
+                                }
+                            )
+                        }
+                        .padding(.vertical)
+                        .background(GeometryReader {
+                            Color.clear.preference(key: ViewOffsetKey.self,
+                                value: -$0.frame(in: .named("scroll")).origin.y)
+                        })
                     }
-                    
-                    TitleCoverImageSection(
-                        title: title,
-                        scrollOffset: scrollOffset,
-                        selectedCoverImage: $selectedCoverImage,
-                        geometry: geometry
-                    )
-                    
-                    TitleInfoSection(
-                        title: title,
-                        editedTitle: editedTitle,
-                        editedAuthor: editedAuthor,
-                        editedStatus: editedStatus,
-                        scrollOffset: scrollOffset
-                    )
-                    
-                    if showDownloadMode {
-                        DownloadModeControls(
-                            title: title,
-                            showDownloadMode: $showDownloadMode
-                        )
+                    .coordinateSpace(name: "scroll")
+                    .onPreferenceChange(ViewOffsetKey.self) { offset in
+                        scrollOffset = offset
                     }
-                    
-                    if showManageMode {
-                        ManageModeControls(
-                            title: title,
-                            manageMode: $manageMode,
-                            showManageMode: $showManageMode,
-                            showUninstallAllConfirmation: $showUninstallAllConfirmation
-                        )
+                    .onAppear {
+                        scrollProxy = proxy
                     }
-                    
-                    if !showDownloadMode && !showManageMode {
-                        ReadingDirectionSelector(
-                            readingDirection: $readingDirection,
-                            onDirectionChanged: saveReadingDirection
-                        )
-                    }
-                    
-                    Divider()
-                    
-                    ChaptersListSection(
-                        displayChapters: displayChapters,
-                        readingDirection: readingDirection,
-                        showDownloadMode: showDownloadMode,
-                        showManageMode: showManageMode,
-                        onDeleteChapter: { chapterToDelete = $0; showDeleteChapterConfirmation = true },
-                        onMarkAsRead: markChapterAsRead
-                    )
                 }
-                .padding(.vertical)
-                .background(GeometryReader {
-                    Color.clear.preference(key: ViewOffsetKey.self,
-                        value: -$0.frame(in: .named("scroll")).origin.y)
-                })
-            }
-            .coordinateSpace(name: "scroll")
-            .onPreferenceChange(ViewOffsetKey.self) { offset in
-                scrollOffset = offset
+                
+                // Custom Scrollbar
+                if shouldShowChapterScrollbar {
+                    ChapterScrollbar(
+                        chapters: displayChapters,
+                        visibleRange: visibleChapterRange,
+                        onScrollToChapter: scrollToChapter
+                    )
+                    .frame(width: 60)
+                    .padding(.trailing, 8)
+                }
             }
         }
         .navigationBarBackButtonHidden(true)
@@ -190,6 +229,14 @@ struct TitleView: View {
         .onDisappear {
             // Stop network monitoring when view disappears
             networkMonitor.cancel()
+        }
+    }
+    
+    // MARK: - Scrollbar Methods
+    
+    private func scrollToChapter(_ chapter: Chapter) {
+        withAnimation {
+            scrollProxy?.scrollTo(chapter.id, anchor: .top)
         }
     }
     
@@ -531,6 +578,131 @@ struct TitleView: View {
     }
 }
 
+// MARK: - Chapter Scrollbar Component
+struct ChapterScrollbar: View {
+    let chapters: [Chapter]
+    let visibleRange: (min: Double, max: Double)
+    let onScrollToChapter: (Chapter) -> Void
+    
+    private var topChapter: Chapter? {
+        // Highest chapter number
+        chapters.first
+    }
+    private var middleChapter: Chapter? {
+        // Middle chapter of the entire title
+        guard !chapters.isEmpty else { return nil }
+        let middleIndex = chapters.count / 2
+        return chapters[middleIndex]
+    }
+    private var bottomChapter: Chapter? {
+        // Lowest chapter number
+        chapters.last
+    }
+    
+    // Calculate scroll position based on visible range
+    private var scrollPercentage: Double {
+        guard chapters.count > 1 else { return 0 }
+        return visibleRange.min / Double(chapters.count - 1)
+    }
+    
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack {
+                // Single tap gesture for the entire scrollbar
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture { location in
+                        handleScrollbarTap(location: location, geometry: geometry)
+                    }
+                
+                // Position numbers that move with scroll
+                VStack(spacing: 0) {
+                    // Top chapter number
+                    if let topChapter = topChapter {
+                        ChapterScrollbarNumber(
+                            chapter: topChapter,
+                            position: .top,
+                            onTap: { onScrollToChapter(topChapter) }
+                        )
+                    }
+                    
+                    Spacer()
+                    
+                    // Middle chapter number
+                    if let middleChapter = middleChapter {
+                        ChapterScrollbarNumber(
+                            chapter: middleChapter,
+                            position: .middle,
+                            onTap: { onScrollToChapter(middleChapter) }
+                        )
+                    }
+                    
+                    Spacer()
+                    
+                    // Bottom chapter number
+                    if let bottomChapter = bottomChapter {
+                        ChapterScrollbarNumber(
+                            chapter: bottomChapter,
+                            position: .bottom,
+                            onTap: { onScrollToChapter(bottomChapter) }
+                        )
+                    }
+                }
+                .offset(y: -geometry.size.height * scrollPercentage)
+            }
+        }
+        .frame(width: 42,  height: 200)
+        .background(
+            RoundedRectangle(cornerRadius: 5)
+                .fill(Color.black.opacity(0.03))
+        )
+        .clipped()
+    }
+    
+    private func handleScrollbarTap(location: CGPoint, geometry: GeometryProxy) {
+        let tapY = location.y
+        let scrollbarHeight = geometry.size.height
+        
+        // Calculate which chapter was tapped based on position
+        let tapPercentage = Double(tapY / scrollbarHeight)
+        let chapterIndex = Int(Double(chapters.count) * tapPercentage)
+        
+        // Clamp the index to valid range
+        let clampedIndex = max(0, min(chapters.count - 1, chapterIndex))
+        
+        if clampedIndex < chapters.count {
+            onScrollToChapter(chapters[clampedIndex])
+        }
+    }
+}
+
+struct ChapterScrollbarNumber: View {
+    let chapter: Chapter
+    let position: ScrollbarPosition
+    let onTap: () -> Void
+    
+    var body: some View {
+        Button(action: onTap) {
+            Text(chapter.formattedChapterNumber)
+                .font(.headline)
+                .foregroundColor(.blue)
+                .frame(width: 40, height: 20)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+    
+    private var fontSize: CGFloat {
+        switch position {
+        case .top, .bottom:
+            return 14
+        case .middle:
+            return 16
+        }
+    }
+}
+
+
 // MARK: - Offline Mode Banner
 struct OfflineModeBanner: View {
     var body: some View {
@@ -555,6 +727,10 @@ enum ReadingDirection: String, CaseIterable {
     case rightToLeft = "rightToLeft"
 }
 
+enum ScrollbarPosition {
+    case top, middle, bottom
+}
+
 enum ManageMode {
     case uninstallDownloaded
     case hideFromList
@@ -566,10 +742,6 @@ struct ViewOffsetKey: PreferenceKey {
         value += nextValue()
     }
 }
-
-
-// TitleView
-
 
 #Preview {
     ContentView()

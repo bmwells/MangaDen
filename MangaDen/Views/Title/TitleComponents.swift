@@ -323,6 +323,7 @@ struct ChaptersListSection: View {
                             onDownload: { DownloadManager.shared.addToDownloadQueue(chapter: chapter) },
                             onRead: { onMarkAsRead(chapter) }
                         )
+                        .id(chapter.id)
                         Divider().padding(.leading, 16)
                     }
                 }
@@ -626,6 +627,8 @@ extension View {
         }
     }
 }
+
+
 
 #Preview {
     ContentView()

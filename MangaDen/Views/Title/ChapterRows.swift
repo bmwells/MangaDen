@@ -60,6 +60,7 @@ struct ChapterRowView: View {
             }
             .buttonStyle(PlainButtonStyle())
             .simultaneousGesture(TapGesture().onEnded(onRead))
+            .id(chapter.id)
         }
     }
 }
