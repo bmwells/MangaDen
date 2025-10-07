@@ -104,9 +104,100 @@ class AddTitleJAVA {
                 /\\b\\d{4}[\\-]\\d{1,2}[\\-]\\d{1,2}\\b/, // YYYY-MM-DD
                 /(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\\s+\\d{1,2},?\\s+\\d{4}/i,
                 /\\d{1,2}\\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\\s+\\d{4}/i,
-                /(?:today|yesterday)\\b/i
+                /(?:today|yesterday)\\b/i,
+                /\\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\\s+\\d{1,2},\\s+\\d{4}\\b/i // NEW: "Oct 7, 2025" format
             ];
-            
+        
+        // NEW: Time-based patterns to remove from titles (hours ago, days ago, etc.)
+                const timePatterns = [
+                    /\\s*\\d+\\s+hours?\\s+ago\\s*/i,
+                    /\\s*\\d+\\s+hrs?\\s+ago\\s*/i,
+                    /\\s*\\d+\\s+days?\\s+ago\\s*/i,
+                    /\\s*\\d+\\s+minutes?\\s+ago\\s*/i,
+                    /\\s*\\d+\\s+mins?\\s+ago\\s*/i,
+                    /\\s*\\d+\\s+seconds?\\s+ago\\s*/i,
+                    /\\s*just\\s+now\\s*/i,
+                    /\\s*\\d+[hdwm]\\s+ago\\s*/i, // 1h ago, 2d ago, etc.
+                ];
+                
+                // NEW: Function to calculate actual date from relative time
+                const calculateDateFromRelativeTime = (relativeTime) => {
+                    const now = new Date();
+                    const lowerTime = relativeTime.toLowerCase();
+                    
+                    // Extract number and unit
+                    const timeMatch = lowerTime.match(/(\\d+)\\s*(hour|hr|minute|min|second|sec|day|week|month|year|h|d|w|m|y)s?\\s+ago/i);
+                    if (!timeMatch) {
+                        if (lowerTime.includes('just now')) {
+                            // For "just now", return today's date without time
+                            return formatDateWithoutTime(now);
+                        }
+                        return null;
+                    }
+                    
+                    const amount = parseInt(timeMatch[1]);
+                    const unit = timeMatch[2].toLowerCase();
+                    const result = new Date(now);
+                    
+                    switch(unit) {
+                        case 'minute': case 'min':
+                        case 'second': case 'sec':
+                            // For minutes/seconds, just return today's date
+                            return formatDateWithoutTime(now);
+                        case 'hour': case 'hr': case 'h':
+                            result.setHours(now.getHours() - amount);
+                            break;
+                        case 'day': case 'd':
+                            result.setDate(now.getDate() - amount);
+                            break;
+                        case 'week': case 'w':
+                            result.setDate(now.getDate() - (amount * 7));
+                            break;
+                        case 'month': case 'm':
+                            result.setMonth(now.getMonth() - amount);
+                            break;
+                        case 'year': case 'y':
+                            result.setFullYear(now.getFullYear() - amount);
+                            break;
+                        default:
+                            return null;
+                    }
+                    
+                    // Return only the date part without time
+                    return formatDateWithoutTime(result);
+                };
+                
+                // NEW: Helper function to format date without time
+                const formatDateWithoutTime = (date) => {
+                    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                    const month = months[date.getMonth()];
+                    const day = date.getDate();
+                    const year = date.getFullYear();
+                    return `${month} ${day}, ${year}`;
+                };
+        
+                // NEW: Function to extract relative time from text
+                const extractRelativeTime = (text) => {
+                    const patterns = [
+                        /(\\d+\\s+hours?\\s+ago)/i,
+                        /(\\d+\\s+hrs?\\s+ago)/i,
+                        /(\\d+\\s+days?\\s+ago)/i,
+                        /(\\d+\\s+minutes?\\s+ago)/i,
+                        /(\\d+\\s+mins?\\s+ago)/i,
+                        /(\\d+\\s+seconds?\\s+ago)/i,
+                        /(just\\s+now)/i,
+                        /(\\d+[hdwm]\\s+ago)/i,
+                    ];
+                    
+                    for (const pattern of patterns) {
+                        const match = text.match(pattern);
+                        if (match && match[1]) {
+                            return match[1].trim();
+                        }
+                    }
+                    return null;
+                };
+        
             // Pattern to exclude titles with numbers in parentheses (e.g., "Iron Man (2016)")
             const excludePattern = /\\(\\s*\\d{4}\\s*\\)|\\(\\s*\\d+\\s*\\)/;
             
@@ -224,27 +315,38 @@ class AddTitleJAVA {
                         }
                         
                         // Extract date from time element
-                        let uploadDate = null;
-                        const timeElement = container.querySelector('time[datetime]');
-                        if (timeElement) {
-                            const datetime = timeElement.getAttribute('datetime');
-                            if (datetime) {
-                                uploadDate = datetime;
-                            } else {
-                                uploadDate = timeElement.textContent.trim();
-                            }
-                        }
-                        
-                        // If no date found, use existing date detection methods
-                        if (!uploadDate) {
-                            for (const pattern of datePatterns) {
-                                const dateMatch = text.match(pattern);
-                                if (dateMatch) {
-                                    uploadDate = dateMatch[0];
-                                    break;
+                            let uploadDate = null;
+                            const timeElement = container.querySelector('time[datetime]');
+                            if (timeElement) {
+                                const datetime = timeElement.getAttribute('datetime');
+                                if (datetime) {
+                                    uploadDate = datetime;
+                                } else {
+                                    uploadDate = timeElement.textContent.trim();
                                 }
                             }
-                        }
+                            
+                            // NEW: Check for relative time patterns in the text
+                            if (!uploadDate) {
+                                const relativeTime = extractRelativeTime(text);
+                                if (relativeTime) {
+                                    const calculatedDate = calculateDateFromRelativeTime(relativeTime);
+                                    if (calculatedDate) {
+                                        uploadDate = calculatedDate;
+                                    }
+                                }
+                            }
+                            
+                            // If no date found, use existing date detection methods
+                            if (!uploadDate) {
+                                for (const pattern of datePatterns) {
+                                    const dateMatch = text.match(pattern);
+                                    if (dateMatch) {
+                                        uploadDate = dateMatch[0];
+                                        break;
+                                    }
+                                }
+                            }
                         
                         if (!uploadDate) {
                             uploadDate = findDateInTableMap(link, tableDateMap);
@@ -254,12 +356,18 @@ class AddTitleJAVA {
                             uploadDate = findDateInNearbyElements(link);
                         }
                         
-                        // Clean the title by removing dates if they were accidentally included
-                        let finalTitle = cleanTitle;
-                        if (uploadDate && finalTitle.includes(uploadDate)) {
-                            finalTitle = finalTitle.replace(uploadDate, '').trim();
-                            finalTitle = finalTitle.replace(/^[\\s\\.,;:-]+|[\\s\\.,;:-]+$/g, '').trim();
-                        }
+                       // Clean the title by removing dates if they were accidentally included
+                           let finalTitle = cleanTitle;
+                           if (uploadDate && finalTitle.includes(uploadDate)) {
+                               finalTitle = finalTitle.replace(uploadDate, '').trim();
+                               finalTitle = finalTitle.replace(/^[\\s\\.,;:-]+|[\\s\\.,;:-]+$/g, '').trim();
+                           }
+                           
+                           // NEW: Remove time patterns from final title
+                           for (const timePattern of timePatterns) {
+                               finalTitle = finalTitle.replace(timePattern, '').trim();
+                           }
+                           finalTitle = finalTitle.replace(/^[\\s\\.,;:-]+|[\\s\\.,;:-]+$/g, '').trim();
                         
                         if (chapterNumber) {
                             const chapterData = {
@@ -502,7 +610,7 @@ class AddTitleJAVA {
                     if (chapterNumber) {
                         // Extract upload date (but don't remove from title)
                         let uploadDate = null;
-                        
+
                         // Check in the original text for dates (but don't modify title)
                         for (const pattern of datePatterns) {
                             const dateMatch = text.match(pattern);
@@ -511,7 +619,18 @@ class AddTitleJAVA {
                                 break;
                             }
                         }
-                        
+
+                        // NEW: Check for relative time patterns in the text
+                        if (!uploadDate) {
+                            const relativeTime = extractRelativeTime(text);
+                            if (relativeTime) {
+                                const calculatedDate = calculateDateFromRelativeTime(relativeTime);
+                                if (calculatedDate) {
+                                    uploadDate = calculatedDate;
+                                }
+                            }
+                        }
+
                         // If no date found, check table date map using link text or href
                         if (!uploadDate) {
                             uploadDate = findDateInTableMap(link, tableDateMap);
@@ -529,7 +648,13 @@ class AddTitleJAVA {
                             // Clean up any leftover punctuation
                             finalTitle = finalTitle.replace(/^[\\s\\.,;:-]+|[\\s\\.,;:-]+$/g, '').trim();
                         }
-                        
+
+                        // NEW: Remove time patterns from final title
+                        for (const timePattern of timePatterns) {
+                            finalTitle = finalTitle.replace(timePattern, '').trim();
+                        }
+                        finalTitle = finalTitle.replace(/^[\\s\\.,;:-]+|[\\s\\.,;:-]+$/g, '').trim();
+
                         const chapterData = {
                             "url": href,
                             "title": finalTitle || text // Use the cleaned title or original
@@ -582,8 +707,8 @@ class AddTitleJAVA {
                     
                     // Extract upload date
                     let uploadDate = null;
-                    
-                    // Check in the original text for dates
+
+                    // Check in the original text for dates (but don't modify title)
                     for (const pattern of datePatterns) {
                         const dateMatch = titleLink.text.match(pattern);
                         if (dateMatch) {
@@ -591,7 +716,18 @@ class AddTitleJAVA {
                             break;
                         }
                     }
-                    
+
+                    // NEW: Check for relative time patterns in the text
+                    if (!uploadDate) {
+                        const relativeTime = extractRelativeTime(titleLink.text);
+                        if (relativeTime) {
+                            const calculatedDate = calculateDateFromRelativeTime(relativeTime);
+                            if (calculatedDate) {
+                                uploadDate = calculatedDate;
+                            }
+                        }
+                    }
+
                     // If no date found, check table date map using link text or href
                     if (!uploadDate) {
                         uploadDate = findDateInTableMap(titleLink.link, tableDateMap);
@@ -609,7 +745,13 @@ class AddTitleJAVA {
                         // Clean up any leftover punctuation
                         finalTitle = finalTitle.replace(/^[\\s\\.,;:-]+|[\\s\\.,;:-]+$/g, '').trim();
                     }
-                    
+
+                    // NEW: Remove time patterns from final title
+                    for (const timePattern of timePatterns) {
+                        finalTitle = finalTitle.replace(timePattern, '').trim();
+                    }
+                    finalTitle = finalTitle.replace(/^[\\s\\.,;:-]+|[\\s\\.,;:-]+$/g, '').trim();
+
                     const chapterData = {
                         "url": titleLink.href,
                         "title": finalTitle || titleLink.text,

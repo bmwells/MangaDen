@@ -19,21 +19,33 @@ struct ReaderView: View {
     @State private var isChapterReady = false
     @State private var downloadProgress: String = ""
     
+    // Add this new state to track the actual content we're displaying
+    @State private var originalImages: [UIImage] = []
+    
+    // Add a state to track the scroll view proxy
+    @State private var scrollProxy: ScrollViewProxy?
+    
     // Computed property to get images in correct order based on reading direction
     private var displayImages: [UIImage] {
-        let images = isDownloaded ? loadedImages : readerJava.images
         if readingDirection == .rightToLeft {
-            return images.reversed()
+            return originalImages.reversed()
         }
-        return images
+        return originalImages
     }
     
     // Computed property for displayed page number
     private var displayedPageNumber: Int {
+        let totalPages = displayImages.count
+        guard totalPages > 0 else { return 0 }
+        
         if readingDirection == .rightToLeft {
-            let totalPages = displayImages.count
-            return totalPages - currentPageIndex
+            // For RTL: When currentPageIndex = displayImages.count - 1 (last display), show Page 1
+            // When currentPageIndex = 0 (first display), show Page totalPages
+            let pageNumber = totalPages - currentPageIndex
+            print("RTL Page Calc: currentPageIndex=\(currentPageIndex), totalPages=\(totalPages), result=\(pageNumber)")
+            return pageNumber
         } else {
+            // For LTR: currentPageIndex + 1 gives the actual page number
             return currentPageIndex + 1
         }
     }
@@ -117,9 +129,9 @@ struct ReaderView: View {
         let targetPageIndex = Int(round(location * CGFloat(displayImages.count - 1)))
         let clampedIndex = max(0, min(displayImages.count - 1, targetPageIndex))
         
-        withAnimation(.easeInOut(duration: 0.3)) {
-            currentPageIndex = clampedIndex
-        }
+        print("Scrollbar tap: location=\(location), target=\(targetPageIndex), clamped=\(clampedIndex)")
+        currentPageIndex = clampedIndex
+        scrollToPage(currentPageIndex, animated: true)
     }
     
     private func handleScrollbarDrag(progress: CGFloat) {
@@ -128,7 +140,10 @@ struct ReaderView: View {
         let targetPageIndex = Int(round(progress * CGFloat(displayImages.count - 1)))
         let clampedIndex = max(0, min(displayImages.count - 1, targetPageIndex))
         
+        print("Scrollbar drag: progress=\(progress), target=\(targetPageIndex), clamped=\(clampedIndex)")
         currentPageIndex = clampedIndex
+        // Don't animate during drag for smooth tracking
+        scrollToPage(currentPageIndex, animated: false)
     }
     
     // MARK: - Main Content Views
@@ -221,23 +236,39 @@ struct ReaderView: View {
     private var readerContentView: some View {
         ZStack {
             GeometryReader { geometry in
-                TrackableScrollView(currentIndex: $currentPageIndex) {
-                    LazyHStack(spacing: 0) {
-                        ForEach(Array(displayImages.enumerated()), id: \.offset) { index, image in
-                            SinglePageView(
-                                image: image,
-                                zoomScale: $zoomScale,
-                                lastZoomScale: $lastZoomScale,
-                                isZooming: $isZooming,
-                                isActive: index == currentPageIndex
-                            )
-                            .frame(width: geometry.size.width, height: geometry.size.height)
-                            .id(index)
+                ScrollViewReader { proxy in
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        LazyHStack(spacing: 0) {
+                            ForEach(Array(displayImages.enumerated()), id: \.offset) { index, image in
+                                SinglePageView(
+                                    image: image,
+                                    zoomScale: $zoomScale,
+                                    lastZoomScale: $lastZoomScale,
+                                    isZooming: $isZooming,
+                                    isActive: index == currentPageIndex
+                                )
+                                .frame(width: geometry.size.width, height: geometry.size.height)
+                                .id(index)
+                            }
+                        }
+                    }
+                    .scrollTargetBehavior(.paging)
+                    .onAppear {
+                        scrollProxy = proxy
+                        // Scroll to initial position after a small delay
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            scrollToPage(currentPageIndex, animated: false)
+                        }
+                    }
+                    .onChange(of: currentPageIndex) { oldValue, newValue in
+                        // Only scroll if the page actually changed and it's not from user scrolling
+                        if oldValue != newValue {
+                            scrollToPage(newValue, animated: true)
                         }
                     }
                 }
-                .disabled(isZooming)
             }
+            .disabled(isZooming)
             
             if !isZooming {
                 navigationOverlay
@@ -305,6 +336,9 @@ struct ReaderView: View {
             Text("\(displayedPageNumber)/\(displayImages.count)")
                 .font(.caption)
                 .foregroundColor(.white)
+                .onAppear {
+                    print("Title View: displayedPageNumber=\(displayedPageNumber), displayImages.count=\(displayImages.count)")
+                }
         }
     }
     
@@ -388,23 +422,15 @@ struct ReaderView: View {
                 }
                 
                 DispatchQueue.main.async {
+                    self.originalImages = images
                     self.loadedImages = images
                     self.isLoadingFromStorage = false
                     
-                    // Set initial page based on reading direction for downloaded chapters
-                    if self.readingDirection == .rightToLeft && !images.isEmpty {
-                        // For RTL downloaded chapters, start at the last page index
-                        // This will become the "first" page when displayImages reverses the array
-                        self.currentPageIndex = images.count - 1
-                        print("RTL Downloaded: Set initial page to \(self.currentPageIndex) for \(images.count) images")
-                    } else if !images.isEmpty {
-                        // For LTR downloaded chapters, start at the first page
-                        self.currentPageIndex = 0
-                        print("LTR Downloaded: Set initial page to 0 for \(images.count) images")
+                    // Set initial page after a brief delay to ensure UI is ready
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        self.setInitialPageIndex()
+                        self.isChapterReady = true
                     }
-                    
-                    // Images are loaded, mark as ready
-                    self.isChapterReady = true
                     
                     print("Loaded \(images.count) images from storage")
                 }
@@ -505,13 +531,19 @@ struct ReaderView: View {
     
     private func navigateToNextPage() {
         guard currentPageIndex < displayImages.count - 1 else { return }
-        currentPageIndex += 1
+        let newIndex = currentPageIndex + 1
+        print("Next page: \(currentPageIndex) -> \(newIndex)")
+        currentPageIndex = newIndex
+        scrollToPage(currentPageIndex, animated: true)
         resetZoom()
     }
     
     private func navigateToPreviousPage() {
         guard currentPageIndex > 0 else { return }
-        currentPageIndex -= 1
+        let newIndex = currentPageIndex - 1
+        print("Previous page: \(currentPageIndex) -> \(newIndex)")
+        currentPageIndex = newIndex
+        scrollToPage(currentPageIndex, animated: true)
         resetZoom()
     }
     
@@ -529,24 +561,58 @@ struct ReaderView: View {
         }
     }
     
+    // MARK: - Manual Scroll Methods
+    
+    private func scrollToPage(_ pageIndex: Int, animated: Bool) {
+        print("Scrolling to page index: \(pageIndex)")
+        if animated {
+            withAnimation(.easeInOut(duration: 0.3)) {
+                scrollProxy?.scrollTo(pageIndex, anchor: .center)
+            }
+        } else {
+            scrollProxy?.scrollTo(pageIndex, anchor: .center)
+        }
+    }
+    
+    // MARK: - Initial Page Setup
+        
+    private func setInitialPageIndex() {
+        guard !displayImages.isEmpty else { return }
+        
+        if readingDirection == .rightToLeft {
+            // For RTL starting at Page 1: We should be at the LAST display index
+            currentPageIndex = displayImages.count - 1
+            print("RTL INIT: Set currentPageIndex to \(currentPageIndex) for Page 1")
+            print("RTL INIT: displayImages.count = \(displayImages.count)")
+            print("RTL INIT: Should show Page \(displayImages.count - currentPageIndex)")
+            print("RTL INIT: Debug - display[\(currentPageIndex)] = original[\(displayIndexToOriginalIndex(currentPageIndex))]")
+            
+            // Force scroll to the correct position
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                self.scrollToPage(self.currentPageIndex, animated: false)
+            }
+        } else {
+            currentPageIndex = 0
+            print("LTR: Set initial page to 0 for \(displayImages.count) display images")
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                self.scrollToPage(self.currentPageIndex, animated: false)
+            }
+        }
+    }
+    
+    // MARK: - Modified Helper Methods
+    
     private func handleImagesChange(oldValue: [UIImage], newValue: [UIImage]) {
         // For non-downloaded chapters only
         if !isDownloaded {
             let imagesNowLoaded = !newValue.isEmpty
             
             if imagesNowLoaded {
-                // Set initial page based on reading direction for non-downloaded chapters
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    if self.readingDirection == .rightToLeft && !newValue.isEmpty {
-                        // For non-downloaded RTL, we need to start at the last original image
-                        self.currentPageIndex = newValue.count - 1
-                        print("RTL Online: Set initial page to \(self.currentPageIndex) for \(newValue.count) images")
-                    } else {
-                        self.currentPageIndex = 0
-                        print("LTR Online: Set initial page to 0 for \(newValue.count) images")
-                    }
+                    self.originalImages = newValue
+                    self.setInitialPageIndex()
                     self.isChapterReady = true
-                    // Clear download progress when chapter is ready
                     self.downloadProgress = ""
                 }
             }
@@ -556,16 +622,27 @@ struct ReaderView: View {
     private func handleLoadedImagesChange(oldValue: [UIImage], newValue: [UIImage]) {
         // For downloaded chapters
         if isDownloaded && !newValue.isEmpty {
-            // Set initial page based on reading direction for downloaded chapters
-            if readingDirection == .rightToLeft {
-                currentPageIndex = newValue.count - 1
-                print("RTL Downloaded (onChange): Set initial page to \(currentPageIndex) for \(newValue.count) images")
-            } else {
-                currentPageIndex = 0
-                print("LTR Downloaded (onChange): Set initial page to 0 for \(newValue.count) images")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                self.originalImages = newValue
+                self.setInitialPageIndex()
+                self.isChapterReady = true
             }
-            isChapterReady = true
         }
+    }
+    
+    // Helper methods for debug
+    private func displayIndexToOriginalIndex(_ displayIndex: Int) -> Int {
+        if readingDirection == .rightToLeft {
+            return originalImages.count - 1 - displayIndex
+        }
+        return displayIndex
+    }
+    
+    private func displayedPageNumberForIndex(_ displayIndex: Int) -> Int {
+        if readingDirection == .rightToLeft {
+            return originalImages.count - displayIndex
+        }
+        return displayIndex + 1
     }
 }
 
@@ -701,47 +778,6 @@ struct BottomScrollbar: View {
 }
 
 // MARK: - Supporting Views
-
-struct TrackableScrollView<Content: View>: View {
-    let axes: Axis.Set
-    let showsIndicators: Bool
-    let content: Content
-    @Binding var currentIndex: Int
-    
-    init(_ axes: Axis.Set = .horizontal,
-         showsIndicators: Bool = false,
-         currentIndex: Binding<Int>,
-         @ViewBuilder content: () -> Content) {
-        self.axes = axes
-        self.showsIndicators = showsIndicators
-        self._currentIndex = currentIndex
-        self.content = content()
-    }
-    
-    var body: some View {
-        GeometryReader { geometry in
-            ScrollView(axes, showsIndicators: showsIndicators) {
-                content
-            }
-            .scrollTargetLayout()
-            .scrollTargetBehavior(.paging)
-            .scrollPosition(id: Binding(
-                get: { currentIndex },
-                set: { newValue in
-                    if let newValue = newValue {
-                        currentIndex = newValue
-                    }
-                }
-            ))
-            .onAppear {
-                // Ensure initial scroll position
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    currentIndex = currentIndex // This will trigger scroll to position
-                }
-            }
-        }
-    }
-}
 
 struct SinglePageView: View {
     let image: UIImage
