@@ -15,6 +15,8 @@ struct LibraryView: View {
     @State private var titles: [Title] = []
     @AppStorage("isDarkMode") private var isDarkMode = false
     @Environment(\.colorScheme) private var systemColorScheme
+    @State private var searchText: String = ""
+    @State private var isSearching: Bool = false
     
     // Tabs (Reading and Archive)
     enum LibraryTab: String, CaseIterable {
@@ -22,7 +24,7 @@ struct LibraryView: View {
         case archive = "Archive"
     }
     
-    // Tab Filters
+    // Filtered and searched titles
     var filteredTitles: [Title] {
         let filtered: [Title]
         switch selectedTab {
@@ -30,8 +32,17 @@ struct LibraryView: View {
         case .archive: filtered = titles.filter { $0.isArchived }
         }
         
-        // Sort alphabetically by title
-        return filtered.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+        // Apply search filter if searching
+        if !searchText.isEmpty {
+            let searched = filtered.filter { title in
+                title.title.lowercased().hasPrefix(searchText.lowercased())
+            }
+            // Sort searched results alphabetically
+            return searched.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+        } else {
+            // Sort all results alphabetically
+            return filtered.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+        }
     }
     
     // Computed color scheme based on user preference
@@ -42,7 +53,9 @@ struct LibraryView: View {
     var body: some View {
         NavigationStack {
             VStack {
+                // Top Bar with Add, Picker, and Search
                 HStack {
+                    // Add Button
                     Button(action: { showAddManga = true }) {
                         Image(systemName: "plus")
                             .font(.system(size: 28, weight: .medium))
@@ -54,6 +67,7 @@ struct LibraryView: View {
                     
                     Spacer()
                     
+                    // Segmented Picker
                     Picker("", selection: $selectedTab) {
                         ForEach(LibraryTab.allCases, id: \.self) { tab in
                             Text(tab.rawValue).tag(tab)
@@ -63,24 +77,68 @@ struct LibraryView: View {
                     .fixedSize()
                     .padding(.horizontal)
                     .scaleEffect(x: 1.3, y: 1.3)
-                    .offset (x:-25, y: -5)
+                    .offset(y: -10)
                     
                     Spacer()
                     
+                    // Search Button
+                    Button(action: {
+                        withAnimation(.spring()) {
+                            isSearching.toggle()
+                            if !isSearching {
+                                searchText = ""
+                            }
+                        }
+                    }) {
+                        Image(systemName: isSearching ? "xmark" : "magnifyingglass")
+                            .font(.system(size: 25, weight: .medium))
+                            .foregroundColor(.accentColor)
+                            .padding(8)
+                            .offset(x: 0, y: -15)
+                    }
                 }
                 .padding(.horizontal)
                 .padding(.top, 8)
                 .background(Color(.systemBackground))
                 
+                // Search Bar (appears when searching)
+                if isSearching {
+                    HStack {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundColor(.secondary)
+                            .padding(.leading, 8)
+                        
+                        TextField("Search your library...", text: $searchText)
+                            .textFieldStyle(PlainTextFieldStyle())
+                            .padding(.vertical, 8)
+                            .autocapitalization(.none)
+                            .disableAutocorrection(true)
+                        
+                        if !searchText.isEmpty {
+                            Button(action: {
+                                searchText = ""
+                            }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(.secondary)
+                                    .padding(.trailing, 8)
+                            }
+                        }
+                    }
+                    .background(Color(.systemGray6))
+                    .cornerRadius(10)
+                    .padding(.horizontal)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                }
+                
                 ScrollView {
                     if filteredTitles.isEmpty {
                         VStack(spacing: 20) {
-                            Image(systemName: "books.vertical.fill")
+                            Image(systemName: emptyStateIcon)
                                 .font(.system(size: 60))
                                 .foregroundColor(.secondary)
                             
                             VStack(spacing: 8) {
-                                Text("No Titles Found")
+                                Text(emptyStateTitle)
                                     .font(.title2)
                                     .fontWeight(.semibold)
                                     .foregroundColor(.primary)
@@ -90,8 +148,7 @@ struct LibraryView: View {
                                     .foregroundColor(.secondary)
                                     .multilineTextAlignment(.center)
                                     .padding(.horizontal, 40)
-                                
-                                                            }
+                            }
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .padding(.top, 100)
@@ -183,13 +240,39 @@ struct LibraryView: View {
         .navigationViewStyle(StackNavigationViewStyle())
     }
     
-    // Empty state message based on selected tab
+    // Empty state properties based on search and selected tab
+    private var emptyStateIcon: String {
+        if !searchText.isEmpty {
+            return "magnifyingglass"
+        } else {
+            switch selectedTab {
+            case .reading: return "books.vertical.fill"
+            case .archive: return "archivebox"
+            }
+        }
+    }
+    
+    private var emptyStateTitle: String {
+        if !searchText.isEmpty {
+            return "No Results Found"
+        } else {
+            switch selectedTab {
+            case .reading: return "No Titles Found"
+            case .archive: return "Archive Empty"
+            }
+        }
+    }
+    
     private var emptyStateMessage: String {
-        switch selectedTab {
-        case .reading:
-            return "Your reading list is empty. Add some titles to get started!"
-        case .archive:
-            return "Your archive is empty. Archive titles you've finished reading."
+        if !searchText.isEmpty {
+            return "No titles found matching \"\(searchText)\""
+        } else {
+            switch selectedTab {
+            case .reading:
+                return "Your reading list is empty. Add some titles to get started!"
+            case .archive:
+                return "Your archive is empty. Archive titles you've finished reading."
+            }
         }
     }
     
