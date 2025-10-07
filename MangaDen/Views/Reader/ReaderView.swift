@@ -38,6 +38,20 @@ struct ReaderView: View {
         }
     }
     
+    // Computed property for scrollbar progress
+    private var scrollbarProgress: CGFloat {
+        guard displayImages.count > 1 else { return 0 }
+        
+        if readingDirection == .rightToLeft {
+            // For RTL: progress goes from 0.0 (first page) to 1.0 (last page)
+            // This ensures circle starts on right for page 1
+            return 1.0 - (CGFloat(currentPageIndex) / CGFloat(displayImages.count - 1))
+        } else {
+            // For LTR: progress goes from 0.0 (first page) to 1.0 (last page)
+            return CGFloat(currentPageIndex) / CGFloat(displayImages.count - 1)
+        }
+    }
+    
     var isDownloaded: Bool {
         chapter.isDownloaded
     }
@@ -46,6 +60,29 @@ struct ReaderView: View {
         ZStack {
             Color.black.ignoresSafeArea()
             mainContent
+            
+            // Bottom Scrollbar
+            if showNavigationBars && !displayImages.isEmpty && !isZooming {
+                VStack {
+                    Spacer()
+                    BottomScrollbar(
+                        progress: scrollbarProgress,
+                        readingDirection: readingDirection,
+                        onTap: { location in
+                            handleScrollbarTap(location: location)
+                        },
+                        onCenterTap: {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                showNavigationBars.toggle()
+                            }
+                        },
+                        onDrag: { progress in
+                            handleScrollbarDrag(progress: progress)
+                        }
+                    )
+                    .padding(.bottom, 8)
+                }
+            }
         }
         .navigationBarBackButtonHidden(true) // Hide the default back button
         .toolbar(content: toolbarContent)
@@ -70,6 +107,28 @@ struct ReaderView: View {
         .onChange(of: readerJava.downloadProgress) { oldValue, newValue in
             updateDownloadProgress(progress: newValue)
         }
+    }
+    
+    // MARK: - Scrollbar Handling
+    
+    private func handleScrollbarTap(location: CGFloat) {
+        guard !displayImages.isEmpty else { return }
+        
+        let targetPageIndex = Int(round(location * CGFloat(displayImages.count - 1)))
+        let clampedIndex = max(0, min(displayImages.count - 1, targetPageIndex))
+        
+        withAnimation(.easeInOut(duration: 0.3)) {
+            currentPageIndex = clampedIndex
+        }
+    }
+    
+    private func handleScrollbarDrag(progress: CGFloat) {
+        guard !displayImages.isEmpty else { return }
+        
+        let targetPageIndex = Int(round(progress * CGFloat(displayImages.count - 1)))
+        let clampedIndex = max(0, min(displayImages.count - 1, targetPageIndex))
+        
+        currentPageIndex = clampedIndex
     }
     
     // MARK: - Main Content Views
@@ -184,10 +243,6 @@ struct ReaderView: View {
                 navigationOverlay
             }
         }
-        .gesture(
-            DragGesture(minimumDistance: 50)
-                .onEnded { handleSwipeGesture(value: $0) }
-        )
     }
     
     private var navigationOverlay: some View {
@@ -514,6 +569,137 @@ struct ReaderView: View {
     }
 }
 
+// MARK: - Bottom Scrollbar Component
+struct BottomScrollbar: View {
+    let progress: CGFloat
+    let readingDirection: ReadingDirection
+    let onTap: (CGFloat) -> Void
+    let onCenterTap: () -> Void
+    let onDrag: (CGFloat) -> Void
+    
+    @State private var isDragging = false
+    
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack {
+                // Center tap area for hiding navigation - only active when not dragging
+                if !isDragging {
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            onCenterTap()
+                        }
+                        .zIndex(0)
+                }
+                
+                // Background scrollbar line - fixed width of 300px
+                Capsule()
+                    .fill(Color.white.opacity(0.3))
+                    .frame(width: 300, height: 12)
+                    .zIndex(1)
+                
+                // Progress fill - blue portion of the line
+                if progress > 0 {
+                    Capsule()
+                        .fill(Color.blue)
+                        .frame(
+                            width: calculateProgressWidth(width: 300),
+                            height: 12
+                        )
+                        .position(
+                            x: calculateProgressPosition(width: 300),
+                            y: geometry.size.height / 2
+                        )
+                        .zIndex(2)
+                }
+                
+                // Scrollbar line tap area
+                Capsule()
+                    .fill(Color.clear)
+                    .frame(width: 300, height: 12)
+                    .contentShape(Rectangle())
+                    .onTapGesture { location in
+                        let tapLocation = location.x
+                        let tapProgress = calculateProgressFromPosition(position: tapLocation, width: 300)
+                        onTap(tapProgress)
+                    }
+                    .zIndex(3) // Tap area above everything
+                
+                // Progress circle - draggable (placed above everything)
+                Circle()
+                    .fill(Color.blue)
+                    .frame(width: 30, height: 30)
+                    .position(
+                        x: calculateCirclePosition(width: 300),
+                        y: geometry.size.height / 2
+                    )
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { value in
+                                isDragging = true
+                                let dragLocation = value.location.x
+                                let dragProgress = calculateProgressFromPosition(position: dragLocation, width: 300)
+                                onDrag(dragProgress)
+                            }
+                            .onEnded { _ in
+                                isDragging = false
+                            }
+                    )
+                    .scaleEffect(isDragging ? 1.2 : 1.0)
+                    .animation(.spring(response: 0.3), value: isDragging)
+                    .zIndex(4) // Circle above everything
+            }
+            .frame(width: 300)
+            .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
+        }
+        .frame(height: 30)
+        .padding(.horizontal, 20)
+    }
+    
+    private func calculateCirclePosition(width: CGFloat) -> CGFloat {
+        let circlePosition: CGFloat
+        
+        if readingDirection == .rightToLeft {
+            // For RTL: circle starts on right (progress 0.0), moves left to progress 1.0
+            circlePosition = width - (progress * width)
+        } else {
+            // For LTR: circle starts on left (progress 0.0), moves right to progress 1.0
+            circlePosition = progress * width
+        }
+        
+        return max(15, min(width - 15, circlePosition)) // Adjusted for larger circle
+    }
+    
+    private func calculateProgressWidth(width: CGFloat) -> CGFloat {
+        return progress * width
+    }
+    
+    private func calculateProgressPosition(width: CGFloat) -> CGFloat {
+        if readingDirection == .rightToLeft {
+            // For RTL: blue fill extends from right to left
+            return width - (progress * width / 2)
+        } else {
+            // For LTR: blue fill extends from left to right
+            return (progress * width) / 2
+        }
+    }
+    
+    private func calculateProgressFromPosition(position: CGFloat, width: CGFloat) -> CGFloat {
+        let clampedPosition = max(15, min(width - 15, position)) // Adjusted for larger circle
+        let progress: CGFloat
+        
+        if readingDirection == .rightToLeft {
+            // For RTL: right side is progress 0.0, left side is progress 1.0
+            progress = clampedPosition / width
+        } else {
+            // For LTR: left side is progress 0.0, right side is progress 1.0
+            progress = clampedPosition / width
+        }
+        
+        return max(0, min(1, progress))
+    }
+}
+
 // MARK: - Supporting Views
 
 struct TrackableScrollView<Content: View>: View {
@@ -521,9 +707,6 @@ struct TrackableScrollView<Content: View>: View {
     let showsIndicators: Bool
     let content: Content
     @Binding var currentIndex: Int
-    
-    @State private var contentOffset: CGFloat = 0
-    @State private var scrollViewSize: CGSize = .zero
     
     init(_ axes: Axis.Set = .horizontal,
          showsIndicators: Bool = false,
@@ -536,54 +719,26 @@ struct TrackableScrollView<Content: View>: View {
     }
     
     var body: some View {
-        GeometryReader { outerGeometry in
-            ScrollViewReader { proxy in
-                ScrollView(axes, showsIndicators: showsIndicators) {
-                    content
-                        .background(
-                            GeometryReader { innerGeometry in
-                                Color.clear
-                                    .onAppear {
-                                        scrollViewSize = outerGeometry.size
-                                    }
-                                    .onChange(of: innerGeometry.frame(in: .named("scrollView")).minX) { oldValue, newValue in
-                                        contentOffset = -newValue
-                                        updateCurrentIndex(containerWidth: outerGeometry.size.width)
-                                    }
-                            }
-                        )
-                }
-                .coordinateSpace(name: "scrollView")
-                .onAppear {
-                    scrollViewSize = outerGeometry.size
-                    DispatchQueue.main.async {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            proxy.scrollTo(currentIndex, anchor: .center)
-                        }
+        GeometryReader { geometry in
+            ScrollView(axes, showsIndicators: showsIndicators) {
+                content
+            }
+            .scrollTargetLayout()
+            .scrollTargetBehavior(.paging)
+            .scrollPosition(id: Binding(
+                get: { currentIndex },
+                set: { newValue in
+                    if let newValue = newValue {
+                        currentIndex = newValue
                     }
                 }
-                .onChange(of: outerGeometry.size) { oldSize, newSize in
-                    scrollViewSize = newSize
-                }
-                .onChange(of: currentIndex) { oldValue, newValue in
-                    let isFromScroll = abs(contentOffset - CGFloat(newValue) * outerGeometry.size.width) < outerGeometry.size.width / 2
-                    
-                    if !isFromScroll {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            proxy.scrollTo(newValue, anchor: .center)
-                        }
-                    }
+            ))
+            .onAppear {
+                // Ensure initial scroll position
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    currentIndex = currentIndex // This will trigger scroll to position
                 }
             }
-        }
-    }
-    
-    private func updateCurrentIndex(containerWidth: CGFloat) {
-        guard containerWidth > 0 else { return }
-        
-        let newIndex = Int(round(contentOffset / containerWidth))
-        if newIndex != currentIndex && newIndex >= 0 {
-            currentIndex = newIndex
         }
     }
 }
@@ -603,6 +758,8 @@ struct SinglePageView: View {
             isZooming: $isZooming,
             isActive: isActive
         )
+        .drawingGroup() // Add this for better rendering performance
+        .allowsHitTesting(isActive) // Only allow interaction with active page
     }
 }
 
@@ -701,4 +858,8 @@ struct ZoomableImageView: View {
 
 enum TapLocation {
     case left, center, right
+}
+
+#Preview {
+    ContentView()
 }
