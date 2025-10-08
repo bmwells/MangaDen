@@ -180,7 +180,7 @@ struct BrowserView: View {
             
             // Load a default page if no URL is specified
             if urlString.isEmpty {
-                urlString = "https://google.com/"
+                urlString = "https://batcave.biz/9254-batman-year-one.html#chapters"
                 loadURL()
             }
             // Load existing chapter data if available

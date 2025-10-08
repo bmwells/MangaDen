@@ -126,20 +126,71 @@ struct TitleHelpView: View {
                         Spacer()
                     }
                     
-                    // In-App Browser Guide
+                    // MARK: - In-App Browser Guide
                     Text("In-App Browser Guide")
                         .font(.title2)
                         .bold()
                         .underline()
-                        .padding(.bottom, 20)
+                        .padding(.bottom, 5)
+
+                    Text("• The **'Add Title'** button will turn ").font(.system(size: 18)) + Text("GREEN").foregroundColor(.green).font(.system(size: 18)) + Text(" when there is a potential title that can be added to the library.")
+                        .font(.system(size: 18))
+
+                    // Two texts in columns
+                    HStack(alignment: .top) {
+                        Text("• Use the title view button to check for validity of current page's title.")
+                            .font(.system(size: 17))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        
+                        Text("• Use the refresh button to recheck the page for title info.")
+                            .font(.system(size: 17))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .padding(.horizontal)
+
+                    // Icons section
+                    HStack(spacing: UIDevice.current.userInterfaceIdiom == .pad ? 300 : 125) {
+                        
+                        VStack {
+                            Image(systemName: "list.bullet")
+                                .font(.system(size: 44))
+                                .foregroundColor(.blue)
+                        }
+                        
+                        
+                        VStack {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: 44))
+                                .foregroundColor(.blue)
+                        }
+                        
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, -5)
                     
-                    // Supported Sites
+                    
+                    
+                    // MARK: - Supported Sites
                     Text("Supported Sites")
                         .font(.title3)
                         .bold()
                         .underline()
                         .padding(.bottom, 20)
-                    
+
+                    // Two columns of clickable websites
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
+                        // Column 1
+                        WebsiteButton(url: "https://mangafire.to/home", name: "MangaFire")
+                        WebsiteButton(url: "https://readcomiconline.li/", name: "ReadComicOnline")
+                        
+                        // Column 2
+                        WebsiteButton(url: "https://mangaexample4.com", name: "Manga Example 5")
+                        WebsiteButton(url: "https://mangaexample5.com", name: "Manga Example 6")
+                    }
+                    .padding(.horizontal)
+                    .padding(.bottom)
+
+                
                     // Tips
                     Text("Tips:")
                         .padding(-4)
@@ -156,6 +207,41 @@ struct TitleHelpView: View {
             .navigationBarTitleDisplayMode(.inline)
         }
     }
+    
+    // Website Button View
+    struct WebsiteButton: View {
+        let url: String
+        let name: String
+        @State private var showCopiedAlert = false
+        
+        var body: some View {
+            Button(action: {
+                UIPasteboard.general.string = url
+                showCopiedAlert = true
+            }) {
+                Text(name)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(.blue)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Color.blue.opacity(0.1))
+                    .cornerRadius(8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.blue.opacity(0.3), lineWidth: 1)
+                    )
+            }
+            .buttonStyle(PlainButtonStyle())
+            .alert("Copied to Clipboard", isPresented: $showCopiedAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text("\(url) has been copied to your clipboard.")
+            }
+        }
+    }
+    
+    
 }
 
 #Preview {
