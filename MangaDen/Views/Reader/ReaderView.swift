@@ -4,6 +4,7 @@ import PhotosUI
 struct ReaderView: View {
     let chapter: Chapter
     let readingDirection: ReadingDirection
+    let titleID: UUID
     @EnvironmentObject private var tabBarManager: TabBarManager
     @StateObject private var readerJava = ReaderViewJava()
     @Environment(\.dismiss) private var dismiss
@@ -18,12 +19,10 @@ struct ReaderView: View {
     @State private var isLoadingFromStorage = false
     @State private var isChapterReady = false
     @State private var downloadProgress: String = ""
-    
-    // Add this new state to track the actual content we're displaying
     @State private var originalImages: [UIImage] = []
-    
-    // Add a state to track the scroll view proxy
     @State private var scrollProxy: ScrollViewProxy?
+    @State private var hasRestoredFromBookmark = false
+    
     
     // Computed property to get images in correct order based on reading direction
     private var displayImages: [UIImage] {
@@ -65,7 +64,7 @@ struct ReaderView: View {
     }
     
     var isDownloaded: Bool {
-        chapter.isDownloaded
+        chapter.safeIsDownloaded
     }
     
     var body: some View {
@@ -119,6 +118,9 @@ struct ReaderView: View {
         .onChange(of: readerJava.downloadProgress) { oldValue, newValue in
             updateDownloadProgress(progress: newValue)
         }
+        .onChange(of: currentPageIndex) { oldValue, newValue in
+                    handlePageChange(oldValue: oldValue, newValue: newValue)
+                }
     }
     
     // MARK: - Scrollbar Handling
@@ -355,6 +357,9 @@ struct ReaderView: View {
     // MARK: - Actions
     
     private func onAppearAction() {
+        // Reset the bookmark restoration flag
+        hasRestoredFromBookmark = false
+        
         if isDownloaded {
             loadFromStorage()
         } else {
@@ -369,6 +374,9 @@ struct ReaderView: View {
         if !isDownloaded {
             readerJava.clearCache()
         }
+        // Save final bookmark state when leaving the reader
+            updateBookmark()
+        
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             tabBarManager.isTabBarHidden = true
         }
@@ -426,13 +434,17 @@ struct ReaderView: View {
                     self.loadedImages = images
                     self.isLoadingFromStorage = false
                     
-                    // Set initial page after a brief delay to ensure UI is ready
+                    print("Loaded \(images.count) images from storage for downloaded chapter")
+                    
+                    // FIX: Set chapter ready FIRST, then set initial page
+                    self.isChapterReady = true
+                    
+                    // Call setInitialPageIndex immediately after setting isChapterReady
+                    // This ensures the UI is ready and images are loaded
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                         self.setInitialPageIndex()
-                        self.isChapterReady = true
+                        print("Initial page set for downloaded chapter: \(self.currentPageIndex)")
                     }
-                    
-                    print("Loaded \(images.count) images from storage")
                 }
             } catch {
                 print("Error loading chapter from storage: \(error)")
@@ -574,29 +586,144 @@ struct ReaderView: View {
         }
     }
     
-    // MARK: - Initial Page Setup
-        
-    private func setInitialPageIndex() {
-        guard !displayImages.isEmpty else { return }
-        
-        if readingDirection == .rightToLeft {
-            // For RTL starting at Page 1: We should be at the LAST display index
-            currentPageIndex = displayImages.count - 1
-            print("RTL INIT: Set currentPageIndex to \(currentPageIndex) for Page 1")
-            print("RTL INIT: displayImages.count = \(displayImages.count)")
-            print("RTL INIT: Should show Page \(displayImages.count - currentPageIndex)")
-            print("RTL INIT: Debug - display[\(currentPageIndex)] = original[\(displayIndexToOriginalIndex(currentPageIndex))]")
+    // NEW: Handle page changes for bookmark updates
+        private func handlePageChange(oldValue: Int, newValue: Int) {
+            // Only scroll if the page actually changed and it's not from user scrolling
+            if oldValue != newValue {
+                scrollToPage(newValue, animated: true)
+            }
             
-            // Force scroll to the correct position
+            // Update bookmark after a short delay to avoid excessive saves
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                updateBookmark()
+            }
+        }
+        
+        // MARK: - Bookmark Management
+        
+        // NEW: Update bookmark with current page
+        private func updateBookmark() {
+            // Only update bookmark if we have images loaded and we're not at the very beginning
+            guard !displayImages.isEmpty else { return }
+            
+            // Convert current display index to actual page number
+            let currentPage: Int
+            if readingDirection == .rightToLeft {
+                currentPage = displayImages.count - currentPageIndex
+            } else {
+                currentPage = currentPageIndex + 1
+            }
+            
+            // Save bookmark to UserDefaults
+            saveBookmarkToUserDefaults(currentPage: currentPage)
+            
+            print("Bookmark updated: Chapter \(chapter.formattedChapterNumber), Page \(currentPage)")
+        }
+        
+        // NEW: Save bookmark using UserDefaults
+        private func saveBookmarkToUserDefaults(currentPage: Int) {
+            let bookmarkKey = "currentBookmark_\(titleID.uuidString)"
+            let bookmarkData: [String: Any] = [
+                "chapterId": chapter.id.uuidString,
+                "chapterNumber": chapter.chapterNumber,
+                "page": currentPage,
+                "timestamp": Date().timeIntervalSince1970
+            ]
+            
+            UserDefaults.standard.set(bookmarkData, forKey: bookmarkKey)
+            print("Bookmark saved to UserDefaults: Title \(titleID.uuidString), Chapter \(chapter.formattedChapterNumber), Page \(currentPage)")
+            
+            // Notify that bookmarks changed so TitleView can update
+            NotificationCenter.default.post(name: .titleUpdated, object: nil)
+        }
+        
+    // NEW: Load bookmark from UserDefaults with better debugging
+    private func loadBookmarkFromUserDefaults() -> Int? {
+        let bookmarkKey = "currentBookmark_\(titleID.uuidString)"
+        
+        print("Checking for bookmark with key: \(bookmarkKey)")
+        
+        guard let bookmarkData = UserDefaults.standard.dictionary(forKey: bookmarkKey) else {
+            print("No bookmark data found for key: \(bookmarkKey)")
+            return nil
+        }
+        
+        guard let savedChapterId = bookmarkData["chapterId"] as? String else {
+            print("No chapterId found in bookmark data")
+            return nil
+        }
+        
+        guard let savedPage = bookmarkData["page"] as? Int else {
+            print("No page found in bookmark data")
+            return nil
+        }
+        
+        print("Bookmark data - savedChapterId: \(savedChapterId), currentChapterId: \(chapter.id.uuidString)")
+        
+        // Check if this bookmark is for the current chapter
+        if savedChapterId == chapter.id.uuidString {
+            print("Bookmark found for current chapter: Chapter \(chapter.formattedChapterNumber), Page \(savedPage)")
+            return savedPage
+        } else {
+            print("Bookmark exists but for different chapter: \(savedChapterId) vs current: \(chapter.id.uuidString)")
+            return nil
+        }
+    }
+    
+    
+    // MARK: - Initial Page Setup
+            
+    private func setInitialPageIndex() {
+        guard !displayImages.isEmpty else {
+            print("No display images available for setting initial page")
+            return
+        }
+        
+        print("Setting initial page index for \(displayImages.count) images")
+        print("Reading direction: \(readingDirection)")
+        print("Chapter is downloaded: \(isDownloaded)")
+        print("hasRestoredFromBookmark: \(hasRestoredFromBookmark)")
+        
+        // NEW: Check if we have a bookmarked page for this chapter
+        if let bookmarkedPage = loadBookmarkFromUserDefaults(), !hasRestoredFromBookmark {
+            print("Attempting to restore from bookmark: page \(bookmarkedPage)")
+            
+            // Convert bookmarked page to display index
+            let targetIndex: Int
+            if readingDirection == .rightToLeft {
+                // For RTL: bookmarkedPage 1 corresponds to display index displayImages.count - 1
+                targetIndex = displayImages.count - bookmarkedPage
+                print("RTL conversion: bookmarkedPage \(bookmarkedPage) -> targetIndex \(targetIndex)")
+            } else {
+                // For LTR: bookmarkedPage 1 corresponds to display index 0
+                targetIndex = bookmarkedPage - 1
+                print("LTR conversion: bookmarkedPage \(bookmarkedPage) -> targetIndex \(targetIndex)")
+            }
+            
+            // Clamp the index to valid range
+            let clampedIndex = max(0, min(displayImages.count - 1, targetIndex))
+            currentPageIndex = clampedIndex
+                        
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                 self.scrollToPage(self.currentPageIndex, animated: false)
+                print("Scrolled to bookmarked page: \(self.currentPageIndex)")
             }
         } else {
-            currentPageIndex = 0
-            print("LTR: Set initial page to 0 for \(displayImages.count) display images")
-            
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                self.scrollToPage(self.currentPageIndex, animated: false)
+            // Original logic for no bookmark
+            if readingDirection == .rightToLeft {
+                currentPageIndex = displayImages.count - 1
+                print("RTL INIT: Set currentPageIndex to \(currentPageIndex) for Page 1")
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    self.scrollToPage(self.currentPageIndex, animated: false)
+                }
+            } else {
+                currentPageIndex = 0
+                print("LTR: Set initial page to 0 for \(displayImages.count) display images")
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    self.scrollToPage(self.currentPageIndex, animated: false)
+                }
             }
         }
     }

@@ -14,12 +14,14 @@ struct Chapter: Identifiable, Codable, Equatable {
     let url: String
     let title: String?
     let uploadDate: String?
-    var isDownloaded: Bool
-    var isRead: Bool
-    var downloadProgress: Double
+    var isDownloaded: Bool?
+    var isRead: Bool?
+    var isBookmarked: Bool?
+    var bookmarkedPage: Int?
+    var downloadProgress: Double?
     var downloadError: String?
-    var totalImages: Int
-    var downloadedImages: Int
+    var totalImages: Int?
+    var downloadedImages: Int?
     var fileSize: Int64?
     
     var formattedChapterNumber: String {
@@ -30,8 +32,18 @@ struct Chapter: Identifiable, Codable, Equatable {
         }
     }
     
+    // Provide computed properties with default values
+    var safeIsDownloaded: Bool { isDownloaded ?? false }
+    var safeIsRead: Bool { isRead ?? false }
+    var safeIsBookmarked: Bool { isBookmarked ?? false }
+    var safeDownloadProgress: Double { downloadProgress ?? 0.0 }
+    var safeTotalImages: Int { totalImages ?? 0 }
+    var safeDownloadedImages: Int { downloadedImages ?? 0 }
+
+    
     init(id: UUID = UUID(), chapterNumber: Double, url: String, title: String? = nil,
          uploadDate: String? = nil, isDownloaded: Bool = false, isRead: Bool = false,
+         isBookmarked: Bool = false, bookmarkedPage: Int? = nil,
          downloadProgress: Double = 0.0, downloadError: String? = nil,
          totalImages: Int = 0, downloadedImages: Int = 0, fileSize: Int64? = nil) {
         self.id = id
@@ -41,6 +53,8 @@ struct Chapter: Identifiable, Codable, Equatable {
         self.uploadDate = uploadDate
         self.isDownloaded = isDownloaded
         self.isRead = isRead
+        self.isBookmarked = isBookmarked
+        self.bookmarkedPage = bookmarkedPage
         self.downloadProgress = downloadProgress
         self.downloadError = downloadError
         self.totalImages = totalImages
@@ -61,6 +75,8 @@ struct Chapter: Identifiable, Codable, Equatable {
         self.uploadDate = dict["upload_date"] as? String
         self.isDownloaded = false
         self.isRead = false
+        self.isBookmarked = false
+        self.bookmarkedPage = nil
         self.downloadProgress = 0.0
         self.downloadError = nil
         self.totalImages = 0
@@ -121,8 +137,8 @@ struct Title: Identifiable, Codable {
     var sourceURL: String?
     
     var downloadedChapters: [Chapter] {
-        chapters.filter { $0.isDownloaded }
-    }
+            chapters.filter { $0.safeIsDownloaded }
+        }
     
     var totalDownloadedSize: Int64 {
         downloadedChapters.reduce(0) { $0 + ($1.fileSize ?? 0) }

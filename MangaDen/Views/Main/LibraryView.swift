@@ -304,6 +304,14 @@ struct LibraryView: View {
                     }
                 } catch {
                     print("Error loading title from \(file.lastPathComponent): \(error)")
+                    
+                    // Delete any corrupted file
+                    do {
+                        try fileManager.removeItem(at: file)
+                        print("Deleted corrupted file: \(file.lastPathComponent)")
+                    } catch {
+                        print("Failed to delete corrupted file \(file.lastPathComponent): \(error)")
+                    }
                 }
             }
             
@@ -313,6 +321,7 @@ struct LibraryView: View {
             print("Error loading titles: \(error)")
         }
     }
+    
 }
 
 #Preview {

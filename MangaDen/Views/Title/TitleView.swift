@@ -31,6 +31,7 @@ struct TitleView: View {
     @State private var newChaptersCount = 0
     @State private var isOfflineMode = false
     @Environment(\.dismiss) private var dismiss
+    @State private var bookmarkedChapters: Set<UUID> = []
     
     // Scrollbar state
     @State private var scrollProxy: ScrollViewProxy?
@@ -53,6 +54,15 @@ struct TitleView: View {
         } else {
             let chapters = title.isDownloaded ? title.downloadedChapters : title.chapters
             return chapters.filter { !hiddenChapterURLs.contains($0.url) }
+        }
+    }
+    
+    // Compute chapters with bookmark status
+    var chaptersWithBookmarks: [Chapter] {
+        displayChapters.map { chapter in
+            var updatedChapter = chapter
+            updatedChapter.isBookmarked = bookmarkedChapters.contains(chapter.id)
+            return updatedChapter
         }
     }
     
@@ -99,7 +109,8 @@ struct TitleView: View {
                                     title: title,
                                     manageMode: $manageMode,
                                     showManageMode: $showManageMode,
-                                    showUninstallAllConfirmation: $showUninstallAllConfirmation
+                                    showUninstallAllConfirmation: $showUninstallAllConfirmation,
+                                    onUninstallAll: uninstallAllChapters
                                 )
                             }
                             
@@ -113,12 +124,13 @@ struct TitleView: View {
                             Divider()
                             
                             ChaptersListSection(
-                                displayChapters: displayChapters,
+                                displayChapters: chaptersWithBookmarks,
                                 readingDirection: readingDirection,
                                 showDownloadMode: showDownloadMode,
                                 showManageMode: showManageMode,
                                 onDeleteChapter: { chapterToDelete = $0; showDeleteChapterConfirmation = true },
-                                onMarkAsRead: markChapterAsRead
+                                onMarkAsRead: markChapterAsRead,
+                                titleID: title.id
                             )
                             .background(
                                 GeometryReader { contentGeometry in
@@ -211,7 +223,8 @@ struct TitleView: View {
             title: title,
             refreshResultMessage: refreshResultMessage,
             onDeleteTitle: deleteTitle,
-            onDeleteChapter: { deleteChapter($0) }
+            onDeleteChapter: { deleteChapter($0) },
+            onUninstallAll: uninstallAllChapters
         )
         .sheet(isPresented: $showEditSheet) {
             EditTitleView(
@@ -230,6 +243,32 @@ struct TitleView: View {
             // Stop network monitoring when view disappears
             networkMonitor.cancel()
         }
+        // Listen for bookmark updates
+        .onReceive(NotificationCenter.default.publisher(for: .titleUpdated)) { _ in
+            loadCurrentBookmark()
+        }
+    }
+    
+    // MARK: - Bookmark Management
+        
+    // Load current bookmark from UserDefaults
+    private func loadCurrentBookmark() {
+        let bookmarkKey = "currentBookmark_\(title.id.uuidString)"
+        
+        guard let bookmarkData = UserDefaults.standard.dictionary(forKey: bookmarkKey),
+              let chapterIdString = bookmarkData["chapterId"] as? String,
+              let chapterId = UUID(uuidString: chapterIdString),
+              let chapterNumber = bookmarkData["chapterNumber"] as? Double,
+              let page = bookmarkData["page"] as? Int else {
+            // No bookmark found, clear all
+            bookmarkedChapters.removeAll()
+            print("No bookmark found for title: \(title.title)")
+            return
+        }
+        
+        // Set only this chapter as bookmarked
+        bookmarkedChapters = [chapterId]
+        print("Current bookmark loaded: Chapter \(chapterNumber) on page \(page)")
     }
     
     // MARK: - Scrollbar Methods
@@ -244,6 +283,7 @@ struct TitleView: View {
     private func onAppearActions() {
         loadReadingDirection()
         loadHiddenChapters()
+        loadCurrentBookmark()
         editedTitle = title.title
         editedAuthor = title.author
         editedStatus = title.status

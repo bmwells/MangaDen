@@ -16,6 +16,7 @@ struct ChapterRowView: View {
     let onDelete: () -> Void
     let onDownload: () -> Void
     let onRead: () -> Void
+    let titleID: UUID
     
     @StateObject private var downloadManager = DownloadManager.shared
     
@@ -24,7 +25,7 @@ struct ChapterRowView: View {
     }
     
     private var isDownloaded: Bool {
-        chapter.isDownloaded
+        chapter.safeIsDownloaded
     }
     
     var body: some View {
@@ -49,7 +50,7 @@ struct ChapterRowView: View {
             }
             
             NavigationLink(
-                destination: ReaderView(chapter: chapter, readingDirection: readingDirection)
+                destination: ReaderView(chapter: chapter, readingDirection: readingDirection, titleID: titleID)
             ) {
                 ChapterRowContent(
                     chapter: chapter,
@@ -78,7 +79,7 @@ struct ChapterRowContent: View {
     }
     
     private var isDownloaded: Bool {
-        chapter.isDownloaded
+        chapter.safeIsDownloaded
     }
     
     var body: some View {
@@ -90,17 +91,19 @@ struct ChapterRowContent: View {
                         Text("\(chapter.formattedChapterNumber):  ")
                             .font(.subheadline)
                             .fontWeight(.medium)
-                            .foregroundColor(chapter.isRead ? .gray : .primary)
+                            .foregroundColor(chapter.safeIsRead ? .gray : .primary)
                         Text(title)
                             .font(.subheadline)
                             .fontWeight(.light)
-                            .foregroundColor(chapter.isRead ? .gray : .primary)
+                            .foregroundColor(chapter.safeIsRead ? .gray : .primary)
                     }
                 } else {
                     Text("Chapter \(chapter.formattedChapterNumber)")
                         .font(.subheadline)
+                        .tracking(2.0)
+                        .lineLimit(1)
                         .fontWeight(.medium)
-                        .foregroundColor(chapter.isRead ? .gray : .primary)
+                        .foregroundColor(chapter.safeIsRead ? .gray : .primary)
                 }
                 
                 // Upload date on second line
@@ -115,15 +118,23 @@ struct ChapterRowContent: View {
             
             Spacer()
             
+            if chapter.safeIsBookmarked {
+                Image(systemName: "bookmark.fill")
+                    .font(.title2)
+                    .foregroundColor(.blue)
+            }
+            
+            Spacer()
+            
             if isInQueue {
                 ProgressView()
                     .scaleEffect(0.8)
             } else if isDownloaded {
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.caption)
+                    .font(.headline)
                     .foregroundColor(.green)
             }
-            
+                        
             Image(systemName: "chevron.right")
                 .font(.caption)
                 .foregroundColor(.gray)
@@ -146,7 +157,7 @@ struct ChapterRow: View {
     }
     
     private var isDownloaded: Bool {
-        chapter.isDownloaded
+        chapter.safeIsDownloaded
     }
     
     var body: some View {
@@ -168,17 +179,17 @@ struct ChapterRow: View {
                         Text("\(chapter.formattedChapterNumber):  ")
                             .font(.subheadline)
                             .fontWeight(.medium)
-                            .foregroundColor(chapter.isRead ? .gray : .primary)
+                            .foregroundColor(chapter.safeIsRead ? .gray : .primary)
                         Text(title)
                             .font(.subheadline)
                             .fontWeight(.light)
-                            .foregroundColor(chapter.isRead ? .gray : .primary)
+                            .foregroundColor(chapter.safeIsRead ? .gray : .primary)
                     }
                 } else {
                     Text("Chapter \(chapter.formattedChapterNumber)")
                         .font(.subheadline)
                         .fontWeight(.medium)
-                        .foregroundColor(chapter.isRead ? .gray : .primary)
+                        .foregroundColor(chapter.safeIsRead ? .gray : .primary)
                 }
                 
                 // Upload date on second line

@@ -23,6 +23,19 @@ struct DownloadsView: View {
                         
                         Spacer()
                         
+                        Button(action: {
+                            // Stop/Resume logic would go here
+                        }) {
+                            Image(systemName: downloadManager.isDownloading ? "stop.fill" : "play.fill")
+                                .font(.title2)
+                                .foregroundColor(.blue)
+                                .padding(10)
+                                .background(Color.blue.opacity(0.15))
+                                .clipShape(Circle())
+                        }
+                        
+                        Spacer()
+                        
                         if !downloadManager.downloadQueue.isEmpty {
                             Button("Clear All") {
                                 downloadManager.clearQueue()
@@ -31,16 +44,6 @@ struct DownloadsView: View {
                             .foregroundColor(.red)
                         }
                         
-                        Button(action: {
-                            // Pause/Resume logic would go here
-                        }) {
-                            Image(systemName: downloadManager.isDownloading ? "pause.fill" : "play.fill")
-                                .font(.title2)
-                                .foregroundColor(.blue)
-                                .padding(8)
-                                .background(Color.blue.opacity(0.15))
-                                .clipShape(Circle())
-                        }
                     }
                     
                     if downloadManager.downloadQueue.isEmpty {

@@ -120,7 +120,7 @@ struct DownloadModeControls: View {
                 downloadManager.downloadAllChapters(chapters: title.chapters, titleId: title.id)
             }
             .buttonStyle(.borderedProminent)
-            .disabled(title.chapters.allSatisfy { $0.isDownloaded })
+            .disabled(title.chapters.allSatisfy { $0.safeIsDownloaded })
             
             Spacer()
             
@@ -142,6 +142,7 @@ struct ManageModeControls: View {
     @Binding var manageMode: ManageMode
     @Binding var showManageMode: Bool
     @Binding var showUninstallAllConfirmation: Bool
+    let onUninstallAll: () -> Void  // Add this callback
     
     var body: some View {
         VStack(spacing: 12) {
@@ -304,6 +305,7 @@ struct ChaptersListSection: View {
     let showManageMode: Bool
     let onDeleteChapter: (Chapter) -> Void
     let onMarkAsRead: (Chapter) -> Void
+    let titleID: UUID
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -321,7 +323,8 @@ struct ChaptersListSection: View {
                             showManageMode: showManageMode,
                             onDelete: { onDeleteChapter(chapter) },
                             onDownload: { DownloadManager.shared.addToDownloadQueue(chapter: chapter) },
-                            onRead: { onMarkAsRead(chapter) }
+                            onRead: { onMarkAsRead(chapter) },
+                            titleID: titleID
                         )
                         .id(chapter.id)
                         Divider().padding(.leading, 16)
@@ -621,7 +624,9 @@ extension View {
         title: Title,
         refreshResultMessage: String,
         onDeleteTitle: @escaping () -> Void,
-        onDeleteChapter: @escaping (Chapter) -> Void
+        onDeleteChapter: @escaping (Chapter) -> Void,
+        onUninstallAll: @escaping () -> Void
+        
     ) -> some View {
         self
             .alert("Delete Title", isPresented: showDeleteConfirmation) {
@@ -644,9 +649,7 @@ extension View {
             }
             .alert("Uninstall All Downloaded Chapters", isPresented: showUninstallAllConfirmation) {
                 Button("Cancel", role: .cancel) { }
-                Button("Uninstall All", role: .destructive) {
-                    // Handled in TitleView
-                }
+                Button("Uninstall All", role: .destructive, action: onUninstallAll)
             } message: {
                 Text("Are you sure you want to uninstall ALL downloaded chapters for \"\(title.title)\"? This will remove all downloaded content and cannot be undone.")
             }

@@ -161,35 +161,62 @@ class DownloadManager: ObservableObject {
             readerJava.clearCache()
             readerJava.loadChapter(url: url)
             
-            // Wait for images to load
+            // Wait for images to load with better timeout handling
             var attempts = 0
-            while readerJava.isLoading && attempts < 30 { // 30 second timeout
+            while readerJava.isLoading && attempts < 180 { // 180 second timeout
                 try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
                 attempts += 1
+                
+                // If we have some images but loading is stuck, proceed
+                if readerJava.images.count > 0 && attempts > 30 {
+                    print("Proceeding with \(readerJava.images.count) images despite loading state")
+                    break
+                }
             }
             
-            if readerJava.error != nil || readerJava.images.isEmpty {
-                markDownloadFailed(task: task, error: readerJava.error ?? "No images found")
+            // Check if we have images
+            if readerJava.images.isEmpty {
+                markDownloadFailed(task: task, error: readerJava.error ?? "No images found after \(attempts) seconds")
                 return
             }
             
-            // Download images
             let totalImages = readerJava.images.count
+            print("Starting download of \(totalImages) images")
+            
+            // Download images with better error handling
             var downloadedImages: [UIImage] = []
             var totalSize: Int64 = 0
+            var failedDownloads = 0
             
             for (index, image) in readerJava.images.enumerated() {
                 // Update progress
                 let progress = Double(index + 1) / Double(totalImages)
                 updateDownloadProgress(taskId: task.id, progress: progress)
                 
-                // Simulate download delay
-                try await Task.sleep(nanoseconds: 100_000_000) // 0.1 second
+                // Add small delay to avoid overwhelming the system
+                try await Task.sleep(nanoseconds: 50_000_000) // 0.05 second
                 
-                downloadedImages.append(image)
-                if let imageData = image.jpegData(compressionQuality: 0.8) {
-                    totalSize += Int64(imageData.count)
+                // Validate image
+                if image.size.width > 10 && image.size.height > 10 { // Basic validation
+                    downloadedImages.append(image)
+                    if let imageData = image.jpegData(compressionQuality: 0.8) {
+                        totalSize += Int64(imageData.count)
+                    }
+                    print("Downloaded image \(index + 1)/\(totalImages)")
+                } else {
+                    failedDownloads += 1
+                    print("Skipping invalid image \(index + 1)")
                 }
+            }
+            
+            // Check if we have enough valid images
+            if downloadedImages.isEmpty {
+                markDownloadFailed(task: task, error: "No valid images could be downloaded")
+                return
+            }
+            
+            if failedDownloads > 0 {
+                print("Downloaded \(downloadedImages.count)/\(totalImages) images (\(failedDownloads) failed)")
             }
             
             // Save chapter to storage
