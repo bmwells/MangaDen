@@ -103,6 +103,7 @@ struct AddTitleView: View {
 
 // MARK: Help View
 struct TitleHelpView: View {
+    @State private var showCopiedAlert = false
     var body: some View {
         NavigationView {
             ScrollView {
@@ -199,7 +200,29 @@ struct TitleHelpView: View {
                         .underline()
                         .tracking(1.5)
                     Text("• Swipe down from the top of the page to exit pages such as this one or the In-App browser")
-                    Text("• Tip 2")
+                    Text("• If you don't see a title you'd like to read on one of the supported sites, try Googling 'read [TITLE] online' as there are typically sites that exclusively host that title and are usually compatible with the app.")
+                    Text("• If you would like a site to become compatible, request it by copying the email below and sending a message to our team.")
+                    
+                    HStack {
+                        Spacer()
+                        Button(action: {
+                            UIPasteboard.general.string = "brwe47@gmail.com"
+                            showCopiedAlert = true
+                        }) {
+                            Text("Click me to copy!")
+                                .foregroundColor(.blue)
+                                .underline()
+                                .font(.title)
+                                .padding(.top, 4)
+                        }
+                        Spacer()
+                    }
+                    .alert("Copied to Clipboard", isPresented: $showCopiedAlert) {
+                        Button("OK", role: .cancel) { }
+                    } message: {
+                        Text("MangaDen email has been copied to your clipboard.")
+                    }
+                    
                 }
                 .padding()
             }
