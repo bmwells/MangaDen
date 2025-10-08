@@ -350,35 +350,112 @@ struct EditTitleView: View {
         ("Hiatus", "hiatus", Color.orange)
     ]
     
+    // Computed properties to break down complex expressions
+    private var coverImage: some View {
+        Group {
+            if let selectedCoverImage = selectedCoverImage {
+                coverImageContent(selectedCoverImage)
+            } else if let imageData = title.coverImageData, let uiImage = UIImage(data: imageData) {
+                coverImageContent(uiImage)
+            } else {
+                placeholderCoverImage
+            }
+        }
+    }
+    
+    private func coverImageContent(_ image: UIImage) -> some View {
+        Image(uiImage: image)
+            .resizable()
+            .scaledToFit()
+            .frame(width: 150, height: 200)
+            .cornerRadius(8)
+    }
+    
+    private var placeholderCoverImage: some View {
+        Rectangle()
+            .fill(Color.gray.opacity(0.3))
+            .frame(width: 150, height: 200)
+            .cornerRadius(8)
+            .overlay(
+                Image(systemName: "photo")
+                    .font(.largeTitle)
+                    .foregroundColor(.gray)
+            )
+    }
+    
+    private var titleURLView: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Title URL:")
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundColor(.primary)
+            
+            if let urlString = title.sourceURL, !urlString.isEmpty,
+               let url = URL(string: urlString) {
+                Link(destination: url) {
+                    HStack {
+                        Spacer()
+                        Text(urlString)
+                            .font(.footnote)
+                            .foregroundColor(.blue)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                        Spacer()
+                    }
+                }
+            } else {
+                HStack {
+                    Spacer()
+                    Text("No URL available")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .italic()
+                    Spacer()
+                }
+            }
+        }
+        .padding(.vertical, 8)
+    }
+    
+    private var statusButtons: some View {
+        HStack(spacing: 0) {
+            ForEach(statusOptions, id: \.1) { displayName, value, color in
+                statusButton(displayName: displayName, value: value, color: color)
+                
+                if value != statusOptions.last?.1 {
+                    Spacer().frame(width: 8)
+                }
+            }
+        }
+        .padding(.vertical, 4)
+    }
+    
+    private func statusButton(displayName: String, value: String, color: Color) -> some View {
+        Button(action: {
+            editedStatus = value
+        }) {
+            Text(displayName)
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .foregroundColor(editedStatus == value ? .white : color)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(editedStatus == value ? color : color.opacity(0.1))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(color, lineWidth: 2)
+                )
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+    
     var body: some View {
         NavigationStack {
             Form {
                 Section(header: Text("Cover Image")) {
                     HStack {
                         Spacer()
-                        if let selectedCoverImage = selectedCoverImage {
-                            Image(uiImage: selectedCoverImage)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 150, height: 200)
-                                .cornerRadius(8)
-                        } else if let imageData = title.coverImageData, let uiImage = UIImage(data: imageData) {
-                            Image(uiImage: uiImage)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 150, height: 200)
-                                .cornerRadius(8)
-                        } else {
-                            Rectangle()
-                                .fill(Color.gray.opacity(0.3))
-                                .frame(width: 150, height: 200)
-                                .cornerRadius(8)
-                                .overlay(
-                                    Image(systemName: "photo")
-                                        .font(.largeTitle)
-                                        .foregroundColor(.gray)
-                                )
-                        }
+                        coverImage
                         Spacer()
                     }
                     .padding(.vertical, 8)
@@ -404,35 +481,15 @@ struct EditTitleView: View {
                 
                 // Status Picker Section
                 Section(header: Text("Status")) {
-                    HStack(spacing: 0) {
-                        ForEach(statusOptions, id: \.1) { displayName, value, color in
-                            Button(action: {
-                                editedStatus = value
-                            }) {
-                                Text(displayName)
-                                    .font(.subheadline)
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(editedStatus == value ? .white : color)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 12)
-                                    .background(editedStatus == value ? color : color.opacity(0.1))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .stroke(color, lineWidth: 2)
-                                    )
-                            }
-                            .buttonStyle(PlainButtonStyle())
-                            
-                            if value != statusOptions.last?.1 {
-                                Spacer().frame(width: 8)
-                            }
-                        }
-                    }
-                    .padding(.vertical, 4)
+                    statusButtons
                 }
                 
+                // Title URL
+                Section() {
+                    titleURLView
+                }
             }
-            .navigationTitle("Edit Title")
+            .navigationTitle("Manage Title")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -446,7 +503,7 @@ struct EditTitleView: View {
                         onSave()
                         dismiss()
                     }
-                    .disabled(editedTitle.isEmpty) // Only require title, not author
+                    .disabled(editedTitle.isEmpty)
                 }
             }
             .onChange(of: coverImageItem) { oldItem, newItem in
@@ -492,7 +549,7 @@ struct OptionsMenu: View {
             .disabled(isRefreshing)
             
             Button(action: onEdit) {
-                Label("Edit Title Info", systemImage: "pencil")
+                Label("Manage Title", systemImage: "square.and.pencil")
             }
             
             Button(action: onDownloadModeToggle) {
