@@ -30,8 +30,8 @@ struct TitleView: View {
     @State private var refreshResultMessage = ""
     @State private var newChaptersCount = 0
     @State private var isOfflineMode = false
-    @Environment(\.dismiss) private var dismiss
     @State private var bookmarkedChapters: Set<UUID> = []
+    @Environment(\.dismiss) private var dismiss
     
     // Scrollbar state
     @State private var scrollProxy: ScrollViewProxy?
@@ -68,7 +68,7 @@ struct TitleView: View {
     
     private var shouldShowChapterScrollbar: Bool {
         // Show scrollbar when we've scrolled past the cover image area
-        return scrollOffset > 150 && !displayChapters.isEmpty
+        return scrollOffset > 500 && !displayChapters.isEmpty
     }
     
     var body: some View {
