@@ -40,12 +40,6 @@ struct JSONViewerView: View {
                                 
                                 Spacer()
                                 
-                                Button(action: {
-                                    UIPasteboard.general.string = chapter.url
-                                }) {
-                                    Image(systemName: "doc.on.doc")
-                                        .foregroundColor(.blue)
-                                }
                             }
                             
                             if let title = chapter.title, !title.isEmpty {
@@ -272,15 +266,6 @@ struct MangaMetadataHeader: View {
                                 .fontWeight(.medium)
                         }
                     }
-                }
-                
-                Spacer()
-                
-                Button(action: {
-                    showingMetadata = true
-                }) {
-                    Image(systemName: "info.circle")
-                        .foregroundColor(.blue)
                 }
             }
         }
