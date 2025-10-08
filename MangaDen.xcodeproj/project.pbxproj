@@ -150,9 +150,9 @@
 		27130DA42E8C52B2006FF48A /* Reader */ = {
 			isa = PBXGroup;
 			children = (
+				271346072E67B4F700BC7435 /* ReaderView.swift */,
 				271346112E68084100BC7435 /* ReaderViewJAVA.swift */,
 				276EE41B2E9637CA0023E592 /* WebViewManager.swift */,
-				271346072E67B4F700BC7435 /* ReaderView.swift */,
 				276EE41D2E9637E40023E592 /* ImageExtractionCoordinator.swift */,
 				276EE41F2E96380A0023E592 /* ImageExtractionStrategies.swift */,
 			);
@@ -162,8 +162,8 @@
 		27130DA52E8C52B9006FF48A /* Browser */ = {
 			isa = PBXGroup;
 			children = (
-				271345F32E5E50ED00BC7435 /* DLWebView.swift */,
 				271345F52E5E53A400BC7435 /* BrowserView.swift */,
+				271345F32E5E50ED00BC7435 /* DLWebView.swift */,
 				271346012E618AA500BC7435 /* JSONViewerView.swift */,
 			);
 			path = Browser;
@@ -189,14 +189,14 @@
 		27130DA92E8C52FC006FF48A /* AddTitle */ = {
 			isa = PBXGroup;
 			children = (
+				271345ED2E5D28A500BC7435 /* AddTitleView.swift */,
 				276EE40D2E9631000023E592 /* ChapterDetectionManager.swift */,
+				276EE40F2E9631A20023E592 /* ChapterExtractionManager.swift */,
+				276EE4192E9635570023E592 /* ChapterExtractionJavaScript.swift */,
 				276EE4112E9631BF0023E592 /* MetadataExtractionManager.swift */,
+				276EE4152E9633710023E592 /* MetadataExtractionJavaScript.swift */,
 				276EE4132E9631D40023E592 /* TitleRefreshManager.swift */,
 				276EE40B2E96303E0023E592 /* WebViewUserAgentManager.swift */,
-				271345ED2E5D28A500BC7435 /* AddTitleView.swift */,
-				276EE40F2E9631A20023E592 /* ChapterExtractionManager.swift */,
-				276EE4152E9633710023E592 /* MetadataExtractionJavaScript.swift */,
-				276EE4192E9635570023E592 /* ChapterExtractionJavaScript.swift */,
 			);
 			path = AddTitle;
 			sourceTree = "<group>";

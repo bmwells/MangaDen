@@ -17,7 +17,7 @@ class TitleRefreshManager {
         case failure(String)
     }
 
-    // Add these functions to the AddTitleJAVA class
+    // Refresh Title
     static func refreshTitle(in webView: WKWebView, for title: Title, completion: @escaping (RefreshResult) -> Void) {
         // First force desktop view for consistent scraping
         WebViewUserAgentManager.forceDesktopView(in: webView) { success in
