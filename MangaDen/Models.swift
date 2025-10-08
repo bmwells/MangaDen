@@ -100,14 +100,14 @@ enum DownloadStatus: String, Codable {
     case cancelled = "Cancelled"
 }
 
-// MARK: - Download State Model (ADD THIS)
+// MARK: - Download State Model
 struct DownloadState: Codable {
     let queue: [DownloadTask]
     let completed: [DownloadTask]
     let failed: [DownloadTask]
 }
 
-// MARK: - Title Model (Updated)
+// MARK: - Title Model
 struct Title: Identifiable, Codable {
     let id: UUID
     var title: String

@@ -6,11 +6,16 @@
 //
 
 import SwiftUI
+import WebKit
 
 struct AddTitleView: View {
     @State private var urlText: String = ""
     @State private var showBrowser = false
     @State private var showHelp = false
+    @State private var isLoading = false
+    @State private var showAlert = false
+    @State private var alertMessage = ""
+    @State private var alertTitle = ""
     
     var body: some View {
         NavigationView {
@@ -18,12 +23,18 @@ struct AddTitleView: View {
                 Text("Add Title to Library")
                     .font(.title)
                     .padding(.top, 30)
+                
+                Spacer()
 
                 ZStack {
                     // Paste Manga field
                     TextField("Paste Manga URL", text: $urlText)
+                        .frame(maxWidth: .infinity)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .padding(.trailing, 40) // space for icon
+                        .padding(.trailing, 40)
+                        .disabled(isLoading)
+                        .autocapitalization(.none)
+                        .keyboardType(.URL)
 
                     HStack {
                         Spacer()
@@ -36,25 +47,39 @@ struct AddTitleView: View {
                                 .foregroundColor(.blue)
                                 .font(.title2)
                         }
-                        .padding(.trailing, 10)
+                        .disabled(isLoading)
                     }
                 }
                 .padding(.horizontal)
+                .padding(.bottom, 20)
                 
-                
-                // Add from URL paste  - currently does nothing
-                Button("Add") {
+                // Add from URL paste
+                if isLoading {
+                    ProgressView("Processing URL...")
+                        .padding()
+                } else {
+                    Button("Add") {
+                        processURL()
+                    }
+                    .font(.title)
+                    .tracking(2.0)
+                    .foregroundColor(.white)
+                    .frame(width: 150, height: 40)
+                    .background(urlText.isEmpty ? Color.gray : Color.blue)
+                    .cornerRadius(8)
+                    .padding(.horizontal)
+                    .disabled(urlText.isEmpty)
                 }
-                .buttonStyle(.bordered)
-                .font(.title2)
-                .padding(.horizontal)
-               
                 
-                
+                Spacer()
+
                 // OR divider
                 Text("OR")
-                    .font(.title3)
+                    .font(.title)
                     .foregroundColor(.gray)
+                    .tracking(3.0)
+                
+                Spacer()
 
                 // In App Browser Button
                 Button(action: {
@@ -69,9 +94,9 @@ struct AddTitleView: View {
                         .cornerRadius(10)
                         .padding(.horizontal)
                 }
+                .disabled(isLoading)
                 
-                // Add extra space before Help button
-                Spacer(minLength: 60)
+                Spacer()
 
                 // Help Button
                 Button(action: {
@@ -81,11 +106,11 @@ struct AddTitleView: View {
                             .resizable()
                             .scaledToFit()
                             .frame(width: 24, height: 24)
-                            .foregroundColor(.blue) // symbol color
+                            .foregroundColor(.blue)
                             .padding(20)
-                            .background(Circle().fill(Color.gray.opacity(0.2))) // gray circle
-                
+                            .background(Circle().fill(Color.gray.opacity(0.2)))
                 }
+                .disabled(isLoading)
 
                 Spacer()
             }
@@ -98,21 +123,259 @@ struct AddTitleView: View {
         .sheet(isPresented: $showHelp) {
             TitleHelpView()
         }
+        .alert(alertTitle, isPresented: $showAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(alertMessage)
+        }
     }
-} // AddTitleView
+    
+    // MARK: - URL Processing Logic
+    
+    private func processURL() {
+        guard !urlText.isEmpty else {
+            showAlert(title: "Error", message: "Please enter a URL")
+            return
+        }
+        
+        guard let url = URL(string: urlText) else {
+            showAlert(title: "Invalid URL", message: "Please enter a valid URL")
+            return
+        }
+        
+        isLoading = true
+        
+        // Process the URL in the background
+        Task {
+            await processTitleFromURL(url)
+        }
+    }
+    
+    @MainActor
+    private func processTitleFromURL(_ url: URL) async {
+        do {
+            print("Starting title extraction from URL: \(url)")
+            
+            // Use WebViewManager to handle the web view
+            let webViewManager = WebViewManager()
+            
+            // Set up a navigation delegate to wait for page load
+            let navigationDelegate = TitleExtractionNavigationDelegate()
+            webViewManager.navigationDelegate = navigationDelegate
+            
+            // Load the URL and wait for completion
+            webViewManager.loadChapter(url: url)
+            
+            // Wait for page to load
+            try await navigationDelegate.waitForLoad()
+            
+            guard let webView = webViewManager.webView else {
+                throw NSError(domain: "TitleExtraction", code: 1, userInfo: [NSLocalizedDescriptionKey: "WebView failed to load"])
+            }
+            
+            print("Page loaded, extracting metadata and chapters...")
+            
+            // Extract metadata using MetadataExtractionManager
+            let metadata = await withCheckedContinuation { continuation in
+                MetadataExtractionManager.findMangaMetadata(in: webView) { metadata in
+                    continuation.resume(returning: metadata ?? [:])
+                }
+            }
+            
+            print("Metadata extracted: \(metadata)")
+            
+            // Extract chapters using ChapterExtractionManager
+            let chapters = await withCheckedContinuation { continuation in
+                ChapterExtractionManager.findChapterLinks(in: webView) { chapters in
+                    continuation.resume(returning: chapters ?? [:])
+                }
+            }
+            
+            print("Chapters extracted: \(chapters.count) chapters found")
+            
+            // Extract cover image using the title_image from metadata
+            let coverImageData = await downloadCoverImage(from: metadata)
+            
+            // Create Title object
+            let title = createTitle(from: metadata, chapters: chapters, url: url.absoluteString, coverImageData: coverImageData)
+            
+            // Save to library
+            await saveTitleToLibrary(title)
+            
+            // Show success message
+            showAlert(title: "Success", message: "Title '\(title.title)' added to library with \(title.chapters.count) chapters")
+            
+        } catch {
+            print("Error processing URL: \(error)")
+            showAlert(title: "Error", message: "Failed to process URL: \(error.localizedDescription)")
+        }
+        
+        isLoading = false
+    }
 
-// MARK: Help View
+    // MARK: - Cover Image Extraction
+
+    private func downloadCoverImage(from metadata: [String: Any]) async -> Data? {
+        return await withCheckedContinuation { continuation in
+            // Get cover image URL from metadata (this is already extracted in your MetadataExtractionJavaScript)
+            if let coverImageUrlString = metadata["title_image"] as? String,
+               let coverImageUrl = URL(string: coverImageUrlString) {
+                
+                print("Downloading cover image from: \(coverImageUrlString)")
+                
+                let task = URLSession.shared.dataTask(with: coverImageUrl) { data, response, error in
+                    if let error = error {
+                        print("Error downloading cover image: \(error)")
+                        continuation.resume(returning: nil)
+                        return
+                    }
+                    
+                    guard let data = data, !data.isEmpty else {
+                        print("No data received for cover image")
+                        continuation.resume(returning: nil)
+                        return
+                    }
+                    
+                    // Verify it's actually image data
+                    if let image = UIImage(data: data) {
+                        print("Successfully downloaded cover image: \(image.size)")
+                        continuation.resume(returning: data)
+                    } else {
+                        print("Downloaded data is not a valid image")
+                        continuation.resume(returning: nil)
+                    }
+                }
+                task.resume()
+            } else {
+                print("No cover image URL found in metadata")
+                continuation.resume(returning: nil)
+            }
+        }
+    }
+
+    private func createTitle(from metadata: [String: Any], chapters: [String: [String: String]], url: String, coverImageData: Data?) -> Title {
+        let titleName = metadata["title"] as? String ?? "Unknown Title"
+        let author = metadata["author"] as? String ?? "Unknown Author"
+        let status = metadata["status"] as? String ?? "releasing"
+        
+        // Convert chapter dictionary to Chapter objects
+        let chapterObjects = chapters.map { chapterNumber, chapterData in
+            Chapter(
+                chapterNumber: Double(chapterNumber) ?? 0.0,
+                url: chapterData["url"] ?? "",
+                title: chapterData["title"] ?? "Chapter \(chapterNumber)",
+                uploadDate: chapterData["upload_date"],
+                isDownloaded: false,
+                isRead: false
+            )
+        }.sorted { $0.chapterNumber > $1.chapterNumber } // Sort descending (newest first)
+        
+        return Title(
+            id: UUID(),
+            title: titleName,
+            author: author,
+            status: status,
+            coverImageData: coverImageData, // Use the downloaded cover image data
+            chapters: chapterObjects,
+            metadata: metadata,
+            isDownloaded: false,
+            isArchived: false,
+            sourceURL: url
+        )
+    }
+    
+    private func saveTitleToLibrary(_ title: Title) async {
+        // Get documents directory
+        guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            return
+        }
+        
+        let titlesDirectory = documentsDirectory.appendingPathComponent("Titles")
+        
+        // Create Titles directory if it doesn't exist
+        do {
+            try FileManager.default.createDirectory(at: titlesDirectory, withIntermediateDirectories: true)
+        } catch {
+            print("Error creating Titles directory: \(error)")
+            return
+        }
+        
+        // Save title as JSON
+        let titleFile = titlesDirectory.appendingPathComponent("\(title.id.uuidString).json")
+        
+        do {
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = .prettyPrinted
+            let titleData = try encoder.encode(title)
+            try titleData.write(to: titleFile)
+            print("Title saved to: \(titleFile.path)")
+            print("Title: \(title.title)")
+            print("Author: \(title.author)")
+            print("Chapters: \(title.chapters.count)")
+            print("Cover image: \(title.coverImageData != nil ? "Yes" : "No")")
+            
+            // Post notification to refresh library - USE THE CORRECT NAME
+            NotificationCenter.default.post(name: .titleAdded, object: nil)
+            print("Posted titleAdded notification")
+            
+        } catch {
+            print("Error saving title: \(error)")
+        }
+    }
+    
+    private func showAlert(title: String, message: String) {
+        alertTitle = title
+        alertMessage = message
+        showAlert = true
+    }
+}
+
+// MARK: - Navigation Delegate for Title Extraction
+
+private class TitleExtractionNavigationDelegate: NSObject, WKNavigationDelegate {
+    private var continuation: CheckedContinuation<Void, Error>?
+    
+    func waitForLoad() async throws {
+        try await withCheckedThrowingContinuation { continuation in
+            self.continuation = continuation
+        }
+    }
+    
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        continuation?.resume()
+        continuation = nil
+    }
+    
+    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        continuation?.resume(throwing: error)
+        continuation = nil
+    }
+    
+    func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+        continuation?.resume(throwing: error)
+        continuation = nil
+    }
+}
+
+// MARK: - Notification Extension
+
+extension Notification.Name {
+    static let titleAddedToLibrary = Notification.Name("titleAddedToLibrary")
+}
+
+// MARK: - Help View (unchanged)
+
 struct TitleHelpView: View {
     @State private var showCopiedAlert = false
     var body: some View {
         NavigationView {
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) { // Changed from .center to .leading
+                VStack(alignment: .leading, spacing: 16) {
                     Text("How to Add Titles")
                         .underline()
                         .font(.title)
                         .bold()
-                        .frame(maxWidth: .infinity, alignment: .center) // Keep title centered
+                        .frame(maxWidth: .infinity, alignment: .center)
                     
                     HStack {
                         Spacer()
@@ -127,7 +390,6 @@ struct TitleHelpView: View {
                         Spacer()
                     }
                     
-                    // MARK: - In-App Browser Guide
                     Text("In-App Browser Guide")
                         .font(.title2)
                         .bold()
@@ -137,7 +399,6 @@ struct TitleHelpView: View {
                     Text("• The **'Add Title'** button will turn ").font(.system(size: 18)) + Text("GREEN").foregroundColor(.green).font(.system(size: 18)) + Text(" when there is a potential title that can be added to the library.")
                         .font(.system(size: 18))
 
-                    // Two texts in columns
                     HStack(alignment: .top) {
                         Text("• Use the title view button to check for validity of current page's title.")
                             .font(.system(size: 17))
@@ -149,50 +410,38 @@ struct TitleHelpView: View {
                     }
                     .padding(.horizontal)
 
-                    // Icons section
                     HStack(spacing: UIDevice.current.userInterfaceIdiom == .pad ? 300 : 125) {
-                        
                         VStack {
                             Image(systemName: "list.bullet")
                                 .font(.system(size: 44))
                                 .foregroundColor(.blue)
                         }
                         
-                        
                         VStack {
                             Image(systemName: "arrow.clockwise")
                                 .font(.system(size: 44))
                                 .foregroundColor(.blue)
                         }
-                        
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.top, -5)
                     
-                    
-                    
-                    // MARK: - Supported Sites
                     Text("Supported Sites")
                         .font(.title3)
                         .bold()
                         .underline()
                         .padding(.bottom, 20)
 
-                    // Two columns of clickable websites
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
-                        // Column 1
                         WebsiteButton(url: "https://mangafire.to/home", name: "MangaFire")
                         WebsiteButton(url: "https://readcomiconline.li/", name: "ReadComicOnline")
                         
-                        // Column 2
                         WebsiteButton(url: "https://mangaexample4.com", name: "Manga Example 5")
                         WebsiteButton(url: "https://mangaexample5.com", name: "Manga Example 6")
                     }
                     .padding(.horizontal)
                     .padding(.bottom)
 
-                
-                    // Tips
                     Text("Tips:")
                         .padding(-4)
                         .font(.title3)
@@ -222,7 +471,6 @@ struct TitleHelpView: View {
                     } message: {
                         Text("MangaDen email has been copied to your clipboard.")
                     }
-                    
                 }
                 .padding()
             }
@@ -231,7 +479,6 @@ struct TitleHelpView: View {
         }
     }
     
-    // Website Button View
     struct WebsiteButton: View {
         let url: String
         let name: String
@@ -263,10 +510,8 @@ struct TitleHelpView: View {
             }
         }
     }
-    
-    
 }
 
 #Preview {
-    TitleHelpView()
+    AddTitleView()
 }
