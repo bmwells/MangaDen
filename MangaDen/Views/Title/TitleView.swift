@@ -288,13 +288,13 @@ struct TitleView: View {
         isRefreshing = true
         
         let webView = WKWebView()
-        AddTitleJAVA.setDesktopUserAgent(for: webView)
+        WebViewUserAgentManager.setDesktopUserAgent(for: webView)
         
         if let sourceURL = title.sourceURL, let url = URL(string: sourceURL) {
             webView.load(URLRequest(url: url))
             
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                AddTitleJAVA.refreshTitle(in: webView, for: title) { result in
+                TitleRefreshManager.refreshTitle(in: webView, for: title) { result in
                     DispatchQueue.main.async {
                         isRefreshing = false
                         

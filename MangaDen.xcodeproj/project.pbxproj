@@ -26,8 +26,14 @@
 		271346062E67B4D400BC7435 /* TitleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271346052E67B4D400BC7435 /* TitleView.swift */; };
 		271346082E67B4F700BC7435 /* ReaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271346072E67B4F700BC7435 /* ReaderView.swift */; };
 		2713460A2E67C61F00BC7435 /* Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271346092E67C61F00BC7435 /* Notifications.swift */; };
-		271346102E68062A00BC7435 /* AddTitleJAVA.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2713460F2E68062A00BC7435 /* AddTitleJAVA.swift */; };
 		271346122E68084100BC7435 /* ReaderViewJAVA.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271346112E68084100BC7435 /* ReaderViewJAVA.swift */; };
+		276EE40C2E96303E0023E592 /* WebViewUserAgentManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 276EE40B2E96303E0023E592 /* WebViewUserAgentManager.swift */; };
+		276EE40E2E9631000023E592 /* ChapterDetectionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 276EE40D2E9631000023E592 /* ChapterDetectionManager.swift */; };
+		276EE4102E9631A20023E592 /* ChapterExtractionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 276EE40F2E9631A20023E592 /* ChapterExtractionManager.swift */; };
+		276EE4122E9631BF0023E592 /* MetadataExtractionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 276EE4112E9631BF0023E592 /* MetadataExtractionManager.swift */; };
+		276EE4142E9631D40023E592 /* TitleRefreshManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 276EE4132E9631D40023E592 /* TitleRefreshManager.swift */; };
+		276EE4162E9633710023E592 /* MetadataExtractionJavaScript.swift in Sources */ = {isa = PBXBuildFile; fileRef = 276EE4152E9633710023E592 /* MetadataExtractionJavaScript.swift */; };
+		276EE41A2E9635570023E592 /* ChapterExtractionJavaScript.swift in Sources */ = {isa = PBXBuildFile; fileRef = 276EE4192E9635570023E592 /* ChapterExtractionJavaScript.swift */; };
 		27901F4B2E8732A800C57418 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27901F4A2E8732A800C57418 /* Models.swift */; };
 		27901F4D2E8732C400C57418 /* DownloadManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27901F4C2E8732C400C57418 /* DownloadManager.swift */; };
 		2793268B2E835FFE001AA1AC /* TabBarManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2793268A2E835FFE001AA1AC /* TabBarManager.swift */; };
@@ -73,8 +79,14 @@
 		271346052E67B4D400BC7435 /* TitleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TitleView.swift; sourceTree = "<group>"; };
 		271346072E67B4F700BC7435 /* ReaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderView.swift; sourceTree = "<group>"; };
 		271346092E67C61F00BC7435 /* Notifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notifications.swift; sourceTree = "<group>"; };
-		2713460F2E68062A00BC7435 /* AddTitleJAVA.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddTitleJAVA.swift; sourceTree = "<group>"; };
 		271346112E68084100BC7435 /* ReaderViewJAVA.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderViewJAVA.swift; sourceTree = "<group>"; };
+		276EE40B2E96303E0023E592 /* WebViewUserAgentManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewUserAgentManager.swift; sourceTree = "<group>"; };
+		276EE40D2E9631000023E592 /* ChapterDetectionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChapterDetectionManager.swift; sourceTree = "<group>"; };
+		276EE40F2E9631A20023E592 /* ChapterExtractionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChapterExtractionManager.swift; sourceTree = "<group>"; };
+		276EE4112E9631BF0023E592 /* MetadataExtractionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataExtractionManager.swift; sourceTree = "<group>"; };
+		276EE4132E9631D40023E592 /* TitleRefreshManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TitleRefreshManager.swift; sourceTree = "<group>"; };
+		276EE4152E9633710023E592 /* MetadataExtractionJavaScript.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataExtractionJavaScript.swift; sourceTree = "<group>"; };
+		276EE4192E9635570023E592 /* ChapterExtractionJavaScript.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChapterExtractionJavaScript.swift; sourceTree = "<group>"; };
 		27901F4A2E8732A800C57418 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		27901F4C2E8732C400C57418 /* DownloadManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadManager.swift; sourceTree = "<group>"; };
 		279326892E833F33001AA1AC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -168,8 +180,14 @@
 		27130DA92E8C52FC006FF48A /* AddTitle */ = {
 			isa = PBXGroup;
 			children = (
-				2713460F2E68062A00BC7435 /* AddTitleJAVA.swift */,
+				276EE40D2E9631000023E592 /* ChapterDetectionManager.swift */,
+				276EE4112E9631BF0023E592 /* MetadataExtractionManager.swift */,
+				276EE4132E9631D40023E592 /* TitleRefreshManager.swift */,
+				276EE40B2E96303E0023E592 /* WebViewUserAgentManager.swift */,
 				271345ED2E5D28A500BC7435 /* AddTitleView.swift */,
+				276EE40F2E9631A20023E592 /* ChapterExtractionManager.swift */,
+				276EE4152E9633710023E592 /* MetadataExtractionJavaScript.swift */,
+				276EE4192E9635570023E592 /* ChapterExtractionJavaScript.swift */,
 			);
 			path = AddTitle;
 			sourceTree = "<group>";
@@ -382,20 +400,26 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				271346102E68062A00BC7435 /* AddTitleJAVA.swift in Sources */,
+				276EE4142E9631D40023E592 /* TitleRefreshManager.swift in Sources */,
 				271345C42E5D07B000BC7435 /* ContentView.swift in Sources */,
 				27130DAF2E8DF4FE006FF48A /* ChapterRows.swift in Sources */,
 				271346082E67B4F700BC7435 /* ReaderView.swift in Sources */,
 				2793268B2E835FFE001AA1AC /* TabBarManager.swift in Sources */,
+				276EE4122E9631BF0023E592 /* MetadataExtractionManager.swift in Sources */,
+				276EE4162E9633710023E592 /* MetadataExtractionJavaScript.swift in Sources */,
 				271345F02E5D28C200BC7435 /* DownloadsView.swift in Sources */,
+				276EE40E2E9631000023E592 /* ChapterDetectionManager.swift in Sources */,
 				271346022E618AA500BC7435 /* JSONViewerView.swift in Sources */,
 				271345EE2E5D28A500BC7435 /* AddTitleView.swift in Sources */,
 				2713460A2E67C61F00BC7435 /* Notifications.swift in Sources */,
+				276EE4102E9631A20023E592 /* ChapterExtractionManager.swift in Sources */,
 				27901F4D2E8732C400C57418 /* DownloadManager.swift in Sources */,
 				271345F62E5E53A400BC7435 /* BrowserView.swift in Sources */,
 				271345F22E5D28D800BC7435 /* SettingsView.swift in Sources */,
 				271345EC2E5D283700BC7435 /* LibraryView.swift in Sources */,
 				27130DB12E8DF51E006FF48A /* TitleComponents.swift in Sources */,
+				276EE41A2E9635570023E592 /* ChapterExtractionJavaScript.swift in Sources */,
+				276EE40C2E96303E0023E592 /* WebViewUserAgentManager.swift in Sources */,
 				27901F4B2E8732A800C57418 /* Models.swift in Sources */,
 				271345F42E5E50ED00BC7435 /* DLWebView.swift in Sources */,
 				271346122E68084100BC7435 /* ReaderViewJAVA.swift in Sources */,
