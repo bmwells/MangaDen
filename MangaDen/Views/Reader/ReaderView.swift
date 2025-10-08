@@ -609,11 +609,18 @@ struct ReaderView: View {
             let imagesNowLoaded = !newValue.isEmpty
             
             if imagesNowLoaded {
+                print("Images loaded: \(newValue.count), setting chapter ready")
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     self.originalImages = newValue
                     self.setInitialPageIndex()
                     self.isChapterReady = true
                     self.downloadProgress = ""
+                    
+                    // Also make sure the readerJava isLoading state is false
+                    if self.readerJava.isLoading {
+                        print("Forcing readerJava isLoading to false")
+                        self.readerJava.isLoading = false
+                    }
                 }
             }
         }

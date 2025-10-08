@@ -34,6 +34,9 @@
 		276EE4142E9631D40023E592 /* TitleRefreshManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 276EE4132E9631D40023E592 /* TitleRefreshManager.swift */; };
 		276EE4162E9633710023E592 /* MetadataExtractionJavaScript.swift in Sources */ = {isa = PBXBuildFile; fileRef = 276EE4152E9633710023E592 /* MetadataExtractionJavaScript.swift */; };
 		276EE41A2E9635570023E592 /* ChapterExtractionJavaScript.swift in Sources */ = {isa = PBXBuildFile; fileRef = 276EE4192E9635570023E592 /* ChapterExtractionJavaScript.swift */; };
+		276EE41C2E9637CA0023E592 /* WebViewManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 276EE41B2E9637CA0023E592 /* WebViewManager.swift */; };
+		276EE41E2E9637E50023E592 /* ImageExtractionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 276EE41D2E9637E40023E592 /* ImageExtractionCoordinator.swift */; };
+		276EE4202E96380A0023E592 /* ImageExtractionStrategies.swift in Sources */ = {isa = PBXBuildFile; fileRef = 276EE41F2E96380A0023E592 /* ImageExtractionStrategies.swift */; };
 		27901F4B2E8732A800C57418 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27901F4A2E8732A800C57418 /* Models.swift */; };
 		27901F4D2E8732C400C57418 /* DownloadManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27901F4C2E8732C400C57418 /* DownloadManager.swift */; };
 		2793268B2E835FFE001AA1AC /* TabBarManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2793268A2E835FFE001AA1AC /* TabBarManager.swift */; };
@@ -87,6 +90,9 @@
 		276EE4132E9631D40023E592 /* TitleRefreshManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TitleRefreshManager.swift; sourceTree = "<group>"; };
 		276EE4152E9633710023E592 /* MetadataExtractionJavaScript.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataExtractionJavaScript.swift; sourceTree = "<group>"; };
 		276EE4192E9635570023E592 /* ChapterExtractionJavaScript.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChapterExtractionJavaScript.swift; sourceTree = "<group>"; };
+		276EE41B2E9637CA0023E592 /* WebViewManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewManager.swift; sourceTree = "<group>"; };
+		276EE41D2E9637E40023E592 /* ImageExtractionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageExtractionCoordinator.swift; sourceTree = "<group>"; };
+		276EE41F2E96380A0023E592 /* ImageExtractionStrategies.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageExtractionStrategies.swift; sourceTree = "<group>"; };
 		27901F4A2E8732A800C57418 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		27901F4C2E8732C400C57418 /* DownloadManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadManager.swift; sourceTree = "<group>"; };
 		279326892E833F33001AA1AC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -145,7 +151,10 @@
 			isa = PBXGroup;
 			children = (
 				271346112E68084100BC7435 /* ReaderViewJAVA.swift */,
+				276EE41B2E9637CA0023E592 /* WebViewManager.swift */,
 				271346072E67B4F700BC7435 /* ReaderView.swift */,
+				276EE41D2E9637E40023E592 /* ImageExtractionCoordinator.swift */,
+				276EE41F2E96380A0023E592 /* ImageExtractionStrategies.swift */,
 			);
 			path = Reader;
 			sourceTree = "<group>";
@@ -409,6 +418,7 @@
 				276EE4162E9633710023E592 /* MetadataExtractionJavaScript.swift in Sources */,
 				271345F02E5D28C200BC7435 /* DownloadsView.swift in Sources */,
 				276EE40E2E9631000023E592 /* ChapterDetectionManager.swift in Sources */,
+				276EE4202E96380A0023E592 /* ImageExtractionStrategies.swift in Sources */,
 				271346022E618AA500BC7435 /* JSONViewerView.swift in Sources */,
 				271345EE2E5D28A500BC7435 /* AddTitleView.swift in Sources */,
 				2713460A2E67C61F00BC7435 /* Notifications.swift in Sources */,
@@ -422,7 +432,9 @@
 				276EE40C2E96303E0023E592 /* WebViewUserAgentManager.swift in Sources */,
 				27901F4B2E8732A800C57418 /* Models.swift in Sources */,
 				271345F42E5E50ED00BC7435 /* DLWebView.swift in Sources */,
+				276EE41E2E9637E50023E592 /* ImageExtractionCoordinator.swift in Sources */,
 				271346122E68084100BC7435 /* ReaderViewJAVA.swift in Sources */,
+				276EE41C2E9637CA0023E592 /* WebViewManager.swift in Sources */,
 				271346062E67B4D400BC7435 /* TitleView.swift in Sources */,
 				271345C22E5D07B000BC7435 /* MangaDenApp.swift in Sources */,
 			);
