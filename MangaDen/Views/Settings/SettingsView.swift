@@ -130,7 +130,7 @@ struct SettingsView: View {
                 
                 // Version at bottom of page
                 VStack {
-                    Text("Version 0.8")
+                    Text("Version 0.85")
                         .font(.title3)
                         .foregroundColor(.primary)
                         .padding(.bottom, 74)
