@@ -516,6 +516,9 @@ struct TitleView: View {
                 return
             }
             
+            // First, uninstall all downloaded chapters for this title
+            uninstallAllChapters()
+            
             // Delete the title file
             let titlesDirectory = documentsDirectory.appendingPathComponent("Titles")
             let titleFile = titlesDirectory.appendingPathComponent("\(title.id.uuidString).json")
@@ -534,6 +537,7 @@ struct TitleView: View {
             print("Error deleting title: \(error)")
         }
     }
+    
     
     private func saveTitleChanges() {
         do {
