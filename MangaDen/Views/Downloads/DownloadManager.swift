@@ -194,16 +194,16 @@ class DownloadManager: ObservableObject {
         }
     }
     
-    // Add a method to get the appropriate button icon
+    // Get the appropriate button icon
     var pauseResumeIcon: String {
         if isPaused {
             return "play.fill"
         } else {
-            return "stop.fill"
+            return "pause.fill"
         }
     }
     
-    // Add a method to get the appropriate button color
+    // Get the appropriate button color
     var pauseResumeColor: Color {
         if isPaused {
             return .green

@@ -11,6 +11,7 @@ struct DownloadsView: View {
     @StateObject private var downloadManager = DownloadManager.shared
     @Environment(\.colorScheme) private var colorScheme
     @State private var isClearingQueue = false
+    @State private var showHelp = false
     
     var body: some View {
         NavigationView {
@@ -25,7 +26,7 @@ struct DownloadsView: View {
                             
                             Spacer()
                             
-                            // Stop/Resume button - only show when there are downloads in queue
+                            // Pause/Resume button - only show when there are downloads in queue
                             if !downloadManager.downloadQueue.isEmpty {
                                 Button(action: {
                                     downloadManager.toggleDownloads()
@@ -153,7 +154,26 @@ struct DownloadsView: View {
                     Spacer()
                 }
                 .padding()
-                .navigationTitle("Downloads")
+                .toolbar {
+                    // Page title
+                    ToolbarItem(placement: .principal) {
+                        Text("Downloads")
+                            .font(.largeTitle)
+                            .bold()
+                    }
+                    
+                    // Help button
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button(action: {
+                            showHelp = true
+                        }) {
+                            Image(systemName: "questionmark.circle")
+                                .font(.system(size: 22))
+                                .foregroundColor(.blue)
+                        }
+                        .padding(.trailing, 10)
+                    }
+                }
                 .background(Color(.systemGroupedBackground))
                 .blur(radius: isClearingQueue ? 3 : 0)
                 .allowsHitTesting(!isClearingQueue)
@@ -183,6 +203,9 @@ struct DownloadsView: View {
             }
         }
         .navigationViewStyle(StackNavigationViewStyle())
+        .sheet(isPresented: $showHelp) {
+            DownloadsHelpView()
+        }
     }
     
     private func clearQueueWithLoading() {
@@ -200,7 +223,78 @@ struct DownloadsView: View {
     }
 }
 
-// Download Task Row Views (remain unchanged)
+// MARK: Downloads Help View
+struct DownloadsHelpView: View {
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    // Downloads Guide
+                    Text("Downloads Guide")
+                        .font(.title)
+                        .bold()
+                        .padding(.top, 20)
+                        .padding(.bottom, 20)
+                    
+                    Text("**Downloading Section**")
+                        .font(.title2)
+                        .underline()
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    Text("Displays chapters currently being downloaded. Use the pause/resume button to temporarily stop or restart all active downloads. Cancel individual downloads with the 'Cancel' button, or remove the entire queue at once using 'Clear all'.")
+                        .font(.system(size: 18))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .tracking(1.0)
+                    
+                    //Divider
+                    Rectangle()
+                        .frame(height: 1)
+                        .foregroundColor(.gray.opacity(0.3))
+                        .frame(width: UIScreen.main.bounds.width * 0.6)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                    
+                    Text("**Completed Section**")
+                        .font(.title2)
+                        .underline()
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    Text("Shows successfully downloaded chapters that are available for offline reading. Use the 'Clear all' button to clear the list of completed downloads.")
+                        .font(.system(size: 18))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .tracking(1.0)
+                    
+                    //Divider
+                    Rectangle()
+                        .frame(height: 1)
+                        .foregroundColor(.gray.opacity(0.3))
+                        .frame(width: UIScreen.main.bounds.width * 0.6)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                    
+                    Text("**Failed Section**")
+                        .font(.title2)
+                        .underline()
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    Text("Shows chapters that failed to download. Click the 'Retry' button to rerun the failed downloads individually. Use the 'Clear all' button to clear the list of failed downloads.")
+                        .font(.system(size: 18))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .tracking(1.0)
+                    
+                    //Divider
+                    Rectangle()
+                        .frame(height: 1)
+                        .foregroundColor(.gray.opacity(0.3))
+                        .frame(width: UIScreen.main.bounds.width * 0.6)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .padding(.bottom, 20)
+                }
+                .padding()
+            }
+        }
+    }
+}
+
+// Download Task Row Views
 struct DownloadTaskRow: View {
     let task: DownloadTask
     let isPaused: Bool
@@ -378,4 +472,8 @@ struct FailedDownloadRow: View {
         .background(Color(.systemBackground))
         .cornerRadius(6)
     }
+}
+
+#Preview {
+    DownloadsHelpView()
 }

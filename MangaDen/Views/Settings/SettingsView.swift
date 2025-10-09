@@ -138,7 +138,14 @@ struct SettingsView: View {
                 }
                 .background(Color(.systemGroupedBackground))
             }
-            .navigationTitle("Settings")
+            .toolbar {
+                // Page title
+                ToolbarItem(placement: .principal) {
+                    Text("Settings")
+                        .font(.largeTitle)
+                        .bold()
+                }
+            }
             .alert("Uninstall ALL Downloads", isPresented: $showUninstallAllConfirmation) {
                 Button("Cancel", role: .cancel) { }
                 Button("Uninstall All", role: .destructive) {
