@@ -389,11 +389,13 @@ class DownloadManager: ObservableObject {
             // Create directory
             try fileManager.createDirectory(at: chapterDirectory, withIntermediateDirectories: true)
             
-            // Save each image
+            // FIX: Save images with sequential numbering starting from 0
             for (index, image) in images.enumerated() {
                 if let imageData = image.jpegData(compressionQuality: 0.8) {
+                    // Use sequential numbering: 0.jpg, 1.jpg, 2.jpg, etc.
                     let imagePath = chapterDirectory.appendingPathComponent("\(index).jpg")
                     try imageData.write(to: imagePath)
+                    print("Saved image \(index) to: \(imagePath.lastPathComponent)")
                 }
             }
             
@@ -411,6 +413,8 @@ class DownloadManager: ObservableObject {
             
             let infoData = try JSONSerialization.data(withJSONObject: chapterInfo)
             try infoData.write(to: infoPath)
+            
+            print("Successfully saved chapter \(task.chapter.formattedChapterNumber) with \(images.count) images")
             
             // Mark as completed
             self.markDownloadCompleted(task: task, fileSize: totalSize)

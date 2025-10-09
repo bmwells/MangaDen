@@ -295,6 +295,7 @@ struct DownloadsHelpView: View {
                         .bold()
                         .underline()
                         .tracking(1.5)
+                    Text("• If recently downloaded chapter is uninstalled, it must be cleared from the completed section in order to be downloaded again")
                     Text("• Swipe down from the top of the page to exit pages such as this one or the In-App browser")
                 }
                 .padding()

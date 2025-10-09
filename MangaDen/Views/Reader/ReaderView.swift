@@ -418,9 +418,21 @@ struct ReaderView: View {
             
             do {
                 let files = try fileManager.contentsOfDirectory(at: chapterDirectory, includingPropertiesForKeys: nil)
+                
+                // FIX: Sort files by page number instead of just filename
                 let imageFiles = files
                     .filter { $0.pathExtension == "jpg" }
-                    .sorted { $0.lastPathComponent < $1.lastPathComponent }
+                    .sorted { file1, file2 in
+                        // Extract page numbers from filenames (e.g., "0.jpg", "1.jpg", etc.)
+                        let page1 = Int(file1.deletingPathExtension().lastPathComponent) ?? 0
+                        let page2 = Int(file2.deletingPathExtension().lastPathComponent) ?? 0
+                        return page1 < page2
+                    }
+                
+                print("Loading \(imageFiles.count) images from storage with order:")
+                for (index, file) in imageFiles.enumerated() {
+                    print("  Page \(index): \(file.lastPathComponent)")
+                }
                 
                 for imageFile in imageFiles {
                     if let imageData = try? Data(contentsOf: imageFile),
