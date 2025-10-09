@@ -381,11 +381,13 @@ struct TitleHelpView: View {
                         Spacer()
                         VStack(alignment: .center, spacing: 4) {
                             Text("Paste a valid title page's URL into text box")
+                                .font(.system(size: 17))
                             Text("OR")
                                 .font(.title2)
                                 .bold()
                             Text("Use the In-App Browser (**Recommended**)")
-                                .padding(.bottom, 15)
+                                .padding(.bottom, 10)
+                                .font(.system(size: 17))
                         }
                         Spacer()
                     }
@@ -449,8 +451,14 @@ struct TitleHelpView: View {
                         .underline()
                         .tracking(1.5)
                     Text("• Swipe down from the top of the page to exit pages such as this one or the In-App browser")
+                        .font(.system(size: 18))
+                        .tracking(0.8)
                     Text("• If you don't see a title you'd like to read on one of the supported sites, try Googling 'read [TITLE] online' as there are typically sites that exclusively host that title and are usually compatible with the app.")
+                        .font(.system(size: 18))
+                        .tracking(0.8)
                     Text("• If you would like a site to become compatible, request it by copying the email below and sending a message to our team.")
+                        .font(.system(size: 18))
+                        .tracking(0.8)
                     
                     HStack {
                         Spacer()
@@ -474,6 +482,7 @@ struct TitleHelpView: View {
                 }
                 .padding()
             }
+            .padding(10)
         }
     }
     

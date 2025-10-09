@@ -334,11 +334,13 @@ struct SettingsHelpView: View {
                         .underline()
                         .frame(maxWidth: .infinity, alignment: .center)
                     
-                    Text("**Dark Mode:** Toggle between light and dark app appearance.")
-                        .frame(maxWidth: .infinity, alignment: .center)
-                    
-                    Text("**Reading Direction**: Choose between Left to Right (L to R) or Right to Left (L to R) reading direction.")
-                        .frame(maxWidth: .infinity, alignment: .center)
+                    Text("**Dark Mode**").font(.system(size: 20)).italic() + Text(": Toggle between light and dark app appearance.")
+                        .font(.system(size: 20))
+
+
+                    Text("**Reading Direction**").font(.system(size: 20)).italic() + Text(": Choose between Left to Right (L to R) or Right to Left (L to R) reading direction.")
+                        .font(.system(size: 20))
+
                     
                     
                     //Divider
@@ -354,7 +356,8 @@ struct SettingsHelpView: View {
                         .font(.title2)
                         .underline()
                         .frame(maxWidth: .infinity, alignment: .center)
-                    Text("**Uninstall All Downloads**: Remove all downloaded chapters from your device to free up storage space.")
+                    Text("**Uninstall All Downloads**").font(.system(size: 20)).italic() + Text(": Remove all downloaded chapters from your device to free up storage space.")
+                        .font(.system(size: 20))
                     
                     
                     //Divider
@@ -364,7 +367,7 @@ struct SettingsHelpView: View {
                         .frame(width: UIScreen.main.bounds.width * 0.6)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
-                        .padding(.bottom, 30)
+                        .padding(.bottom, 20)
                     
                     
                     
@@ -380,6 +383,7 @@ struct SettingsHelpView: View {
                         .frame(maxWidth: .infinity, alignment: .center)
                     Text("Checks for new chapters.")
                         .frame(maxWidth: .infinity, alignment: .center)
+                        .font(.system(size: 20))
                     
                     //Divider
                     Rectangle()
@@ -396,6 +400,8 @@ struct SettingsHelpView: View {
                         .frame(maxWidth: .infinity, alignment: .center)
                     Text("Modify the title, author, status, or cover image.")
                         .frame(maxWidth: .infinity, alignment: .center)
+                        .multilineTextAlignment(.center)
+                        .font(.system(size: 18))
                     
                     //Divider
                     Rectangle()
@@ -413,6 +419,7 @@ struct SettingsHelpView: View {
                     Text("Download multiple chapters for offline reading.")
                         .frame(maxWidth: .infinity, alignment: .center)
                         .multilineTextAlignment(.center)
+                        .font(.system(size: 18))
                     
                     //Divider
                     Rectangle()
@@ -430,6 +437,7 @@ struct SettingsHelpView: View {
                     Text("Uninstall downloaded chapters or hide chapters from the list.")
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: .infinity)
+                        .font(.system(size: 18))
                     
                     //Divider
                     Rectangle()
@@ -447,6 +455,7 @@ struct SettingsHelpView: View {
                     Text("Moves the title from the Reading section to the Archive section.")
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: .infinity)
+                        .font(.system(size: 18))
                     
                     //Divider
                     Rectangle()
@@ -463,6 +472,7 @@ struct SettingsHelpView: View {
                     Text("Permanently removes the title from your library.")
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: .infinity, alignment: .center)
+                        .font(.system(size: 18))
                     
                     //Divider
                     Rectangle()
@@ -481,6 +491,8 @@ struct SettingsHelpView: View {
                         .underline()
                         .tracking(1.5)
                     Text("• Swipe down from the top of the page to exit pages such as this one or the In-App browser")
+                        .font(.system(size: 18))
+                        .tracking(1.0)
                     
                 }
                 .padding()

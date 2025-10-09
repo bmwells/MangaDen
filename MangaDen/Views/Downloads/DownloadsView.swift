@@ -288,15 +288,19 @@ struct DownloadsHelpView: View {
                         .padding(.vertical, 8)
                         .padding(.bottom, 20)
                     
-                    // Tip
-                    Text("Tip:")
+                    // Tips
+                    Text("Tips:")
                         .padding(-4)
                         .font(.title3)
                         .bold()
                         .underline()
                         .tracking(1.5)
                     Text("• If recently downloaded chapter is uninstalled, it must be cleared from the completed section in order to be downloaded again")
+                        .font(.system(size: 18))
+                        .tracking(1.0)
                     Text("• Swipe down from the top of the page to exit pages such as this one or the In-App browser")
+                        .font(.system(size: 18))
+                        .tracking(1.0)
                 }
                 .padding()
             }
