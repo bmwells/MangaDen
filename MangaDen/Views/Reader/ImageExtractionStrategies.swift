@@ -235,8 +235,15 @@ class ImageExtractionStrategies {
     }
     
     // MARK: - Strategy 4 (Page Navigation)
-    func attemptExtractionStrategy4(webView: WKWebView, completion: @escaping ([EnhancedImageInfo]) -> Void) {
+    func attemptExtractionStrategy4(webView: WKWebView, isCancelled: @escaping () -> Bool = { false }, completion: @escaping ([EnhancedImageInfo]) -> Void) {
         print("STRATEGY 4: Starting simplified page menu extraction")
+        
+        // Check for cancellation before starting
+        if isCancelled() {
+            print("STRATEGY 4: Cancellation detected before starting")
+            completion([])
+            return
+        }
         
         // Simplified detection script
         let detectionScript = """
@@ -300,6 +307,13 @@ class ImageExtractionStrategies {
         """
         
         webView.evaluateJavaScript(detectionScript) { [weak self] result, error in
+            // Check for cancellation after detection
+            if isCancelled() {
+                print("STRATEGY 4: Cancellation detected after detection")
+                completion([])
+                return
+            }
+            
             if let error = error {
                 print("Strategy 4 - Detection failed: \(error)")
                 completion([])
@@ -323,15 +337,17 @@ class ImageExtractionStrategies {
                 // and simulate multiple page loads by modifying the URL
                 self?.extractWithSimulatedPagination(webView: webView,
                                                    pageLinks: pageLinks,
+                                                   isCancelled: isCancelled,
                                                    completion: completion)
             } else {
                 completion([])
             }
         }
     }
-    
+
     private func extractWithSimulatedPagination(webView: WKWebView,
                                               pageLinks: [[String: Any]],
+                                              isCancelled: @escaping () -> Bool,
                                               completion: @escaping ([EnhancedImageInfo]) -> Void) {
         print("Strategy 4 - Using simulated pagination with \(pageLinks.count) links")
         
@@ -341,6 +357,25 @@ class ImageExtractionStrategies {
         var lastImageCount = 0
         
         func extractPage(_ pageIndex: Int) {
+            // Check for cancellation at the start of each page extraction
+            if isCancelled() {
+                print("STRATEGY 4: Cancellation detected during page extraction at page \(pageIndex)")
+                let uniqueImages = self.removeDuplicateImages(allImages)
+                
+                // FILTER OUT IMAGES WITH THE EXACT LOGO SIZE (79x97) IN STRATEGY 4
+                let filteredImages = uniqueImages.filter { image in
+                    if image.width == 79 && image.height == 97 {
+                        print("Strategy 4 - Filtering out logo-sized image: \(image.src) - size: \(image.width)×\(image.height)")
+                        return false
+                    }
+                    return true
+                }
+                
+                print("Strategy 4 - Cancelled during extraction, found \(filteredImages.count) unique images so far")
+                completion(filteredImages)
+                return
+            }
+            
             guard pageIndex < maxPagesToExtract else {
                 // All pages processed
                 let uniqueImages = self.removeDuplicateImages(allImages)
@@ -377,13 +412,70 @@ class ImageExtractionStrategies {
             """
             
             webView.evaluateJavaScript(clickScript) { clickResult, error in
+                // Check for cancellation after click
+                if isCancelled() {
+                    print("STRATEGY 4: Cancellation detected after page click at page \(pageIndex)")
+                    let uniqueImages = self.removeDuplicateImages(allImages)
+                    
+                    // FILTER OUT IMAGES WITH THE EXACT LOGO SIZE (79x97) IN STRATEGY 4
+                    let filteredImages = uniqueImages.filter { image in
+                        if image.width == 79 && image.height == 97 {
+                            print("Strategy 4 - Filtering out logo-sized image: \(image.src) - size: \(image.width)×\(image.height)")
+                            return false
+                        }
+                        return true
+                    }
+                    
+                    print("Strategy 4 - Cancelled after click, found \(filteredImages.count) unique images so far")
+                    completion(filteredImages)
+                    return
+                }
+                
                 if let error = error {
                     print("Strategy 4 - Page \(pageIndex) click failed: \(error)")
                 }
                 
                 // Wait for navigation
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { // Wait 1 seconds between page change
+                    // Check for cancellation after delay
+                    if isCancelled() {
+                        print("STRATEGY 4: Cancellation detected after delay at page \(pageIndex)")
+                        let uniqueImages = self.removeDuplicateImages(allImages)
+                        
+                        // FILTER OUT IMAGES WITH THE EXACT LOGO SIZE (79x97) IN STRATEGY 4
+                        let filteredImages = uniqueImages.filter { image in
+                            if image.width == 79 && image.height == 97 {
+                                print("Strategy 4 - Filtering out logo-sized image: \(image.src) - size: \(image.width)×\(image.height)")
+                                return false
+                            }
+                            return true
+                        }
+                        
+                        print("Strategy 4 - Cancelled after delay, found \(filteredImages.count) unique images so far")
+                        completion(filteredImages)
+                        return
+                    }
+                    
                     self.extractCurrentPageImages(webView: webView) { images in
+                        // Check for cancellation after image extraction
+                        if isCancelled() {
+                            print("STRATEGY 4: Cancellation detected after image extraction at page \(pageIndex)")
+                            let uniqueImages = self.removeDuplicateImages(allImages)
+                            
+                            // FILTER OUT IMAGES WITH THE EXACT LOGO SIZE (79x97) IN STRATEGY 4
+                            let filteredImages = uniqueImages.filter { image in
+                                if image.width == 79 && image.height == 97 {
+                                    print("Strategy 4 - Filtering out logo-sized image: \(image.src) - size: \(image.width)×\(image.height)")
+                                    return false
+                                }
+                                return true
+                            }
+                            
+                            print("Strategy 4 - Cancelled after extraction, found \(filteredImages.count) unique images so far")
+                            completion(filteredImages)
+                            return
+                        }
+                        
                         let currentImageCount = images.count
                         print("Strategy 4 - Page \(pageIndex + 1) yielded \(currentImageCount) images")
                         

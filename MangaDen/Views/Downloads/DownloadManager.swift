@@ -15,10 +15,11 @@ class DownloadManager: ObservableObject {
     @Published var completedDownloads: [DownloadTask] = []
     @Published var failedDownloads: [DownloadTask] = []
     @Published var isDownloading: Bool = false
+    @Published var isPaused: Bool = false
     
     private var currentTask: DownloadTask?
-    private var readerJava = ReaderViewJava()
     private let maxConcurrentDownloads = 1 // One at a time for simplicity
+    private var currentDownloadTask: Task<Void, Never>?
     
     private init() {
         loadDownloadState()
@@ -38,8 +39,8 @@ class DownloadManager: ObservableObject {
         downloadQueue.append(task)
         saveDownloadState()
         
-        // Start downloading if not already
-        if !isDownloading {
+        // Start downloading if not already and not paused
+        if !isDownloading && !isPaused {
             startNextDownload()
         }
     }
@@ -63,14 +64,20 @@ class DownloadManager: ObservableObject {
                 continue
             }
             
+            // Check if chapter is already marked as downloaded
+            if chapter.safeIsDownloaded {
+                print("Skipping already downloaded chapter: \(chapter.title ?? "Chapter \(chapter.formattedChapterNumber)")")
+                continue
+            }
+            
             let task = DownloadTask(chapter: chapter)
             downloadQueue.append(task)
         }
         
         saveDownloadState()
         
-        // Start downloading if not already
-        if !isDownloading && !downloadQueue.isEmpty {
+        // Start downloading if not already and not paused
+        if !isDownloading && !isPaused && !downloadQueue.isEmpty {
             startNextDownload()
         }
     }
@@ -87,7 +94,9 @@ class DownloadManager: ObservableObject {
         // If this was the current task, start next one
         if currentTask?.chapter.id == chapterId {
             currentTask = nil
-            startNextDownload()
+            if !isPaused {
+                startNextDownload()
+            }
         }
     }
     
@@ -102,7 +111,7 @@ class DownloadManager: ObservableObject {
             downloadQueue.append(newTask)
             saveDownloadState()
             
-            if !isDownloading {
+            if !isDownloading && !isPaused {
                 startNextDownload()
             }
         }
@@ -122,19 +131,92 @@ class DownloadManager: ObservableObject {
     }
     
     func clearQueue() {
+        // Cancel any ongoing download first
+        stopAllDownloads()
+        
+        // Remove all chapters from queue
         for task in downloadQueue {
             updateChapterDownloadStatus(chapterId: task.chapter.id, isDownloaded: false)
         }
         downloadQueue.removeAll()
         currentTask = nil
         isDownloading = false
+        isPaused = false
         saveDownloadState()
+        
+        print("Download queue cleared")
+    }
+    
+    // MARK: - Stop/Resume Methods
+    
+    func stopAllDownloads() {
+        guard !isPaused else { return } // Already paused
+        
+        isPaused = true
+        isDownloading = false
+        
+        // Cancel the current async download task
+        currentDownloadTask?.cancel()
+        currentDownloadTask = nil
+        
+        // Cancel the current task but keep it in queue for resuming
+        if let currentTask = currentTask {
+            // Reset the current task status to queued so it can be resumed later
+            if let index = downloadQueue.firstIndex(where: { $0.id == currentTask.id }) {
+                var updatedTask = downloadQueue[index]
+                updatedTask.status = .queued
+                updatedTask.progress = 0.0 // Reset progress when stopped
+                updatedTask.estimatedTimeRemaining = nil
+                downloadQueue[index] = updatedTask
+            }
+            self.currentTask = nil
+        }
+        
+        saveDownloadState()
+        print("Downloads stopped")
+    }
+    
+    func resumeAllDownloads() {
+        guard isPaused else { return } // Already running
+        
+        isPaused = false
+        if !downloadQueue.isEmpty && !isDownloading {
+            startNextDownload()
+        }
+        print("Downloads resumed")
+    }
+    
+    func toggleDownloads() {
+        if isPaused {
+            resumeAllDownloads()
+        } else {
+            stopAllDownloads()
+        }
+    }
+    
+    // Add a method to get the appropriate button icon
+    var pauseResumeIcon: String {
+        if isPaused {
+            return "play.fill"
+        } else {
+            return "stop.fill"
+        }
+    }
+    
+    // Add a method to get the appropriate button color
+    var pauseResumeColor: Color {
+        if isPaused {
+            return .green
+        } else {
+            return .red
+        }
     }
     
     // MARK: - Private Methods
     
     private func startNextDownload() {
-        guard !isDownloading, let nextTaskIndex = downloadQueue.firstIndex(where: { $0.status == .queued }) else {
+        guard !isDownloading && !isPaused,
+              let nextTaskIndex = downloadQueue.firstIndex(where: { $0.status == .queued }) else {
             return
         }
         
@@ -145,84 +227,131 @@ class DownloadManager: ObservableObject {
         downloadQueue[nextTaskIndex] = task
         currentTask = task
         
-        Task {
+        // Store the async task so we can cancel it
+        currentDownloadTask = Task {
             await downloadChapter(task: task)
         }
     }
     
     private func downloadChapter(task: DownloadTask) async {
+        // Check for cancellation at the start
+        if Task.isCancelled || isPaused {
+            print("Download task cancelled before starting")
+            return
+        }
+        
         guard let url = URL(string: task.chapter.url) else {
             markDownloadFailed(task: task, error: "Invalid URL")
             return
         }
         
         do {
-            // Load chapter images
-            readerJava.clearCache()
-            readerJava.loadChapter(url: url)
+            // CRITICAL FIX: Create a NEW ReaderViewJava instance for each chapter
+            // This prevents image caching/reuse between chapters
+            let chapterReaderJava = ReaderViewJava()
             
-            // Wait for images to load with better timeout handling
+            // Load chapter images with the fresh instance
+            chapterReaderJava.clearCache()
+            chapterReaderJava.loadChapter(url: url)
+            
+            // Wait for images to load with cancellation support
             var attempts = 0
-            while readerJava.isLoading && attempts < 180 { // 180 second timeout
-                try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+            while chapterReaderJava.isLoading && attempts < 180 {
+                // Check for cancellation
+                if Task.isCancelled || isPaused {
+                    print("Download cancelled during image loading for chapter \(task.chapter.formattedChapterNumber)")
+                    chapterReaderJava.stopLoading()
+                    return
+                }
+                
+                try await Task.sleep(nanoseconds: 1_000_000_000)
                 attempts += 1
                 
-                // If we have some images but loading is stuck, proceed
-                if readerJava.images.count > 0 && attempts > 30 {
-                    print("Proceeding with \(readerJava.images.count) images despite loading state")
+                if chapterReaderJava.images.count > 0 && attempts > 30 {
+                    print("Proceeding with \(chapterReaderJava.images.count) images despite loading state for chapter \(task.chapter.formattedChapterNumber)")
                     break
                 }
             }
             
-            // Check if we have images
-            if readerJava.images.isEmpty {
-                markDownloadFailed(task: task, error: readerJava.error ?? "No images found after \(attempts) seconds")
+            // Check for cancellation after loading
+            if Task.isCancelled || isPaused {
+                print("Download cancelled after image loading for chapter \(task.chapter.formattedChapterNumber)")
+                chapterReaderJava.stopLoading()
                 return
             }
             
-            let totalImages = readerJava.images.count
-            print("Starting download of \(totalImages) images")
+            // Check if we have images
+            if chapterReaderJava.images.isEmpty {
+                markDownloadFailed(task: task, error: chapterReaderJava.error ?? "No images found after \(attempts) seconds")
+                return
+            }
             
-            // Download images with better error handling
+            let totalImages = chapterReaderJava.images.count
+            print("Starting download of \(totalImages) images for chapter \(task.chapter.formattedChapterNumber)")
+            
+            // Download images with cancellation support
             var downloadedImages: [UIImage] = []
             var totalSize: Int64 = 0
             var failedDownloads = 0
             
-            for (index, image) in readerJava.images.enumerated() {
+            for (index, image) in chapterReaderJava.images.enumerated() {
+                // Check for cancellation frequently
+                if Task.isCancelled || isPaused {
+                    print("Download cancelled during image processing for chapter \(task.chapter.formattedChapterNumber)")
+                    return
+                }
+                
                 // Update progress
                 let progress = Double(index + 1) / Double(totalImages)
                 updateDownloadProgress(taskId: task.id, progress: progress)
                 
                 // Add small delay to avoid overwhelming the system
-                try await Task.sleep(nanoseconds: 50_000_000) // 0.05 second
+                try await Task.sleep(nanoseconds: 50_000_000)
+                
+                // Check cancellation again after sleep
+                if Task.isCancelled || isPaused {
+                    print("Download cancelled after sleep for chapter \(task.chapter.formattedChapterNumber)")
+                    return
+                }
                 
                 // Validate image
-                if image.size.width > 10 && image.size.height > 10 { // Basic validation
+                if image.size.width > 10 && image.size.height > 10 {
                     downloadedImages.append(image)
                     if let imageData = image.jpegData(compressionQuality: 0.8) {
                         totalSize += Int64(imageData.count)
                     }
-                    print("Downloaded image \(index + 1)/\(totalImages)")
+                    print("Downloaded image \(index + 1)/\(totalImages) for chapter \(task.chapter.formattedChapterNumber)")
                 } else {
                     failedDownloads += 1
-                    print("Skipping invalid image \(index + 1)")
+                    print("Skipping invalid image \(index + 1) for chapter \(task.chapter.formattedChapterNumber)")
                 }
+            }
+            
+            // Final cancellation check before saving
+            if Task.isCancelled || isPaused {
+                print("Download cancelled before saving for chapter \(task.chapter.formattedChapterNumber)")
+                return
             }
             
             // Check if we have enough valid images
             if downloadedImages.isEmpty {
-                markDownloadFailed(task: task, error: "No valid images could be downloaded")
+                markDownloadFailed(task: task, error: "No valid images could be downloaded for chapter \(task.chapter.formattedChapterNumber)")
                 return
             }
             
             if failedDownloads > 0 {
-                print("Downloaded \(downloadedImages.count)/\(totalImages) images (\(failedDownloads) failed)")
+                print("Downloaded \(downloadedImages.count)/\(totalImages) images (\(failedDownloads) failed) for chapter \(task.chapter.formattedChapterNumber)")
             }
             
             // Save chapter to storage
             saveDownloadedChapter(task: task, images: downloadedImages, totalSize: totalSize)
             
         } catch {
+            // If the error is cancellation, don't mark as failed
+            if error is CancellationError || isPaused {
+                print("Download task was cancelled for chapter \(task.chapter.formattedChapterNumber)")
+                return
+            }
             markDownloadFailed(task: task, error: error.localizedDescription)
         }
     }
@@ -307,8 +436,10 @@ class DownloadManager: ObservableObject {
             self.isDownloading = false
             self.saveDownloadState()
             
-            // Start next download
-            self.startNextDownload()
+            // Start next download only if not paused
+            if !self.isPaused {
+                self.startNextDownload()
+            }
         }
     }
     
@@ -329,8 +460,10 @@ class DownloadManager: ObservableObject {
             self.isDownloading = false
             self.saveDownloadState()
             
-            // Start next download
-            self.startNextDownload()
+            // Start next download only if not paused
+            if !self.isPaused {
+                self.startNextDownload()
+            }
         }
     }
     

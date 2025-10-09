@@ -42,10 +42,18 @@ class WebViewManager: NSObject, ObservableObject {
         webView.load(request)
     }
     
+    func stopLoading() {
+        print("WebViewManager: Stopping WebView loading")
+        webView?.stopLoading()
+        isLoading = false
+        error = "Download cancelled by user"
+    }
+    
     func clearCache() {
         webView?.stopLoading()
         webView = nil
         currentURL = nil
+        isLoading = false
         
         WKWebsiteDataStore.default().removeData(
             ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(),

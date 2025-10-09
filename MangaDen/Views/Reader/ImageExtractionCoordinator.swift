@@ -5,14 +5,6 @@
 //  Created by Brody Wells on 10/7/25.
 //
 
-
-//
-//  ImageExtractionCoordinator.swift
-//  MangaDen
-//
-//  Created by Brody Wells on 9/2/25.
-//
-
 import WebKit
 import UIKit
 
@@ -43,9 +35,13 @@ struct ExtractionResult {
 @MainActor
 class ImageExtractionCoordinator: ObservableObject {
     @Published var images: [UIImage] = []
-    
     private var extractionResults: [ExtractionResult] = []
     private let extractionStrategies = ImageExtractionStrategies()
+    
+    // MARK: - Cancellation Support
+    var isCancelled = false
+    private var currentExtractionTask: Task<Void, Never>?
+    private var currentDownloadTask: Task<Void, Never>?
     
     // MARK: - Image Cache (merged from ImageCacheManager)
     private var imageCache: [String: UIImage] = [:]
@@ -65,6 +61,9 @@ class ImageExtractionCoordinator: ObservableObject {
     // MARK: - Execute All Strategies
         
     func executeAllExtractionStrategies(webView: WKWebView, onComplete: @escaping (Bool) -> Void) {
+        // Reset cancellation state at start
+        isCancelled = false
+        
         let dispatchGroup = DispatchGroup()
         var strategyResults: [ExtractionResult] = []
         var completedStrategies = 0
@@ -79,19 +78,38 @@ class ImageExtractionCoordinator: ObservableObject {
         ]
         
         for (index, strategy) in strategies.enumerated() {
+            // Check for cancellation before starting each strategy
+            if isCancelled {
+                print("EXTRACTION: Cancellation detected - stopping strategy execution")
+                onComplete(false)
+                return
+            }
+            
             dispatchGroup.enter()
             print("EXTRACTION: Starting Strategy \(index + 1)")
             
             strategy(webView) { images in
-                strategyResults.append(ExtractionResult(strategy: index + 1, images: images))
-                completedStrategies += 1
-                print("EXTRACTION: Strategy \(index + 1) completed with \(images.count) images (completed: \(completedStrategies)/3)")
+                // Check for cancellation before processing results
+                if !self.isCancelled {
+                    strategyResults.append(ExtractionResult(strategy: index + 1, images: images))
+                    completedStrategies += 1
+                    print("EXTRACTION: Strategy \(index + 1) completed with \(images.count) images (completed: \(completedStrategies)/3)")
+                } else {
+                    print("EXTRACTION: Strategy \(index + 1) results ignored due to cancellation")
+                }
                 dispatchGroup.leave()
             }
         }
         
         dispatchGroup.notify(queue: .main) { [weak self] in
             guard let self = self else {
+                onComplete(false)
+                return
+            }
+            
+            // Check for cancellation before proceeding
+            if self.isCancelled {
+                print("EXTRACTION: Cancellation detected after strategies 1-3")
                 onComplete(false)
                 return
             }
@@ -111,19 +129,38 @@ class ImageExtractionCoordinator: ObservableObject {
             if shouldTryStrategy4 {
                 print("EXTRACTION: STRATEGY 4 TRIGGERED - No strategy found more than 10 images (max: \(maxImagesFromSingleStrategy))")
                 print("EXTRACTION: STARTING STRATEGY 4 - Page Menu Extraction")
-                self.extractionStrategies.attemptExtractionStrategy4(webView: webView) { strategy4Images in
-                    print("EXTRACTION: STRATEGY 4 COMPLETED - Found \(strategy4Images.count) images")
-                    strategyResults.append(ExtractionResult(strategy: 4, images: strategy4Images))
-                    
-                    let allImages = strategyResults.flatMap { $0.images }
-                    print("EXTRACTION: FINAL RESULTS - \(allImages.count) total images after Strategy 4")
-                    
-                    if allImages.isEmpty {
-                        print("EXTRACTION: No images found after all strategies")
+                
+                // Store Strategy 4 task for cancellation
+                self.currentExtractionTask = Task { [weak self] in
+                    // Check for cancellation before starting Strategy 4
+                    if Task.isCancelled || self?.isCancelled == true {
+                        print("EXTRACTION: Strategy 4 cancelled before starting")
                         onComplete(false)
-                    } else {
-                        print("EXTRACTION: Processing and downloading \(allImages.count) images")
-                        self.processAndDownloadImages(allImages, onComplete: onComplete)
+                        return
+                    }
+                    
+                    self?.extractionStrategies.attemptExtractionStrategy4(webView: webView, isCancelled: { [weak self] in
+                        return self?.isCancelled == true
+                    }) { strategy4Images in
+                        // Check for cancellation before processing Strategy 4 results
+                        if let self = self, !self.isCancelled {
+                            print("EXTRACTION: STRATEGY 4 COMPLETED - Found \(strategy4Images.count) images")
+                            strategyResults.append(ExtractionResult(strategy: 4, images: strategy4Images))
+                            
+                            let allImages = strategyResults.flatMap { $0.images }
+                            print("EXTRACTION: FINAL RESULTS - \(allImages.count) total images after Strategy 4")
+                            
+                            if allImages.isEmpty {
+                                print("EXTRACTION: No images found after all strategies")
+                                onComplete(false)
+                            } else {
+                                print("EXTRACTION: Processing and downloading \(allImages.count) images")
+                                self.processAndDownloadImages(allImages, onComplete: onComplete)
+                            }
+                        } else {
+                            print("EXTRACTION: Strategy 4 results ignored due to cancellation")
+                            onComplete(false)
+                        }
                     }
                 }
             } else {
@@ -144,6 +181,13 @@ class ImageExtractionCoordinator: ObservableObject {
     // MARK: - Image Processing
     
     private func processAndDownloadImages(_ imageInfos: [EnhancedImageInfo], onComplete: ((Bool) -> Void)? = nil) {
+        // Check for cancellation before starting
+        if isCancelled {
+            print("Image processing cancelled before starting")
+            onComplete?(false)
+            return
+        }
+        
         print("Processing \(imageInfos.count) images...")
         
         // MINIMAL FILTERING - only remove obviously broken images
@@ -364,11 +408,28 @@ class ImageExtractionCoordinator: ObservableObject {
     // MARK: - Retry Logic
     
     func attemptImageExtraction(attempt: Int, maxAttempts: Int, webView: WKWebView, onComplete: ((Bool) -> Void)? = nil) {
+        // Check for cancellation before starting retry
+        if isCancelled {
+            print("RETRY: Cancellation detected - stopping retry logic")
+            onComplete?(false)
+            return
+        }
+        
         let delay = Double(attempt) * 2.0
         
         print("RETRY: Attempt \(attempt) of \(maxAttempts) - waiting \(delay) seconds")
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+        // Store the retry task for cancellation
+        currentExtractionTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            
+            // Check for cancellation after sleep
+            if Task.isCancelled || self?.isCancelled == true {
+                print("RETRY: Cancellation detected during retry delay")
+                onComplete?(false)
+                return
+            }
+            
             guard let self = self else {
                 print("RETRY: Coordinator no longer available, stopping")
                 onComplete?(false)
@@ -391,10 +452,28 @@ class ImageExtractionCoordinator: ObservableObject {
         }
     }
     
+    func cancelAllOperations() {
+        isCancelled = true
+        currentExtractionTask?.cancel()
+        currentDownloadTask?.cancel()
+        print("ImageExtractionCoordinator: All operations cancelled")
+    }
+
+    func resetCancellation() {
+        isCancelled = false
+        print("ImageExtractionCoordinator: Cancellation state reset")
+    }
+    
     // MARK: - Download and Cache
     
     private func downloadImages(from imageInfos: [EnhancedImageInfo], onComplete: ((Bool) -> Void)? = nil) {
-        Task {
+        // Store the download task for cancellation
+        currentDownloadTask = Task { [weak self] in
+            guard let self = self else {
+                onComplete?(false)
+                return
+            }
+            
             var downloadedImages: [UIImage] = []
             let totalImages = imageInfos.count
             var successfulDownloads = 0
@@ -402,12 +481,18 @@ class ImageExtractionCoordinator: ObservableObject {
             print("DOWNLOAD: Starting download of \(totalImages) images")
             
             for (index, imageInfo) in imageInfos.enumerated() {
+                // Check for cancellation before each image download
+                if Task.isCancelled || self.isCancelled {
+                    print("DOWNLOAD: Cancellation detected during image download")
+                    break
+                }
+                
                 // Update download progress would be handled by the main coordinator
                 
                 print("DOWNLOAD: [\(index + 1)/\(totalImages)] Attempting: \(imageInfo.src)")
                 
                 // Check cache first using merged cache functionality
-                if let cachedImage = getCachedImage(for: imageInfo.src) {
+                if let cachedImage = self.getCachedImage(for: imageInfo.src) {
                     print("DOWNLOAD: [\(index + 1)] Using cached image")
                     downloadedImages.append(cachedImage)
                     successfulDownloads += 1
@@ -430,6 +515,12 @@ class ImageExtractionCoordinator: ObservableObject {
                     
                     let (data, response) = try await URLSession.shared.data(for: request)
                     
+                    // Check for cancellation after network request
+                    if Task.isCancelled || self.isCancelled {
+                        print("DOWNLOAD: Cancellation detected after network request")
+                        break
+                    }
+                    
                     // Check if we got a valid response
                     if let httpResponse = response as? HTTPURLResponse {
                         print("DOWNLOAD: [\(index + 1)] HTTP Status: \(httpResponse.statusCode)")
@@ -441,7 +532,7 @@ class ImageExtractionCoordinator: ObservableObject {
                                 continue // Skip this image
                             }
                             // Cache the downloaded image using merged cache functionality
-                            cacheImage(image, for: imageInfo.src)
+                            self.cacheImage(image, for: imageInfo.src)
                             downloadedImages.append(image)
                             successfulDownloads += 1
                             print("DOWNLOAD: [\(index + 1)] SUCCESS - Image size: \(image.size)")
@@ -452,6 +543,11 @@ class ImageExtractionCoordinator: ObservableObject {
                         print("DOWNLOAD: [\(index + 1)] FAILED - No HTTP response")
                     }
                 } catch {
+                    // Don't report cancellation as an error
+                    if error is CancellationError {
+                        print("DOWNLOAD: [\(index + 1)] Cancelled")
+                        break
+                    }
                     print("DOWNLOAD: [\(index + 1)] ERROR: \(error.localizedDescription)")
                 }
             }
@@ -466,7 +562,7 @@ class ImageExtractionCoordinator: ObservableObject {
                     print("DOWNLOAD: SUCCESS - Setting \(downloadedImages.count) images to display")
                     // Set images
                     self.images = downloadedImages
-                    onComplete?(true) 
+                    onComplete?(true)
                 }
             }
         }

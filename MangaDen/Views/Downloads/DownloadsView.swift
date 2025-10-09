@@ -10,163 +10,217 @@ import SwiftUI
 struct DownloadsView: View {
     @StateObject private var downloadManager = DownloadManager.shared
     @Environment(\.colorScheme) private var colorScheme
+    @State private var isClearingQueue = false
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 20) {
-                // Current Downloads Section
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack {
-                        Text("Downloading")
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                        
-                        Spacer()
-                        
-                        Button(action: {
-                            // Stop/Resume logic would go here
-                        }) {
-                            Image(systemName: downloadManager.isDownloading ? "stop.fill" : "play.fill")
-                                .font(.title2)
-                                .foregroundColor(.blue)
-                                .padding(10)
-                                .background(Color.blue.opacity(0.15))
-                                .clipShape(Circle())
-                        }
-                        
-                        Spacer()
-                        
-                        if !downloadManager.downloadQueue.isEmpty {
-                            Button("Clear All") {
-                                downloadManager.clearQueue()
-                            }
-                            .font(.caption)
-                            .foregroundColor(.red)
-                        }
-                        
-                    }
-                    
-                    if downloadManager.downloadQueue.isEmpty {
-                        Text("No active downloads")
-                            .foregroundColor(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .padding()
-                    } else {
-                        ScrollView {
-                            LazyVStack(spacing: 12) {
-                                ForEach(downloadManager.downloadQueue) { task in
-                                    DownloadTaskRow(task: task)
+            ZStack {
+                VStack(spacing: 20) {
+                    // Current Downloads Section
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            Text("Downloading")
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                            
+                            Spacer()
+                            
+                            // Stop/Resume button - only show when there are downloads in queue
+                            if !downloadManager.downloadQueue.isEmpty {
+                                Button(action: {
+                                    downloadManager.toggleDownloads()
+                                }) {
+                                    Image(systemName: downloadManager.pauseResumeIcon)
+                                        .font(.title2)
+                                        .foregroundColor(.white)
+                                        .padding(10)
+                                        .background(downloadManager.pauseResumeColor)
+                                        .clipShape(Circle())
                                 }
                             }
-                        }
-                        .frame(maxHeight: 200)
-                    }
-                }
-                .padding()
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(.systemGray6))
-                .cornerRadius(12)
-                
-                // Completed Downloads Section
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack {
-                        Text("Completed")
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                        
-                        Spacer()
-                        
-                        if !downloadManager.completedDownloads.isEmpty {
-                            Button("Clear All") {
-                                downloadManager.clearCompleted()
+                            
+                            Spacer()
+                            
+                            if !downloadManager.downloadQueue.isEmpty {
+                                Button("Clear All") {
+                                    clearQueueWithLoading()
+                                }
+                                .font(.caption)
+                                .foregroundColor(.red)
+                                .disabled(isClearingQueue)
                             }
-                            .font(.caption)
-                            .foregroundColor(.red)
                         }
-                    }
-                    
-                    if downloadManager.completedDownloads.isEmpty {
-                        Text("No completed downloads")
-                            .foregroundColor(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .padding()
-                    } else {
-                        ScrollView {
-                            LazyVStack(spacing: 8) {
-                                ForEach(downloadManager.completedDownloads) { task in
-                                    CompletedDownloadRow(task: task)
+                        
+                        if downloadManager.downloadQueue.isEmpty {
+                            Text("No active downloads")
+                                .foregroundColor(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .padding()
+                        } else {
+                            ScrollView {
+                                LazyVStack(spacing: 12) {
+                                    ForEach(downloadManager.downloadQueue) { task in
+                                        DownloadTaskRow(task: task, isPaused: downloadManager.isPaused)
+                                    }
                                 }
                             }
-                        }
-                        .frame(maxHeight: 150)
-                    }
-                }
-                .padding()
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(.systemGray6))
-                .cornerRadius(12)
-                
-                // Failed Downloads Section
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack {
-                        Text("Failed")
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                        
-                        Spacer()
-                        
-                        if !downloadManager.failedDownloads.isEmpty {
-                            Button("Clear All") {
-                                downloadManager.clearFailed()
-                            }
-                            .font(.caption)
-                            .foregroundColor(.red)
+                            .frame(maxHeight: 200)
                         }
                     }
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(12)
                     
-                    if downloadManager.failedDownloads.isEmpty {
-                        Text("No failed downloads")
-                            .foregroundColor(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .padding()
-                    } else {
-                        ScrollView {
-                            LazyVStack(spacing: 8) {
-                                ForEach(downloadManager.failedDownloads) { task in
-                                    FailedDownloadRow(task: task)
+                    // Completed Downloads Section
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            Text("Completed")
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                            
+                            Spacer()
+                            
+                            if !downloadManager.completedDownloads.isEmpty {
+                                Button("Clear All") {
+                                    downloadManager.clearCompleted()
+                                }
+                                .font(.caption)
+                                .foregroundColor(.red)
+                            }
+                        }
+                        
+                        if downloadManager.completedDownloads.isEmpty {
+                            Text("No completed downloads")
+                                .foregroundColor(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .padding()
+                        } else {
+                            ScrollView {
+                                LazyVStack(spacing: 8) {
+                                    ForEach(downloadManager.completedDownloads) { task in
+                                        CompletedDownloadRow(task: task)
+                                    }
                                 }
                             }
+                            .frame(maxHeight: 150)
                         }
-                        .frame(maxHeight: 150)
                     }
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(12)
+                    
+                    // Failed Downloads Section
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            Text("Failed")
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                            
+                            Spacer()
+                            
+                            if !downloadManager.failedDownloads.isEmpty {
+                                Button("Clear All") {
+                                    downloadManager.clearFailed()
+                                }
+                                .font(.caption)
+                                .foregroundColor(.red)
+                            }
+                        }
+                        
+                        if downloadManager.failedDownloads.isEmpty {
+                            Text("No failed downloads")
+                                .foregroundColor(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .padding()
+                        } else {
+                            ScrollView {
+                                LazyVStack(spacing: 8) {
+                                    ForEach(downloadManager.failedDownloads) { task in
+                                        FailedDownloadRow(task: task)
+                                    }
+                                }
+                            }
+                            .frame(maxHeight: 150)
+                        }
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(12)
+                    
+                    Spacer()
                 }
                 .padding()
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(.systemGray6))
-                .cornerRadius(12)
+                .navigationTitle("Downloads")
+                .background(Color(.systemGroupedBackground))
+                .blur(radius: isClearingQueue ? 3 : 0)
+                .allowsHitTesting(!isClearingQueue)
                 
-                Spacer()
+                // Loading Popup
+                if isClearingQueue {
+                    Color.black.opacity(0.4)
+                        .edgesIgnoringSafeArea(.all)
+                        .transition(.opacity)
+                    
+                    VStack(spacing: 20) {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .scaleEffect(1.5)
+                        
+                        Text("Clearing queue...")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                    }
+                    .padding(30)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color(.systemGray2))
+                    )
+                    .transition(.scale.combined(with: .opacity))
+                }
             }
-            .padding()
-            .navigationTitle("Downloads")
-            .background(Color(.systemGroupedBackground))
         }
         .navigationViewStyle(StackNavigationViewStyle())
     }
+    
+    private func clearQueueWithLoading() {
+        isClearingQueue = true
+        
+        // Use a small delay to ensure the UI updates before the clearing operation
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            downloadManager.clearQueue()
+            
+            // Hide the loading popup after a brief delay to ensure the operation is complete
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                isClearingQueue = false
+            }
+        }
+    }
 }
 
-// Download Task Row Views
+// Download Task Row Views (remain unchanged)
 struct DownloadTaskRow: View {
     let task: DownloadTask
+    let isPaused: Bool
     @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Chapter \(task.chapter.formattedChapterNumber)")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundColor(.primary)
+                HStack {
+                    Text("Chapter \(task.chapter.formattedChapterNumber)")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(.primary)
+                    
+                    if isPaused && task.status == .downloading {
+                        Image(systemName: "pause.circle.fill")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                    }
+                }
                 
                 if let title = task.chapter.title {
                     Text(title)
@@ -175,18 +229,31 @@ struct DownloadTaskRow: View {
                 }
                 
                 // Progress bar
-                ProgressView(value: task.progress, total: 1.0)
-                    .progressViewStyle(LinearProgressViewStyle())
-                    .frame(height: 4)
+                if !isPaused || task.status != .downloading {
+                    ProgressView(value: task.progress, total: 1.0)
+                        .progressViewStyle(LinearProgressViewStyle())
+                        .frame(height: 4)
+                } else {
+                    // Show paused progress bar
+                    ProgressView(value: task.progress, total: 1.0)
+                        .progressViewStyle(LinearProgressViewStyle(tint: .orange))
+                        .frame(height: 4)
+                }
                 
                 HStack {
-                    Text("\(Int(task.progress * 100))%")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
+                    if isPaused && task.status == .downloading {
+                        Text("Paused")
+                            .font(.caption2)
+                            .foregroundColor(.orange)
+                    } else {
+                        Text("\(Int(task.progress * 100))%")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
                     
                     Spacer()
                     
-                    if let remaining = task.estimatedTimeRemaining, remaining > 0 {
+                    if let remaining = task.estimatedTimeRemaining, remaining > 0 && !isPaused {
                         Text("ETA: \(formatTime(remaining))")
                             .font(.caption2)
                             .foregroundColor(.secondary)
