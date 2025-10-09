@@ -363,7 +363,7 @@ extension Notification.Name {
     static let titleAddedToLibrary = Notification.Name("titleAddedToLibrary")
 }
 
-// MARK: - Help View (unchanged)
+// MARK: - Help View
 
 struct TitleHelpView: View {
     @State private var showCopiedAlert = false
@@ -469,13 +469,11 @@ struct TitleHelpView: View {
                     .alert("Copied to Clipboard", isPresented: $showCopiedAlert) {
                         Button("OK", role: .cancel) { }
                     } message: {
-                        Text("MangaDen email has been copied to your clipboard.")
+                        Text("Team email has been copied to your clipboard.")
                     }
                 }
                 .padding()
             }
-            .navigationTitle("Help")
-            .navigationBarTitleDisplayMode(.inline)
         }
     }
     
@@ -513,5 +511,5 @@ struct TitleHelpView: View {
 }
 
 #Preview {
-    AddTitleView()
+    TitleHelpView()
 }

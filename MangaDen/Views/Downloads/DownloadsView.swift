@@ -287,9 +287,19 @@ struct DownloadsHelpView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
                         .padding(.bottom, 20)
+                    
+                    // Tip
+                    Text("Tip:")
+                        .padding(-4)
+                        .font(.title3)
+                        .bold()
+                        .underline()
+                        .tracking(1.5)
+                    Text("• Swipe down from the top of the page to exit pages such as this one or the In-App browser")
                 }
                 .padding()
             }
+            .padding(15)
         }
     }
 }

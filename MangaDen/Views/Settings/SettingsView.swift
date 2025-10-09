@@ -327,29 +327,19 @@ struct SettingsHelpView: View {
                     Text("Settings Guide")
                         .font(.title)
                         .bold()
-                        .underline()
                         .padding(.bottom, 20)
                     
-                    Text("**Display Settings**")
-                        .font(.headline)
+                    Text("**User Preferences**")
+                        .font(.title2)
+                        .underline()
                         .frame(maxWidth: .infinity, alignment: .center)
+                    
                     Text("**Dark Mode:** Toggle between light and dark app appearance.")
                         .frame(maxWidth: .infinity, alignment: .center)
                     
-                    //Divider
-                    Rectangle()
-                        .frame(height: 1)
-                        .foregroundColor(.gray.opacity(0.3))
-                        .frame(width: UIScreen.main.bounds.width * 0.6)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                    
-                    
-                    Text("**User Preferences**")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity, alignment: .center)
                     Text("**Reading Direction**: Choose between Left to Right (L to R) or Right to Left (L to R) reading direction.")
                         .frame(maxWidth: .infinity, alignment: .center)
+                    
                     
                     //Divider
                     Rectangle()
@@ -361,7 +351,8 @@ struct SettingsHelpView: View {
                     
                     
                     Text("**Manage Storage**")
-                        .font(.headline)
+                        .font(.title2)
+                        .underline()
                         .frame(maxWidth: .infinity, alignment: .center)
                     Text("**Uninstall All Downloads**: Remove all downloaded chapters from your device to free up storage space.")
                     
@@ -381,11 +372,11 @@ struct SettingsHelpView: View {
                     Text("Title Guide")
                         .font(.title)
                         .bold()
-                        .underline()
                         .padding(.bottom, 20)
                     
                     Text("**Refresh Title**")
-                        .font(.headline)
+                        .font(.title3)
+                        .italic()
                         .frame(maxWidth: .infinity, alignment: .center)
                     Text("Checks for new chapters.")
                         .frame(maxWidth: .infinity, alignment: .center)
@@ -400,7 +391,8 @@ struct SettingsHelpView: View {
                     
 
                     Text("**Edit Title Info**")
-                        .font(.headline)
+                        .font(.title3)
+                        .italic()
                         .frame(maxWidth: .infinity, alignment: .center)
                     Text("Modify the title, author, status, or cover image.")
                         .frame(maxWidth: .infinity, alignment: .center)
@@ -415,10 +407,12 @@ struct SettingsHelpView: View {
                     
 
                     Text("**Download Chapters**")
-                        .font(.headline)
+                        .font(.title3)
+                        .italic()
                         .frame(maxWidth: .infinity, alignment: .center)
                     Text("Download multiple chapters for offline reading.")
                         .frame(maxWidth: .infinity, alignment: .center)
+                        .multilineTextAlignment(.center)
                     
                     //Divider
                     Rectangle()
@@ -430,7 +424,8 @@ struct SettingsHelpView: View {
                     
 
                     Text("**Manage Chapters**")
-                        .font(.headline)
+                        .font(.title3)
+                        .italic()
                         .frame(maxWidth: .infinity, alignment: .center)
                     Text("Uninstall downloaded chapters or hide chapters from the list.")
                         .multilineTextAlignment(.center)
@@ -446,7 +441,8 @@ struct SettingsHelpView: View {
                     
 
                     Text("**Archive Title**")
-                        .font(.headline)
+                        .font(.title3)
+                        .italic()
                         .frame(maxWidth: .infinity, alignment: .center)
                     Text("Moves the title from the Reading section to the Archive section.")
                         .multilineTextAlignment(.center)
@@ -461,9 +457,11 @@ struct SettingsHelpView: View {
                         .padding(.vertical, 8)
 
                     Text("**Delete Title**")
-                        .font(.headline)
+                        .font(.title3)
+                        .italic()
                         .frame(maxWidth: .infinity, alignment: .center)
                     Text("Permanently removes the title from your library.")
+                        .multilineTextAlignment(.center)
                         .frame(maxWidth: .infinity, alignment: .center)
                     
                     //Divider
@@ -475,8 +473,8 @@ struct SettingsHelpView: View {
                         .padding(.vertical, 8)
                         .padding(.bottom, 20)
                     
-                    // Tips
-                    Text("Tips:")
+                    // Tip
+                    Text("Tip:")
                         .padding(-4)
                         .font(.title3)
                         .bold()
@@ -487,8 +485,8 @@ struct SettingsHelpView: View {
                 }
                 .padding()
             }
-            .navigationTitle("Help")
-            .navigationBarTitleDisplayMode(.inline)
+            .padding(15)
+
         }
     }
 }
