@@ -319,6 +319,8 @@ struct SettingsView: View {
 
 // MARK: Settings Help View
 struct SettingsHelpView: View {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    
     var body: some View {
         NavigationView {
             ScrollView {
@@ -337,20 +339,16 @@ struct SettingsHelpView: View {
                     Text("**Dark Mode**").font(.system(size: 20)).italic() + Text(": Toggle between light and dark app appearance.")
                         .font(.system(size: 20))
 
-
                     Text("**Reading Direction**").font(.system(size: 20)).italic() + Text(": Choose between Left to Right (L to R) or Right to Left (L to R) reading direction.")
                         .font(.system(size: 20))
-
-                    
                     
                     //Divider
                     Rectangle()
                         .frame(height: 1)
                         .foregroundColor(.gray.opacity(0.3))
-                        .frame(width: UIScreen.main.bounds.width * 0.6)
+                        .frame(maxWidth: 400)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
-                    
                     
                     Text("**Manage Storage**")
                         .font(.title2)
@@ -359,17 +357,14 @@ struct SettingsHelpView: View {
                     Text("**Uninstall All Downloads**").font(.system(size: 20)).italic() + Text(": Remove all downloaded chapters from your device to free up storage space.")
                         .font(.system(size: 20))
                     
-                    
                     //Divider
                     Rectangle()
                         .frame(height: 1)
                         .foregroundColor(.gray.opacity(0.3))
-                        .frame(width: UIScreen.main.bounds.width * 0.6)
+                        .frame(maxWidth: 400)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
                         .padding(.bottom, 20)
-                    
-                    
                     
                     // Title Guide
                     Text("Title Guide")
@@ -389,11 +384,10 @@ struct SettingsHelpView: View {
                     Rectangle()
                         .frame(height: 1)
                         .foregroundColor(.gray.opacity(0.3))
-                        .frame(width: UIScreen.main.bounds.width * 0.6)
+                        .frame(maxWidth: 400)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
                     
-
                     Text("**Edit Title Info**")
                         .font(.title3)
                         .italic()
@@ -407,11 +401,10 @@ struct SettingsHelpView: View {
                     Rectangle()
                         .frame(height: 1)
                         .foregroundColor(.gray.opacity(0.3))
-                        .frame(width: UIScreen.main.bounds.width * 0.6)
+                        .frame(maxWidth: 400)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
                     
-
                     Text("**Download Chapters**")
                         .font(.title3)
                         .italic()
@@ -425,11 +418,10 @@ struct SettingsHelpView: View {
                     Rectangle()
                         .frame(height: 1)
                         .foregroundColor(.gray.opacity(0.3))
-                        .frame(width: UIScreen.main.bounds.width * 0.6)
+                        .frame(maxWidth: 400)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
                     
-
                     Text("**Manage Chapters**")
                         .font(.title3)
                         .italic()
@@ -443,11 +435,10 @@ struct SettingsHelpView: View {
                     Rectangle()
                         .frame(height: 1)
                         .foregroundColor(.gray.opacity(0.3))
-                        .frame(width: UIScreen.main.bounds.width * 0.6)
+                        .frame(maxWidth: 400)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
                     
-
                     Text("**Archive Title**")
                         .font(.title3)
                         .italic()
@@ -461,7 +452,7 @@ struct SettingsHelpView: View {
                     Rectangle()
                         .frame(height: 1)
                         .foregroundColor(.gray.opacity(0.3))
-                        .frame(width: UIScreen.main.bounds.width * 0.6)
+                        .frame(maxWidth: 400)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
 
@@ -478,7 +469,7 @@ struct SettingsHelpView: View {
                     Rectangle()
                         .frame(height: 1)
                         .foregroundColor(.gray.opacity(0.3))
-                        .frame(width: UIScreen.main.bounds.width * 0.6)
+                        .frame(maxWidth: 400)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
                         .padding(.bottom, 20)
@@ -493,12 +484,12 @@ struct SettingsHelpView: View {
                     Text("• Swipe down from the top of the page to exit pages such as this one or the In-App browser")
                         .font(.system(size: 18))
                         .tracking(1.0)
-                    
                 }
                 .padding()
+                .frame(maxWidth: .infinity)
             }
-            .padding(15)
-
+            .padding(.horizontal, horizontalSizeClass == .regular ? 20 : 15)
+            .frame(maxWidth: horizontalSizeClass == .regular ? 800 : .infinity)
         }
     }
 }

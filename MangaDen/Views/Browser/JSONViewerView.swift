@@ -70,14 +70,9 @@ struct JSONViewerView: View {
                     .listStyle(PlainListStyle())
                 }
             }
-            .navigationTitle("Manga Chapters")
+            .navigationTitle("Current Title")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Copy All") {
-                        UIPasteboard.general.string = jsonContent
-                    }
-                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Refresh") {
                         loadJSON()

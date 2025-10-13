@@ -75,7 +75,7 @@ struct ContentView: View {
     private func tabIcon(for index: Int) -> String {
         switch index {
         case 0: return "books.vertical"
-        case 1: return "arrow.down.circle"
+        case 1: return "square.and.arrow.down"
         case 2: return "gearshape"
         default: return "circle"
         }
@@ -108,12 +108,14 @@ struct TabButton: View {
                 Image(systemName: icon)
                     .font(.system(size: 22, weight: isSelected ? .bold : .medium))
                     .frame(height: 24)
+                    .offset(y: -2)
                 
                 Text(label)
                     .font(.system(size: 12, weight: isSelected ? .bold : .medium))
                     .multilineTextAlignment(.center)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
+                    .offset(y: -2)
             }
             .foregroundColor(isSelected ? .white : (isDarkMode ? .white.opacity(0.7) : .white.opacity(0.6)))
             .frame(maxWidth: .infinity)

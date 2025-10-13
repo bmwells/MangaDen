@@ -21,7 +21,7 @@ struct AddTitleView: View {
         NavigationView {
             VStack(spacing: 20) {
                 Text("Add Title to Library")
-                    .font(.title)
+                    .font(.system(size: 40))
                     .padding(.top, 30)
                 
                 Spacer()
@@ -64,7 +64,7 @@ struct AddTitleView: View {
                     .font(.title)
                     .tracking(2.0)
                     .foregroundColor(.white)
-                    .frame(width: 150, height: 40)
+                    .frame(width: 120, height: 47)
                     .background(urlText.isEmpty ? Color.gray : Color.blue)
                     .cornerRadius(8)
                     .padding(.horizontal)
@@ -76,7 +76,7 @@ struct AddTitleView: View {
                 // OR divider
                 Text("OR")
                     .font(.title)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.primary)
                     .tracking(3.0)
                 
                 Spacer()
@@ -373,7 +373,7 @@ struct TitleHelpView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     Text("How to Add Titles")
                         .underline()
-                        .font(.title)
+                        .font(.system(size: 40))
                         .bold()
                         .frame(maxWidth: .infinity, alignment: .center)
                     
@@ -393,7 +393,7 @@ struct TitleHelpView: View {
                     }
                     
                     Text("In-App Browser Guide")
-                        .font(.title2)
+                        .font(.title)
                         .bold()
                         .underline()
                         .padding(.bottom, 5)
@@ -429,7 +429,7 @@ struct TitleHelpView: View {
                     .padding(.top, -5)
                     
                     Text("Supported Sites")
-                        .font(.title3)
+                        .font(.title)
                         .bold()
                         .underline()
                         .padding(.bottom, 20)
@@ -446,17 +446,17 @@ struct TitleHelpView: View {
 
                     Text("Tips:")
                         .padding(-4)
-                        .font(.title3)
+                        .font(.title2)
                         .bold()
                         .underline()
                         .tracking(1.5)
-                    Text("• Swipe down from the top of the page to exit pages such as this one or the In-App browser")
-                        .font(.system(size: 18))
-                        .tracking(0.8)
                     Text("• If you don't see a title you'd like to read on one of the supported sites, try Googling 'read [TITLE] online' as there are typically sites that exclusively host that title and are usually compatible with the app.")
                         .font(.system(size: 18))
                         .tracking(0.8)
                     Text("• If you would like a site to become compatible, request it by copying the email below and sending a message to our team.")
+                        .font(.system(size: 18))
+                        .tracking(0.8)
+                    Text("• Swipe down from the top of the page to exit pages such as this one or the In-App browser")
                         .font(.system(size: 18))
                         .tracking(0.8)
                     

@@ -61,7 +61,10 @@ struct LibraryView: View {
                             .font(.system(size: 28, weight: .medium))
                             .foregroundColor(.accentColor)
                             .padding(8)
-                            .offset(x: 0, y: -15)
+                            .offset(
+                                x: UIDevice.current.userInterfaceIdiom == .pad ? 10 : 0,
+                                y: UIDevice.current.userInterfaceIdiom == .pad ? 0 : -10
+                            )
                     }
                     .sheet(isPresented: $showAddManga) { AddTitleView() }
                     
@@ -94,7 +97,10 @@ struct LibraryView: View {
                             .font(.system(size: 25, weight: .medium))
                             .foregroundColor(.accentColor)
                             .padding(8)
-                            .offset(x: 0, y: -15)
+                            .offset(
+                                x: UIDevice.current.userInterfaceIdiom == .pad ? -10 : 0,
+                                y: UIDevice.current.userInterfaceIdiom == .pad ? 0 : -10
+                            )
                     }
                 }
                 .padding(.horizontal)

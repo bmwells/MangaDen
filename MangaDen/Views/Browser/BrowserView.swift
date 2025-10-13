@@ -81,11 +81,14 @@ struct BrowserView: View {
                     loadURL()
                 })
                 .textFieldStyle(RoundedBorderTextFieldStyle())
-                .keyboardType(.URL)
+                .keyboardType(.webSearch)
                 .autocapitalization(.none)
                 .disableAutocorrection(true)
                 .focused($isURLFieldFocused)
                 .submitLabel(.go)
+                .onSubmit {
+                        loadURL()
+                    }
 
                 // Go Button
                 Button(action: {
@@ -180,7 +183,7 @@ struct BrowserView: View {
             
             // Load a default page if no URL is specified
             if urlString.isEmpty {
-                urlString = "https://batcave.biz/9254-batman-year-one.html#chapters"
+                urlString = "https://google.com"
                 loadURL()
             }
             // Load existing chapter data if available

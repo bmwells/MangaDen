@@ -696,7 +696,7 @@ struct ReaderView: View {
         print("Chapter is downloaded: \(isDownloaded)")
         print("hasRestoredFromBookmark: \(hasRestoredFromBookmark)")
         
-        // NEW: Check if we have a bookmarked page for this chapter
+        // Check if we have a bookmarked page for this chapter
         if let bookmarkedPage = loadBookmarkFromUserDefaults(), !hasRestoredFromBookmark {
             print("Attempting to restore from bookmark: page \(bookmarkedPage)")
             

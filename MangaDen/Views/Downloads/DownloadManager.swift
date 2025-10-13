@@ -455,7 +455,7 @@ class DownloadManager: ObservableObject {
             completedTask.fileSize = fileSize // Set the file size here
             
             self.downloadQueue.remove(at: index)
-            self.completedDownloads.append(completedTask)
+            self.completedDownloads.insert(completedTask, at: 0) // Add to the beginning of the array
             
             // Update chapter status in title
             self.updateChapterDownloadStatus(chapterId: task.chapter.id, isDownloaded: true, fileSize: fileSize)

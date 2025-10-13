@@ -16,9 +16,9 @@ struct DownloadsView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                VStack(spacing: 20) {
+                VStack(spacing: 12) {
                     // Current Downloads Section
-                    VStack(alignment: .leading, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 8) { 
                         HStack {
                             Text("Downloading")
                                 .font(.headline)
@@ -32,9 +32,9 @@ struct DownloadsView: View {
                                     downloadManager.toggleDownloads()
                                 }) {
                                     Image(systemName: downloadManager.pauseResumeIcon)
-                                        .font(.title2)
+                                        .font(.title)
                                         .foregroundColor(.white)
-                                        .padding(10)
+                                        .padding(12)
                                         .background(downloadManager.pauseResumeColor)
                                         .clipShape(Circle())
                                 }
@@ -46,7 +46,7 @@ struct DownloadsView: View {
                                 Button("Clear All") {
                                     clearQueueWithLoading()
                                 }
-                                .font(.caption)
+                                .font(.subheadline)
                                 .foregroundColor(.red)
                                 .disabled(isClearingQueue)
                             }
@@ -59,22 +59,23 @@ struct DownloadsView: View {
                                 .padding()
                         } else {
                             ScrollView {
-                                LazyVStack(spacing: 12) {
+                                LazyVStack(spacing: 8) { 
                                     ForEach(downloadManager.downloadQueue) { task in
                                         DownloadTaskRow(task: task, isPaused: downloadManager.isPaused)
                                     }
                                 }
                             }
-                            .frame(maxHeight: 200)
+                            .frame(maxHeight: 256)
                         }
                     }
-                    .padding()
+                    .padding(.horizontal, 12) 
+                    .padding(.vertical, 2) 
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(Color(.systemGray6))
                     .cornerRadius(12)
                     
                     // Completed Downloads Section
-                    VStack(alignment: .leading, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 8) { 
                         HStack {
                             Text("Completed")
                                 .font(.headline)
@@ -86,7 +87,7 @@ struct DownloadsView: View {
                                 Button("Clear All") {
                                     downloadManager.clearCompleted()
                                 }
-                                .font(.caption)
+                                .font(.subheadline)
                                 .foregroundColor(.red)
                             }
                         }
@@ -98,7 +99,7 @@ struct DownloadsView: View {
                                 .padding()
                         } else {
                             ScrollView {
-                                LazyVStack(spacing: 8) {
+                                LazyVStack(spacing: 6) { 
                                     ForEach(downloadManager.completedDownloads) { task in
                                         CompletedDownloadRow(task: task)
                                     }
@@ -107,53 +108,49 @@ struct DownloadsView: View {
                             .frame(maxHeight: 150)
                         }
                     }
-                    .padding()
+                    .padding(.horizontal, 12) 
+                    .padding(.vertical, 8) 
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(Color(.systemGray6))
                     .cornerRadius(12)
                     
-                    // Failed Downloads Section
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack {
-                            Text("Failed")
-                                .font(.headline)
-                                .foregroundColor(.primary)
-                            
-                            Spacer()
-                            
-                            if !downloadManager.failedDownloads.isEmpty {
+                    // Failed Downloads Section - Only show when there are failed downloads
+                    if !downloadManager.failedDownloads.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) { 
+                            HStack {
+                                Text("Failed")
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                
+                                Spacer()
+                                
                                 Button("Clear All") {
                                     downloadManager.clearFailed()
                                 }
-                                .font(.caption)
+                                .font(.subheadline)
                                 .foregroundColor(.red)
                             }
-                        }
-                        
-                        if downloadManager.failedDownloads.isEmpty {
-                            Text("No failed downloads")
-                                .foregroundColor(.secondary)
-                                .frame(maxWidth: .infinity, alignment: .center)
-                                .padding()
-                        } else {
+                            
                             ScrollView {
-                                LazyVStack(spacing: 8) {
+                                LazyVStack(spacing: 6) { 
                                     ForEach(downloadManager.failedDownloads) { task in
                                         FailedDownloadRow(task: task)
                                     }
                                 }
                             }
-                            .frame(maxHeight: 150)
+                            .frame(maxHeight: 65)
                         }
+                        .padding(.horizontal, 12) 
+                        .padding(.vertical, 8) 
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color(.systemGray6))
+                        .cornerRadius(12)
                     }
-                    .padding()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color(.systemGray6))
-                    .cornerRadius(12)
                     
                     Spacer()
                 }
-                .padding()
+                .padding(.horizontal, 8) 
+                .padding(.vertical, -30)
                 .toolbar {
                     // Page title
                     ToolbarItem(placement: .principal) {
@@ -225,6 +222,8 @@ struct DownloadsView: View {
 
 // MARK: Downloads Help View
 struct DownloadsHelpView: View {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    
     var body: some View {
         NavigationView {
             ScrollView {
@@ -249,7 +248,7 @@ struct DownloadsHelpView: View {
                     Rectangle()
                         .frame(height: 1)
                         .foregroundColor(.gray.opacity(0.3))
-                        .frame(width: UIScreen.main.bounds.width * 0.6)
+                        .frame(maxWidth: 400) // Changed from fixed width to maxWidth
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
                     
@@ -266,7 +265,7 @@ struct DownloadsHelpView: View {
                     Rectangle()
                         .frame(height: 1)
                         .foregroundColor(.gray.opacity(0.3))
-                        .frame(width: UIScreen.main.bounds.width * 0.6)
+                        .frame(maxWidth: 400)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
                     
@@ -283,7 +282,7 @@ struct DownloadsHelpView: View {
                     Rectangle()
                         .frame(height: 1)
                         .foregroundColor(.gray.opacity(0.3))
-                        .frame(width: UIScreen.main.bounds.width * 0.6)
+                        .frame(maxWidth: 400)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
                         .padding(.bottom, 20)
@@ -291,7 +290,7 @@ struct DownloadsHelpView: View {
                     // Tips
                     Text("Tips:")
                         .padding(-4)
-                        .font(.title3)
+                        .font(.title2)
                         .bold()
                         .underline()
                         .tracking(1.5)
@@ -303,26 +302,78 @@ struct DownloadsHelpView: View {
                         .tracking(1.0)
                 }
                 .padding()
+                .frame(maxWidth: .infinity) // Ensure content uses available width
             }
-            .padding(15)
+            .padding(.horizontal, horizontalSizeClass == .regular ? 20 : 15) // Only horizontal padding
+            .frame(maxWidth: horizontalSizeClass == .regular ? 800 : .infinity) // Wider on iPad
         }
     }
 }
+
+// Load series title of chapter for view
+private func loadSeriesTitle(for chapterId: UUID, completion: @escaping (String) -> Void) {
+    Task {
+        let seriesTitle = await findSeriesTitle(for: chapterId)
+        DispatchQueue.main.async {
+            completion(seriesTitle)
+        }
+    }
+}
+
+private func findSeriesTitle(for chapterId: UUID) async -> String {
+    do {
+        let fileManager = FileManager.default
+        guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            return ""
+        }
+        
+        let titlesDirectory = documentsDirectory.appendingPathComponent("Titles")
+        let titleFiles = try fileManager.contentsOfDirectory(at: titlesDirectory, includingPropertiesForKeys: nil)
+        
+        for file in titleFiles where file.pathExtension == "json" {
+            do {
+                let data = try Data(contentsOf: file)
+                let title = try JSONDecoder().decode(Title.self, from: data)
+                
+                if title.chapters.contains(where: { $0.id == chapterId }) {
+                    return title.title
+                }
+            } catch {
+                print("Error loading title for chapter: \(error)")
+            }
+        }
+    } catch {
+        print("Error accessing title files: \(error)")
+    }
+    return ""
+}
+
 
 // Download Task Row Views
 struct DownloadTaskRow: View {
     let task: DownloadTask
     let isPaused: Bool
     @Environment(\.colorScheme) private var colorScheme
+    @State private var seriesTitle: String = ""
     
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
-                    Text("Chapter \(task.chapter.formattedChapterNumber)")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundColor(.primary)
+                    if let title = task.chapter.title {
+                        Text(title)
+                            .font(.body)
+                            .fontWeight(.medium)
+                            .foregroundColor(.primary)
+                            .lineLimit(1)
+                    }
+                    
+                    if !seriesTitle.isEmpty {
+                        Text(seriesTitle)
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .italic()
+                    }
                     
                     if isPaused && task.status == .downloading {
                         Image(systemName: "pause.circle.fill")
@@ -330,12 +381,7 @@ struct DownloadTaskRow: View {
                             .foregroundColor(.orange)
                     }
                 }
-                
-                if let title = task.chapter.title {
-                    Text(title)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
+            
                 
                 // Progress bar
                 if !isPaused || task.status != .downloading {
@@ -382,6 +428,11 @@ struct DownloadTaskRow: View {
         .background(Color(.systemBackground))
         .cornerRadius(8)
         .shadow(color: .black.opacity(colorScheme == .dark ? 0.3 : 0.1), radius: 2, x: 0, y: 1)
+        .onAppear {
+            loadSeriesTitle(for: task.chapter.id) { title in
+                seriesTitle = title
+            }
+        }
     }
     
     private func formatTime(_ timeInterval: TimeInterval) -> String {
@@ -395,46 +446,63 @@ struct DownloadTaskRow: View {
 struct CompletedDownloadRow: View {
     let task: DownloadTask
     @Environment(\.colorScheme) private var colorScheme
+    @State private var seriesTitle: String = ""
     
     var body: some View {
         HStack {
             Image(systemName: "checkmark.circle.fill")
                 .foregroundColor(.green)
-                .font(.caption)
+                .font(.body)
             
             VStack(alignment: .leading, spacing: 2) {
-                Text("Chapter \(task.chapter.formattedChapterNumber)")
-                    .font(.subheadline)
-                    .foregroundColor(.primary)
                 
-                if let title = task.chapter.title {
-                    Text(title)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                // CHAPTER TITLE
+                if let chapterTitle = task.chapter.title, !chapterTitle.isEmpty {
+                    Text(chapterTitle)
+                        .font(.body)
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
                 }
                 
-                // Use the fileSize from the DownloadTask instead of the chapter
-                if task.fileSize > 0 {
-                    Text(formatFileSize(task.fileSize))
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                } else if let chapterFileSize = task.chapter.fileSize, chapterFileSize > 0 {
-                    Text(formatFileSize(chapterFileSize))
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
+                // SERIES TITLE AND FILE SIZE ON SAME LINE
+                HStack(spacing: 4) {
+                    if !seriesTitle.isEmpty {
+                        Text(seriesTitle)
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .italic()
+                    }
+                    
+                    if !seriesTitle.isEmpty && (task.fileSize > 0 || task.chapter.fileSize ?? 0 > 0) {
+                        Text(" - ")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    if task.fileSize > 0 {
+                        Text(formatFileSize(task.fileSize))
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    } else if let chapterFileSize = task.chapter.fileSize, chapterFileSize > 0 {
+                        Text(formatFileSize(chapterFileSize))
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
                 }
             }
             
             Spacer()
-            
-            Text("Completed")
-                .font(.caption)
-                .foregroundColor(.green)
         }
         .padding(.horizontal)
-        .padding(.vertical, 8)
+        .padding(.vertical, 16)
         .background(Color(.systemBackground))
-        .cornerRadius(6)
+        .cornerRadius(8)
+        .shadow(color: .black.opacity(colorScheme == .dark ? 0.3 : 0.1), radius: 2, x: 0, y: 1)
+        .onAppear {
+            loadSeriesTitle(for: task.chapter.id) { title in
+                seriesTitle = title
+            }
+        }
     }
     
     private func formatFileSize(_ size: Int64) -> String {
@@ -444,6 +512,7 @@ struct CompletedDownloadRow: View {
         return formatter.string(fromByteCount: size)
     }
 }
+
 
 struct FailedDownloadRow: View {
     let task: DownloadTask
@@ -488,6 +557,8 @@ struct FailedDownloadRow: View {
         .cornerRadius(6)
     }
 }
+
+
 
 #Preview {
     DownloadsHelpView()
