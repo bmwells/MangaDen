@@ -32,8 +32,8 @@ struct ChapterRowView: View {
         HStack {
             if showDownloadMode {
                 Button(action: onDownload) {
-                    Image(systemName: isDownloaded || isInQueue ? "checkmark.circle.fill" : "plus.circle.fill")
-                        .font(.title2)
+                    Image(systemName: isDownloaded || isInQueue ? "" : "plus.circle.fill")
+                        .font(.title)
                         .foregroundColor(isDownloaded || isInQueue ? .green : .blue)
                 }
                 .buttonStyle(PlainButtonStyle())
@@ -43,7 +43,7 @@ struct ChapterRowView: View {
             if showManageMode {
                 Button(action: onDelete) {
                     Image(systemName: "minus.circle.fill")
-                        .font(.title2)
+                        .font(.title)
                         .foregroundColor(.red)
                 }
                 .buttonStyle(PlainButtonStyle())
@@ -63,8 +63,10 @@ struct ChapterRowView: View {
             .simultaneousGesture(TapGesture().onEnded(onRead))
             .id(chapter.id)
         }
+        .padding(.leading, 20)
     }
 }
+
 
 // MARK: - Chapter Row Content
 struct ChapterRowContent: View {
@@ -131,12 +133,12 @@ struct ChapterRowContent: View {
                     .scaleEffect(0.8)
             } else if isDownloaded {
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.headline)
+                    .font(.title3)
                     .foregroundColor(.green)
             }
                         
             Image(systemName: "chevron.right")
-                .font(.caption)
+                .font(.footnote)
                 .foregroundColor(.gray)
         }
         .padding()
@@ -165,7 +167,7 @@ struct ChapterRow: View {
             if showDownloadButton {
                 Button(action: onDownloadTapped) {
                     Image(systemName: isDownloaded || isInQueue ? "checkmark.circle.fill" : "plus.circle.fill")
-                        .font(.title2)
+                        .font(.title)
                         .foregroundColor(isDownloaded || isInQueue ? .green : .blue)
                 }
                 .buttonStyle(PlainButtonStyle())
@@ -220,4 +222,8 @@ struct ChapterRow: View {
         .padding()
         .contentShape(Rectangle())
     }
+}
+
+#Preview {
+    ContentView()
 }

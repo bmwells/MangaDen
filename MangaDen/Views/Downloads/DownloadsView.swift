@@ -517,45 +517,66 @@ struct CompletedDownloadRow: View {
 struct FailedDownloadRow: View {
     let task: DownloadTask
     @Environment(\.colorScheme) private var colorScheme
+    @State private var seriesTitle: String = ""
     
     var body: some View {
         HStack {
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundColor(.red)
-                .font(.caption)
+                .font(.body)
             
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Chapter \(task.chapter.formattedChapterNumber)")
-                    .font(.subheadline)
-                    .foregroundColor(.primary)
-                
-                if let title = task.chapter.title {
-                    Text(title)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+            VStack(alignment: .leading, spacing: 4) {
+                // First line: Chapter number and series title
+                HStack(spacing: 4) {
+                    Text("Chapter \(task.chapter.formattedChapterNumber)")
+                        .font(.subheadline)
+                        .foregroundColor(.primary)
+                    
+                    Spacer()
+                        .frame(width: 8)
+                                        
+                    if !seriesTitle.isEmpty {
+                        Text(seriesTitle)
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .italic()
+                            .lineLimit(1)
+                    }
                 }
                 
+                // Second line: Error message
                 if let error = task.error {
                     Text(error)
                         .font(.caption2)
                         .foregroundColor(.red)
-                        .lineLimit(1)
+                        .lineLimit(2)
                 }
             }
+            
             
             Spacer()
             
             Button("Retry") {
                 DownloadManager.shared.retryDownload(chapterId: task.chapter.id)
             }
-            .font(.caption)
+            .font(.body)
+            .bold()
             .buttonStyle(.bordered)
         }
         .padding(.horizontal)
         .padding(.vertical, 8)
         .background(Color(.systemBackground))
         .cornerRadius(6)
+        .shadow(color: .black.opacity(colorScheme == .dark ? 0.3 : 0.1), radius: 2, x: 0, y: 1)
+        .onAppear {
+            loadSeriesTitle(for: task.chapter.id) { title in
+                seriesTitle = title
+            }
+        }
+        
     }
+    
+    
 }
 
 

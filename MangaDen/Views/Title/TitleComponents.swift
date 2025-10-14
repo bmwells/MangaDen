@@ -543,9 +543,15 @@ struct OptionsMenu: View {
     let onManageModeToggle: () -> Void
     let onToggleArchive: () -> Void
     let onDelete: () -> Void
+    @State private var showHelp = false
     
     var body: some View {
         Menu {
+            // Help button
+            Button(action: { showHelp = true }) {
+                Label("Help", systemImage: "questionmark.circle")
+            }
+            
             Button(action: onRefresh) {
                 Label("Refresh Title", systemImage: "arrow.clockwise")
             }
@@ -566,13 +572,16 @@ struct OptionsMenu: View {
             Button(action: onToggleArchive) {
                 Label(archiveButtonText(), systemImage: archiveButtonIcon())
             }
-            
+
             Button(role: .destructive, action: onDelete) {
                 Label("Delete Title", systemImage: "trash")
             }
         } label: {
             Image(systemName: "ellipsis.circle")
                 .font(.system(size: 20))
+        }
+        .sheet(isPresented: $showHelp) {
+            TitleHelpView()
         }
     }
     
@@ -584,6 +593,149 @@ struct OptionsMenu: View {
         return title.isArchived ? "book" : "archivebox"
     }
 }
+
+
+// MARK: - Title Help View
+struct TitleHelpView: View {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    // Title Guide
+                    Text("Title Guide")
+                        .font(.title)
+                        .bold()
+                        .padding(.bottom, 20)
+                    
+                    Text("**Refresh Title**")
+                        .font(.title3)
+                        .italic()
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    Text("Checks for new chapters.")
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .font(.system(size: 20))
+                    
+                    //Divider
+                    Rectangle()
+                        .frame(height: 1)
+                        .foregroundColor(.gray.opacity(0.3))
+                        .frame(maxWidth: 400)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                    
+                    Text("**Manage Title**")
+                        .font(.title3)
+                        .italic()
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    Text("Modify the title, author, status, or cover image.")
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .multilineTextAlignment(.center)
+                        .font(.system(size: 18))
+                    
+                    //Divider
+                    Rectangle()
+                        .frame(height: 1)
+                        .foregroundColor(.gray.opacity(0.3))
+                        .frame(maxWidth: 400)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                    
+                    Text("**Download Chapters**")
+                        .font(.title3)
+                        .italic()
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    Text("Download multiple chapters for offline reading.")
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .multilineTextAlignment(.center)
+                        .font(.system(size: 18))
+                    
+                    //Divider
+                    Rectangle()
+                        .frame(height: 1)
+                        .foregroundColor(.gray.opacity(0.3))
+                        .frame(maxWidth: 400)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                    
+                    Text("**Manage Chapters**")
+                        .font(.title3)
+                        .italic()
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    Text("Uninstall downloaded chapters or hide chapters from the list.")
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
+                        .font(.system(size: 18))
+                    
+                    //Divider
+                    Rectangle()
+                        .frame(height: 1)
+                        .foregroundColor(.gray.opacity(0.3))
+                        .frame(maxWidth: 400)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                    
+                    Text("**Archive Title**")
+                        .font(.title3)
+                        .italic()
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    Text("Moves the title from the Reading section to the Archive section.")
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
+                        .font(.system(size: 18))
+                    
+                    //Divider
+                    Rectangle()
+                        .frame(height: 1)
+                        .foregroundColor(.gray.opacity(0.3))
+                        .frame(maxWidth: 400)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+
+                    Text("**Delete Title**")
+                        .font(.title3)
+                        .italic()
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    Text("Permanently removes the title from your library.")
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .font(.system(size: 18))
+                    
+                    //Divider
+                    Rectangle()
+                        .frame(height: 1)
+                        .foregroundColor(.gray.opacity(0.3))
+                        .frame(maxWidth: 400)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .padding(.bottom, 20)
+                    
+                    // Tip
+                    Text("Tip:")
+                        .padding(-4)
+                        .font(.title3)
+                        .bold()
+                        .underline()
+                        .tracking(1.5)
+                    Text("• Clean up bad chapter links by hiding them within the 'Manage Chapters' option")
+                        .font(.system(size: 18))
+                        .tracking(1.0)
+                    Text("• Swipe down from the top of the page to exit pages such as this one or the In-App browser")
+                        .font(.system(size: 18))
+                        .tracking(1.0)
+                }
+                .padding()
+                .frame(maxWidth: .infinity)
+            }
+            .padding(.horizontal, horizontalSizeClass == .regular ? 20 : 15)
+            .frame(maxWidth: horizontalSizeClass == .regular ? 800 : .infinity)
+            .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+}
+
+
 
 // MARK: - Status Badge
 struct StatusBadge: View {
@@ -691,5 +843,5 @@ extension View {
 
 
 #Preview {
-    ContentView()
+    TitleHelpView()
 }

@@ -121,7 +121,7 @@ struct AddTitleView: View {
         }
         // Help sheet
         .sheet(isPresented: $showHelp) {
-            TitleHelpView()
+            AddTitleHelpView()
         }
         .alert(alertTitle, isPresented: $showAlert) {
             Button("OK", role: .cancel) { }
@@ -365,7 +365,7 @@ extension Notification.Name {
 
 // MARK: - Help View
 
-struct TitleHelpView: View {
+struct AddTitleHelpView: View {
     @State private var showCopiedAlert = false
     var body: some View {
         NavigationView {
@@ -520,5 +520,5 @@ struct TitleHelpView: View {
 }
 
 #Preview {
-    TitleHelpView()
+    AddTitleHelpView()
 }
