@@ -11,12 +11,12 @@
         <scene sceneID="EHf-IW-A2E">
             <objects>
                 <viewController id="01J-lp-oVM" sceneMemberID="viewController">
-                    <view key="view" contentMode="scaleToFill" ambiguous="YES" id="Ze5-6b-2t3">
+                    <view key="view" contentMode="scaleToFill" id="Ze5-6b-2t3">
                         <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <textField opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" text="MangaDen" textAlignment="center" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="9DF-cC-Tf7">
-                                <rect key="frame" x="0.0" y="109" width="393" height="167"/>
+                                <rect key="frame" x="0.0" y="139" width="393" height="167"/>
                                 <constraints>
                                     <constraint firstAttribute="height" constant="167" id="5ra-l3-Emy"/>
                                     <constraint firstAttribute="width" constant="393" id="l6V-f1-S4F"/>
@@ -25,21 +25,17 @@
                                 <fontDescription key="fontDescription" type="system" weight="heavy" pointSize="65"/>
                                 <textInputTraits key="textInputTraits"/>
                             </textField>
-                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="Logo" translatesAutoresizingMaskIntoConstraints="NO" id="B4z-jo-s2r">
-                                <rect key="frame" x="-3.6666666666666572" y="268" width="400.33333333333326" height="400"/>
-                                <constraints>
-                                    <constraint firstAttribute="height" constant="400" id="0Js-tP-ynJ"/>
-                                    <constraint firstAttribute="width" constant="400" id="TFo-y6-PJx"/>
-                                </constraints>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="Logo" translatesAutoresizingMaskIntoConstraints="NO" id="B4z-jo-s2r">
+                                <rect key="frame" x="26" y="255.33333333333334" width="341.33333333333331" height="341.33333333333326"/>
                             </imageView>
                             <textField opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="center" contentVerticalAlignment="center" text="Loading Library..." textAlignment="center" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="WrS-Sd-hoG">
-                                <rect key="frame" x="-3.6666666666666572" y="698" width="400.33333333333326" height="50"/>
+                                <rect key="frame" x="38.666666666666657" y="626.66666666666663" width="316" height="50"/>
                                 <constraints>
+                                    <constraint firstAttribute="width" constant="316" id="J00-KE-i5C"/>
                                     <constraint firstAttribute="height" constant="50" id="XtW-iB-ABD"/>
-                                    <constraint firstAttribute="width" constant="400" id="fII-zW-1rm"/>
                                 </constraints>
                                 <color key="textColor" red="1" green="0.84705882352941175" blue="0.52156862745098043" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
-                                <fontDescription key="fontDescription" type="boldSystem" pointSize="32"/>
+                                <fontDescription key="fontDescription" type="boldSystem" pointSize="40"/>
                                 <textInputTraits key="textInputTraits"/>
                             </textField>
                         </subviews>
@@ -51,10 +47,9 @@
                             <constraint firstItem="WrS-Sd-hoG" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="Vf8-VC-Vgp"/>
                             <constraint firstItem="9DF-cC-Tf7" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" id="ctb-1G-E3L"/>
                             <constraint firstItem="WrS-Sd-hoG" firstAttribute="top" secondItem="B4z-jo-s2r" secondAttribute="bottom" constant="30" id="g9s-5n-g4h"/>
-                            <constraint firstItem="9DF-cC-Tf7" firstAttribute="top" secondItem="Bcu-3y-fUS" secondAttribute="top" constant="50" id="mwK-q4-cZx"/>
+                            <constraint firstItem="9DF-cC-Tf7" firstAttribute="top" secondItem="Bcu-3y-fUS" secondAttribute="top" constant="80" id="mwK-q4-cZx"/>
                             <constraint firstAttribute="trailing" secondItem="9DF-cC-Tf7" secondAttribute="trailing" id="tIr-hH-8MV"/>
                             <constraint firstItem="B4z-jo-s2r" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="vN1-DZ-tTj"/>
-                            <constraint firstItem="B4z-jo-s2r" firstAttribute="top" secondItem="Bcu-3y-fUS" secondAttribute="top" constant="209" id="xxK-Md-qH0"/>
                         </constraints>
                     </view>
                 </viewController>
