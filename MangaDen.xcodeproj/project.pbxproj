@@ -27,6 +27,7 @@
 		271346082E67B4F700BC7435 /* ReaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271346072E67B4F700BC7435 /* ReaderView.swift */; };
 		2713460A2E67C61F00BC7435 /* Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271346092E67C61F00BC7435 /* Notifications.swift */; };
 		271346122E68084100BC7435 /* ReaderViewJAVA.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271346112E68084100BC7435 /* ReaderViewJAVA.swift */; };
+		272A5BC52E9E41380038F84E /* Launch Screen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 272A5BC42E9E41380038F84E /* Launch Screen.storyboard */; };
 		276EE40C2E96303E0023E592 /* WebViewUserAgentManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 276EE40B2E96303E0023E592 /* WebViewUserAgentManager.swift */; };
 		276EE40E2E9631000023E592 /* ChapterDetectionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 276EE40D2E9631000023E592 /* ChapterDetectionManager.swift */; };
 		276EE4102E9631A20023E592 /* ChapterExtractionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 276EE40F2E9631A20023E592 /* ChapterExtractionManager.swift */; };
@@ -83,6 +84,7 @@
 		271346072E67B4F700BC7435 /* ReaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderView.swift; sourceTree = "<group>"; };
 		271346092E67C61F00BC7435 /* Notifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notifications.swift; sourceTree = "<group>"; };
 		271346112E68084100BC7435 /* ReaderViewJAVA.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderViewJAVA.swift; sourceTree = "<group>"; };
+		272A5BC42E9E41380038F84E /* Launch Screen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = "Launch Screen.storyboard"; sourceTree = "<group>"; };
 		276EE40B2E96303E0023E592 /* WebViewUserAgentManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewUserAgentManager.swift; sourceTree = "<group>"; };
 		276EE40D2E9631000023E592 /* ChapterDetectionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChapterDetectionManager.swift; sourceTree = "<group>"; };
 		276EE40F2E9631A20023E592 /* ChapterExtractionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChapterExtractionManager.swift; sourceTree = "<group>"; };
@@ -205,6 +207,7 @@
 			isa = PBXGroup;
 			children = (
 				271345C12E5D07B000BC7435 /* MangaDenApp.swift */,
+				272A5BC42E9E41380038F84E /* Launch Screen.storyboard */,
 				2793268A2E835FFE001AA1AC /* TabBarManager.swift */,
 			);
 			path = App;
@@ -383,6 +386,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				272A5BC52E9E41380038F84E /* Launch Screen.storyboard in Resources */,
 				271345C92E5D07B100BC7435 /* Preview Assets.xcassets in Resources */,
 				271345C62E5D07B100BC7435 /* Assets.xcassets in Resources */,
 			);
@@ -597,6 +601,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"MangaDen/Preview Content\"";
@@ -604,18 +609,20 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MangaDen/Info.plist;
-				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "This app needs permission to save manga pages to your photo library for downloading and sharing.";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "This app needs access to your photo library to allow you to select custom cover images for your manga titles.";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.books";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "This app needs permission to save title pages to your photo library for downloading and sharing.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "This app needs access to your photo library to allow you to select custom cover images for your titles in library.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = "Launch Screen.storyboard";
+				INFOPLIST_KEY_UIStatusBarHidden = NO;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.85;
 				PRODUCT_BUNDLE_IDENTIFIER = bWells.MangaDen;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -629,6 +636,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"MangaDen/Preview Content\"";
@@ -636,18 +644,20 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MangaDen/Info.plist;
-				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "This app needs permission to save manga pages to your photo library for downloading and sharing.";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "This app needs access to your photo library to allow you to select custom cover images for your manga titles.";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.books";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "This app needs permission to save title pages to your photo library for downloading and sharing.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "This app needs access to your photo library to allow you to select custom cover images for your titles in library.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = "Launch Screen.storyboard";
+				INFOPLIST_KEY_UIStatusBarHidden = NO;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.85;
 				PRODUCT_BUNDLE_IDENTIFIER = bWells.MangaDen;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

@@ -17,6 +17,7 @@ struct LibraryView: View {
     @Environment(\.colorScheme) private var systemColorScheme
     @State private var searchText: String = ""
     @State private var isSearching: Bool = false
+    @State private var isLoading: Bool = true
     
     // Tabs (Reading and Archive)
     enum LibraryTab: String, CaseIterable {
@@ -137,7 +138,11 @@ struct LibraryView: View {
                 }
                 
                 ScrollView {
-                    if filteredTitles.isEmpty {
+                    if isLoading {
+                        ProgressView("Loading Library...")
+                            .scaleEffect(1.5)
+                            .padding(.top, 100)
+                    } else if filteredTitles.isEmpty {
                         VStack(spacing: 20) {
                             Image(systemName: emptyStateIcon)
                                 .font(.system(size: 60))
@@ -283,51 +288,57 @@ struct LibraryView: View {
     }
     
     private func loadTitles() {
-        do {
-            let fileManager = FileManager.default
-            guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
-                return
-            }
-            
-            let titlesDirectory = documentsDirectory.appendingPathComponent("Titles")
-            if !fileManager.fileExists(atPath: titlesDirectory.path) {
-                try fileManager.createDirectory(at: titlesDirectory, withIntermediateDirectories: true)
-                print("Created Titles directory: \(titlesDirectory.path)")
-                return
-            }
-            
-            let titleFiles = try fileManager.contentsOfDirectory(at: titlesDirectory, includingPropertiesForKeys: nil)
-            var loadedTitles: [Title] = []
-            
-            for file in titleFiles where file.pathExtension == "json" {
-                do {
-                    let data = try Data(contentsOf: file)
-                    let title = try JSONDecoder().decode(Title.self, from: data)
-                    loadedTitles.append(title)
-                    print("Loaded title from: \(file.lastPathComponent)")
-                    if let sourceURL = title.sourceURL {
-                        print("Title '\(title.title)' has source URL: \(sourceURL)")
+        DispatchQueue.global(qos: .userInitiated).async {
+            do {
+                let fileManager = FileManager.default
+                guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+                    DispatchQueue.main.async {
+                        self.isLoading = false
                     }
-                } catch {
-                    print("Error loading title from \(file.lastPathComponent): \(error)")
-                    
-                    // Delete any corrupted file
+                    return
+                }
+                
+                let titlesDirectory = documentsDirectory.appendingPathComponent("Titles")
+                if !fileManager.fileExists(atPath: titlesDirectory.path) {
+                    try fileManager.createDirectory(at: titlesDirectory, withIntermediateDirectories: true)
+                    DispatchQueue.main.async {
+                        self.titles = []
+                        self.isLoading = false
+                    }
+                    return
+                }
+                
+                let titleFiles = try fileManager.contentsOfDirectory(at: titlesDirectory, includingPropertiesForKeys: nil)
+                var loadedTitles: [Title] = []
+                
+                // Process in smaller batches to avoid blocking
+                for file in titleFiles where file.pathExtension == "json" {
                     do {
-                        try fileManager.removeItem(at: file)
-                        print("Deleted corrupted file: \(file.lastPathComponent)")
+                        let data = try Data(contentsOf: file)
+                        let title = try JSONDecoder().decode(Title.self, from: data)
+                        loadedTitles.append(title)
                     } catch {
-                        print("Failed to delete corrupted file \(file.lastPathComponent): \(error)")
+                        print("Error loading title: \(error)")
+                        try? fileManager.removeItem(at: file)
                     }
                 }
+                
+                // Update UI on main thread
+                DispatchQueue.main.async {
+                    self.titles = loadedTitles.sorted {
+                        $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
+                    }
+                    self.isLoading = false
+                }
+            } catch {
+                print("Error: \(error)")
+                DispatchQueue.main.async {
+                    self.titles = []
+                    self.isLoading = false
+                }
             }
-            
-            titles = loadedTitles
-            print("Loaded \(titles.count) titles from library")
-        } catch {
-            print("Error loading titles: \(error)")
         }
     }
-    
 }
 
 #Preview {
