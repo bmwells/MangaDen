@@ -364,7 +364,6 @@ extension Notification.Name {
 }
 
 // MARK: - Help View
-
 struct AddTitleHelpView: View {
     @State private var showCopiedAlert = false
     var body: some View {
@@ -435,11 +434,15 @@ struct AddTitleHelpView: View {
                         .padding(.bottom, 20)
 
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
-                        WebsiteButton(url: "https://mangafire.to/home", name: "MangaFire")
+                        WebsiteButton(url: "https://mangafire.to/home/", name: "MangaFire")
                         WebsiteButton(url: "https://readcomiconline.li/", name: "ReadComicOnline")
                         
-                        WebsiteButton(url: "https://mangaexample4.com", name: "Manga Example 5")
-                        WebsiteButton(url: "https://mangaexample5.com", name: "Manga Example 6")
+                        //WebsiteButton(url: "https://batcave.biz/", name: "BatCave")
+                        //WebsiteButton(url: "https://comicbookplus.com/", name: "ComicBookPlus")
+                        //WebsiteButton(url: "https://mangaberri.com/, name: "MangaBerri")
+                        //WebsiteButton(url: "https://weebcentral.com/, name: "WeebCentral")
+                        
+                        
                     }
                     .padding(.horizontal)
                     .padding(.bottom)
