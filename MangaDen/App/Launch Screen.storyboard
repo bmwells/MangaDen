@@ -21,7 +21,7 @@
                                     <constraint firstAttribute="height" constant="167" id="5ra-l3-Emy"/>
                                     <constraint firstAttribute="width" constant="393" id="l6V-f1-S4F"/>
                                 </constraints>
-                                <color key="textColor" red="0.72580398886194475" green="0.95709165592783507" blue="0.71518957355266544" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
+                                <color key="textColor" cyan="0.29731280940594057" magenta="0.035677812993526459" yellow="0.15055051445960999" black="0.022279713686336491" alpha="1" colorSpace="custom" customColorSpace="genericCMYKColorSpace"/>
                                 <fontDescription key="fontDescription" type="system" weight="heavy" pointSize="65"/>
                                 <textInputTraits key="textInputTraits"/>
                             </textField>
@@ -38,13 +38,13 @@
                                     <constraint firstAttribute="height" constant="50" id="XtW-iB-ABD"/>
                                     <constraint firstAttribute="width" constant="400" id="fII-zW-1rm"/>
                                 </constraints>
-                                <color key="textColor" white="0.93424934440559437" alpha="1" colorSpace="calibratedWhite"/>
+                                <color key="textColor" red="1" green="0.84705882352941175" blue="0.52156862745098043" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                 <fontDescription key="fontDescription" type="boldSystem" pointSize="32"/>
                                 <textInputTraits key="textInputTraits"/>
                             </textField>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="Bcu-3y-fUS"/>
-                        <color key="backgroundColor" red="0.0014453129053876635" green="0.16518518167576302" blue="0.15100959654760401" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
+                        <color key="backgroundColor" red="0.20392156862745098" green="0.31764705882352939" blue="0.63137254901960782" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                         <constraints>
                             <constraint firstItem="B4z-jo-s2r" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="LGp-t5-XpB"/>
                             <constraint firstItem="9DF-cC-Tf7" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="T1l-vx-FT2"/>
