@@ -284,6 +284,12 @@ struct ReaderView: View {
             tapArea(location: .center)
             tapArea(location: .right)
         }
+        .gesture(
+            DragGesture(minimumDistance: 20, coordinateSpace: .local)
+                .onEnded { value in
+                    handleSwipeGesture(value: value)
+                }
+        )
     }
     
     private func tapArea(location: TapLocation) -> some View {
@@ -540,19 +546,20 @@ struct ReaderView: View {
         guard !isZooming else { return }
         
         let horizontalAmount = value.translation.width
+        let verticalAmount = value.translation.height
         
-        if horizontalAmount < -50 {
-            if readingDirection == .leftToRight {
-                navigateToNextPage()
-            } else {
-                navigateToPreviousPage()
-            }
-        } else if horizontalAmount > 50 {
-            if readingDirection == .leftToRight {
-                navigateToPreviousPage()
-            } else {
-                navigateToNextPage()
-            }
+        // Only handle horizontal swipes (ignore vertical swipes)
+        guard abs(horizontalAmount) > abs(verticalAmount) else { return }
+        
+        // Use a threshold of 50 points for swipe detection
+        let swipeThreshold: CGFloat = 50
+        
+        if horizontalAmount < -swipeThreshold {
+            // Swipe left
+            navigateToNextPage()
+        } else if horizontalAmount > swipeThreshold {
+            // Swipe right
+            navigateToPreviousPage()
         }
     }
     
