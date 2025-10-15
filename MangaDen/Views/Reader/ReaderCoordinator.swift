@@ -21,9 +21,7 @@ class ReaderCoordinator: ObservableObject {
         loadChapter: @escaping () -> Void,
         markChapterAsRead: @escaping () -> Void
     ) {
-        // Reset the bookmark restoration flag
-        // Note: hasRestoredFromBookmark would need to be managed by the parent view
-        
+        // Reset the bookmark restoration flag        
         if isDownloaded {
             loadFromStorage()
         } else {

@@ -1,3 +1,10 @@
+//
+//  ContentView.swift
+//  MangaDen
+//
+//  Created by Brody Wells on 8/25/25.
+//
+
 import SwiftUI
 
 struct ContentView: View {
