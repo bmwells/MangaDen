@@ -403,18 +403,20 @@ struct ReaderView: View {
     private func loadFromStorage() {
         isLoadingFromStorage = true
         let chapterId = chapter.id.uuidString
-        let fileManager = FileManager.default
-        
-        guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
-            isLoadingFromStorage = false
-            isChapterReady = true
-            return
-        }
-        
-        let chapterDirectory = documentsDirectory.appendingPathComponent("Downloads/\(chapterId)")
         
         DispatchQueue.global(qos: .userInitiated).async {
-            var images: [UIImage] = []
+            // Create FileManager INSIDE the async closure instead of capturing it
+            let fileManager = FileManager.default
+            
+            guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+                DispatchQueue.main.async {
+                    self.isLoadingFromStorage = false
+                    self.isChapterReady = true
+                }
+                return
+            }
+            
+            let chapterDirectory = documentsDirectory.appendingPathComponent("Downloads/\(chapterId)")
             
             do {
                 let files = try fileManager.contentsOfDirectory(at: chapterDirectory, includingPropertiesForKeys: nil)
@@ -434,6 +436,7 @@ struct ReaderView: View {
                     print("  Page \(index): \(file.lastPathComponent)")
                 }
                 
+                var images: [UIImage] = []
                 for imageFile in imageFiles {
                     if let imageData = try? Data(contentsOf: imageFile),
                        let image = UIImage(data: imageData) {
