@@ -123,32 +123,32 @@ class ImageExtractionCoordinator: ObservableObject {
                 print("EXTRACTION: Strategy \(result.strategy) found \(result.images.count) images")
             }
             
-            // Only try Strategy 4 if no single strategy found more than 10 images
-            let shouldTryStrategy4 = maxImagesFromSingleStrategy <= 10
+            // Only try Strategy 0 if no single strategy found more than 13 images
+            let shouldTrystrategy0 = maxImagesFromSingleStrategy <= 13
             
-            if shouldTryStrategy4 {
-                print("EXTRACTION: STRATEGY 4 TRIGGERED - No strategy found more than 10 images (max: \(maxImagesFromSingleStrategy))")
-                print("EXTRACTION: STARTING STRATEGY 4 - Page Menu Extraction")
+            if shouldTrystrategy0 {
+                print("EXTRACTION: Strategy 0 TRIGGERED - No strategy found more than 13 images (max: \(maxImagesFromSingleStrategy))")
+                print("EXTRACTION: STARTING Strategy 0 - Page Menu Extraction")
                 
-                // Store Strategy 4 task for cancellation
+                // Store Strategy 0 task for cancellation
                 self.currentExtractionTask = Task { [weak self] in
-                    // Check for cancellation before starting Strategy 4
+                    // Check for cancellation before starting Strategy 0
                     if Task.isCancelled || self?.isCancelled == true {
-                        print("EXTRACTION: Strategy 4 cancelled before starting")
+                        print("EXTRACTION: Strategy 0 cancelled before starting")
                         onComplete(false)
                         return
                     }
                     
-                    self?.extractionStrategies.attemptExtractionStrategy4(webView: webView, isCancelled: { [weak self] in
+                    self?.extractionStrategies.attemptExtractionStrategy0(webView: webView, isCancelled: { [weak self] in
                         return self?.isCancelled == true
-                    }) { strategy4Images in
-                        // Check for cancellation before processing Strategy 4 results
+                    }) { strategy0Images in
+                        // Check for cancellation before processing Strategy 0 results
                         if let self = self, !self.isCancelled {
-                            print("EXTRACTION: STRATEGY 4 COMPLETED - Found \(strategy4Images.count) images")
-                            strategyResults.append(ExtractionResult(strategy: 4, images: strategy4Images))
+                            print("EXTRACTION: Strategy 0 COMPLETED - Found \(strategy0Images.count) images")
+                            strategyResults.append(ExtractionResult(strategy: 0, images: strategy0Images))
                             
                             let allImages = strategyResults.flatMap { $0.images }
-                            print("EXTRACTION: FINAL RESULTS - \(allImages.count) total images after Strategy 4")
+                            print("EXTRACTION: FINAL RESULTS - \(allImages.count) total images after Strategy 0")
                             
                             if allImages.isEmpty {
                                 print("EXTRACTION: No images found after all strategies")
@@ -158,14 +158,14 @@ class ImageExtractionCoordinator: ObservableObject {
                                 self.processAndDownloadImages(allImages, onComplete: onComplete)
                             }
                         } else {
-                            print("EXTRACTION: Strategy 4 results ignored due to cancellation")
+                            print("EXTRACTION: Strategy 0 results ignored due to cancellation")
                             onComplete(false)
                         }
                     }
                 }
             } else {
                 let allImages = strategyResults.flatMap { $0.images }
-                print("EXTRACTION: Sufficient images found (max: \(maxImagesFromSingleStrategy) per strategy), skipping Strategy 4")
+                print("EXTRACTION: Sufficient images found (max: \(maxImagesFromSingleStrategy) per strategy), skipping Strategy 0")
                 
                 if allImages.isEmpty {
                     print("EXTRACTION: No images found in strategies 1-3")

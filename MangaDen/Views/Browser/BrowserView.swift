@@ -11,7 +11,6 @@ import SwiftUI
 struct BrowserView: View {
     
     @State private var showJSONViewer = false
-    @State private var showMetadataView = false
     @State private var bothJSONsExist = false
     @State private var isAddingTitle = false
     @State private var addTitleError: String?
@@ -246,11 +245,6 @@ struct BrowserView: View {
         }
         .sheet(isPresented: $showJSONViewer) {
             JSONViewerView()
-        }
-        .sheet(isPresented: $showMetadataView) {
-            if let metadata = mangaMetadata {
-                MangaMetadataDetailView(metadata: metadata)
-            }
         }
         .alert("Error Adding Title", isPresented: .constant(addTitleError != nil), actions: {
             Button("OK") { addTitleError = nil }
