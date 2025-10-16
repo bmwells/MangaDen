@@ -132,7 +132,7 @@ struct DownloadModeControls: View {
             .buttonStyle(.bordered)
         }
         .padding(.horizontal)
-        .padding(.top, 8)
+        .padding(30)
     }
 }
 
@@ -232,10 +232,6 @@ struct ReadingDirectionSelector: View {
     
     var body: some View {
         HStack {
-            Text("Reading direction:")
-                .font(.system(size: 16))
-                .foregroundColor(.primary)
-
             HStack(spacing: 0) {
 
                 Button(action: {
