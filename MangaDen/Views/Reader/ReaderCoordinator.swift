@@ -21,7 +21,7 @@ class ReaderCoordinator: ObservableObject {
         loadChapter: @escaping () -> Void,
         markChapterAsRead: @escaping () -> Void
     ) {
-        // Reset the bookmark restoration flag        
+        // Reset the bookmark restoration flag
         if isDownloaded {
             loadFromStorage()
         } else {
@@ -215,18 +215,27 @@ class ReaderCoordinator: ObservableObject {
     static func handleTapGesture(
         location: TapLocation,
         showNavigationBars: Binding<Bool>,
+        isZooming: Bool,
+        resetZoom: @escaping () -> Void,
         navigateToPreviousPage: @escaping () -> Void,
         navigateToNextPage: @escaping () -> Void
     ) {
         switch location {
         case .left:
-            navigateToPreviousPage()
+            if !isZooming {
+                navigateToPreviousPage()
+            }
         case .center:
             withAnimation(.easeInOut(duration: 0.2)) {
+                if isZooming {
+                    resetZoom()
+                }
                 showNavigationBars.wrappedValue.toggle()
             }
         case .right:
-            navigateToNextPage()
+            if !isZooming {
+                navigateToNextPage()
+            }
         }
     }
     
@@ -512,7 +521,7 @@ class ReaderCoordinator: ObservableObject {
     }
 }
 
-// MARK: - Supporting Views
+// MARK: - Single Page View
 
 struct SinglePageView: View {
     let image: UIImage
@@ -520,6 +529,9 @@ struct SinglePageView: View {
     @Binding var lastZoomScale: CGFloat
     @Binding var isZooming: Bool
     let isActive: Bool
+    @Binding var zoomModeEnabled: Bool
+    let onCenterTap: () -> Void
+    let onExitZoomMode: (() -> Void)?
     
     var body: some View {
         ZoomableImageView(
@@ -527,21 +539,35 @@ struct SinglePageView: View {
             zoomScale: $zoomScale,
             lastZoomScale: $lastZoomScale,
             isZooming: $isZooming,
-            isActive: isActive
+            isActive: isActive,
+            zoomModeEnabled: $zoomModeEnabled,
+            onCenterTap: onCenterTap,
+            onExitZoomMode: onExitZoomMode
         )
         .drawingGroup()
-        .allowsHitTesting(isActive)
+        .allowsHitTesting(true)
+        .onAppear {
+            print("📄 SinglePageView appeared - isActive: \(isActive), zoomModeEnabled: \(zoomModeEnabled)")
+        }
+        .onChange(of: isActive) { oldValue, newValue in
+            print("📄 SinglePageView - isActive changed: \(oldValue) -> \(newValue)")
+        }
     }
 }
 
+// MARK: - Zoomable Image View
 struct ZoomableImageView: View {
     let image: UIImage
     @Binding var zoomScale: CGFloat
     @Binding var lastZoomScale: CGFloat
     @Binding var isZooming: Bool
     let isActive: Bool
+    @Binding var zoomModeEnabled: Bool
+    let onCenterTap: () -> Void
+    let onExitZoomMode: (() -> Void)?
     
     @State private var offset: CGSize = .zero
+    @State private var initialOffset: CGSize = .zero
     
     var body: some View {
         GeometryReader { geometry in
@@ -553,80 +579,143 @@ struct ZoomableImageView: View {
                 .frame(width: geometry.size.width, height: geometry.size.height)
                 .background(Color.black)
                 .clipped()
-                .gesture(magnificationGesture)
-                .simultaneousGesture(dragGesture(geometry: geometry))
-                .simultaneousGesture(doubleTapGesture)
+                .gesture(
+                    SimultaneousGesture(
+                        magnificationGesture,
+                        SimultaneousGesture(
+                            dragGesture(geometry: geometry),
+                            doubleTapGesture
+                        )
+                    )
+                )
         }
+        .contentShape(Rectangle())
     }
     
     private var magnificationGesture: some Gesture {
         MagnificationGesture()
             .onChanged { value in
-                guard isActive else { return }
+                print("🔍 MagnificationGesture - onChanged: \(value), isActive: \(isActive), zoomModeEnabled: \(zoomModeEnabled)")
                 
-                let delta = value / lastZoomScale
-                lastZoomScale = value
-                
-                let newScale = zoomScale * delta
-                zoomScale = min(max(newScale, 1.0), 5.0)
-                
-                isZooming = zoomScale > 1.0
+                // Only allow zooming when in zoom mode or when navigation bars are hidden
+                if isActive && zoomModeEnabled {
+                    let delta = value / lastZoomScale
+                    lastZoomScale = value
+                    
+                    let newScale = zoomScale * delta
+                    let clampedScale = min(max(newScale, 1.0), 5.0)
+                    
+                    if clampedScale != zoomScale {
+                        zoomScale = clampedScale
+                        isZooming = clampedScale > 1.0
+                        print("✅ Zoom scale updated: \(zoomScale), isZooming: \(isZooming)")
+                    }
+                    
+                    // Check if we should exit zoom mode (pinch out)
+                    if value <= 0.95 {
+                        print("📏 Pinch out detected - resetting zoom before exiting")
+                        // Reset zoom immediately before exiting
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            resetZoomAndPosition()
+                        }
+                        // Exit zoom mode after reset animation completes
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            onExitZoomMode?()
+                        }
+                    }
+                }
             }
-            .onEnded { _ in
-                guard isActive else { return }
+            .onEnded { value in
+                print("🔍 MagnificationGesture - onEnded: \(value)")
+                
+                guard isActive && zoomModeEnabled else { return }
                 
                 lastZoomScale = 1.0
                 
-                if zoomScale < 1.0 {
-                    withAnimation {
-                        zoomScale = 1.0
-                        offset = .zero
-                        isZooming = false
+                // Auto-reset if zoomed out too far OR if zoom scale is at minimum
+                if zoomScale <= 1.0 || value <= 1.0 {
+                    print("🔄 Auto-resetting zoom - zoomScale: \(zoomScale), gestureValue: \(value)")
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        resetZoomAndPosition()
                     }
+                    // Also exit zoom mode when completely zoomed out
+                    if value <= 0.95 {
+                        print("📏 Completely zoomed out - exiting zoom mode")
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            onExitZoomMode?()
+                        }
+                    }
+                } else {
+                    print("📏 Final zoom scale: \(zoomScale)")
                 }
             }
     }
     
     private func dragGesture(geometry: GeometryProxy) -> some Gesture {
-        DragGesture()
+        DragGesture(minimumDistance: 0)
             .onChanged { value in
-                guard isActive && isZooming else { return }
+                guard isActive && zoomModeEnabled && isZooming else {
+                    print("❌ Drag ignored - isActive: \(isActive), zoomModeEnabled: \(zoomModeEnabled), isZooming: \(isZooming)")
+                    return
+                }
                 
-                let maxOffsetX = (image.size.width * zoomScale - geometry.size.width) / 2
-                let maxOffsetY = (image.size.height * zoomScale - geometry.size.height) / 2
+                let maxOffsetX = max(0, (image.size.width * zoomScale - geometry.size.width) / 2)
+                let maxOffsetY = max(0, (image.size.height * zoomScale - geometry.size.height) / 2)
                 
                 let newOffset = CGSize(
-                    width: offset.width + value.translation.width,
-                    height: offset.height + value.translation.height
+                    width: initialOffset.width + value.translation.width,
+                    height: initialOffset.height + value.translation.height
                 )
                 
                 offset = CGSize(
-                    width: min(max(newOffset.width, -maxOffsetX), maxOffsetX),
-                    height: min(max(newOffset.height, -maxOffsetY), maxOffsetY)
+                    width: newOffset.width.clamped(to: -maxOffsetX...maxOffsetX),
+                    height: newOffset.height.clamped(to: -maxOffsetY...maxOffsetY)
                 )
+            }
+            .onEnded { value in
+                guard isActive && zoomModeEnabled && isZooming else { return }
+                initialOffset = offset
             }
     }
     
     private var doubleTapGesture: some Gesture {
         TapGesture(count: 2)
             .onEnded {
-                guard isActive else { return }
+                print("👆👆 DoubleTapGesture - triggered, isZooming: \(isZooming), zoomModeEnabled: \(zoomModeEnabled)")
+                
+                guard isActive && zoomModeEnabled else { return }
                 
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                    if zoomScale > 1.0 {
-                        zoomScale = 1.0
-                        offset = .zero
-                        isZooming = false
-                    } else {
-                        zoomScale = 2.0
-                        isZooming = true
+                    if isZooming {
+                        print("🔄 Double tap - resetting zoom and exiting zoom mode")
+                        resetZoomAndPosition()
                     }
-                    lastZoomScale = zoomScale
+                    // Exit zoom mode after reset animation completes
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        onExitZoomMode?()
+                    }
                 }
             }
     }
+    
+    private func resetZoomAndPosition() {
+        print("🔄 resetZoomAndPosition called - resetting to zoomScale: 1.0")
+        zoomScale = 1.0
+        offset = .zero
+        initialOffset = .zero
+        isZooming = false
+        lastZoomScale = 1.0
+    }
+    
 }
 
+// Helper extension for clamping values
+extension Comparable {
+    func clamped(to limits: ClosedRange<Self>) -> Self {
+        return min(max(self, limits.lowerBound), limits.upperBound)
+    }
+}
+    
 enum TapLocation {
     case left, center, right
 }

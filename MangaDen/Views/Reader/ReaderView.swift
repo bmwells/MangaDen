@@ -5,7 +5,6 @@
 //  Created by Brody Wells on 8/25/25.
 //
 
-
 import SwiftUI
 import PhotosUI
 
@@ -30,6 +29,7 @@ struct ReaderView: View {
     @State private var originalImages: [UIImage] = []
     @State private var scrollProxy: ScrollViewProxy?
     @State private var hasRestoredFromBookmark = false
+    @State private var zoomModeEnabled: Bool = false
     
     // Computed property to get images in correct order based on reading direction
     private var displayImages: [UIImage] {
@@ -74,7 +74,7 @@ struct ReaderView: View {
             mainContent
             
             // Bottom Scrollbar
-            if showNavigationBars && !displayImages.isEmpty && !isZooming {
+            if showNavigationBars && !displayImages.isEmpty && !isZooming && !zoomModeEnabled {
                 VStack {
                     Spacer()
                     BottomScrollbar(
@@ -239,6 +239,7 @@ struct ReaderView: View {
         }
     }
     
+    // MARK: - Reader Content View
     private var readerContentView: some View {
         ZStack {
             GeometryReader { geometry in
@@ -251,7 +252,19 @@ struct ReaderView: View {
                                     zoomScale: $zoomScale,
                                     lastZoomScale: $lastZoomScale,
                                     isZooming: $isZooming,
-                                    isActive: index == currentPageIndex
+                                    isActive: index == currentPageIndex,
+                                    zoomModeEnabled: $zoomModeEnabled,
+                                    onCenterTap: {
+                                        print("🎯 Center tap received in ReaderView")
+                                        withAnimation(.easeInOut(duration: 0.2)) {
+                                            showNavigationBars.toggle()
+                                            print("📊 Navigation bars now: \(showNavigationBars)")
+                                        }
+                                    },
+                                    onExitZoomMode: {
+                                        print("🚪 Exit zoom mode requested from SinglePageView")
+                                        toggleZoomMode()
+                                    }
                                 )
                                 .frame(width: geometry.size.width, height: geometry.size.height)
                                 .id(index)
@@ -272,35 +285,57 @@ struct ReaderView: View {
                     }
                 }
             }
-            .disabled(isZooming)
             
-            if !isZooming {
+            // Navigation overlay - only show when not in zoom mode
+            if !zoomModeEnabled {
                 navigationOverlay
             }
         }
     }
-    
+
     private var navigationOverlay: some View {
-        HStack(spacing: 0) {
-            tapArea(location: .left)
-            tapArea(location: .center)
-            tapArea(location: .right)
+        ZStack {
+            // Always have tap areas present for gestures
+            HStack(spacing: 0) {
+                // Left tap area (previous page) - 20% of screen width
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        print("⬅️ Left tap area - navigating previous")
+                        navigateToPreviousPage()
+                    }
+                    .frame(width: UIScreen.main.bounds.width * 0.2) // 20% width
+                
+                // Center tap area (toggle bars) - 60% of screen width
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        print("🎯 Center tap area - toggling bars")
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            showNavigationBars.toggle()
+                            print("📊 Navigation bars now: \(showNavigationBars)")
+                        }
+                    }
+                    .frame(maxWidth: .infinity) // Takes remaining space (60%)
+                
+                // Right tap area (next page) - 20% of screen width
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        print("➡️ Right tap area - navigating next")
+                        navigateToNextPage()
+                    }
+                    .frame(width: UIScreen.main.bounds.width * 0.2) // 20% width
+            }
         }
         .gesture(
             DragGesture(minimumDistance: 20, coordinateSpace: .local)
                 .onEnded { value in
+                    print("👆 Drag gesture ended")
                     handleSwipeGesture(value: value)
                 }
         )
-    }
-    
-    private func tapArea(location: TapLocation) -> some View {
-        Color.clear
-            .contentShape(Rectangle())
-            .onTapGesture {
-                handleTapGesture(location: location)
-            }
-            .frame(maxWidth: .infinity)
+        .allowsHitTesting(true)
     }
     
     // MARK: - Toolbar Content
@@ -319,8 +354,9 @@ struct ReaderView: View {
             }
         }
         
-        ToolbarItem(placement: .navigationBarTrailing) {
+        ToolbarItemGroup(placement: .navigationBarTrailing) {
             if showNavigationBars {
+                zoomButton
                 downloadButton
             }
         }
@@ -351,18 +387,56 @@ struct ReaderView: View {
         }
     }
     
+    
+    
+    private var zoomButton: some View {
+        Button(action: {
+            toggleZoomMode()
+        }) {
+            Image(systemName: "plus.magnifyingglass")
+                .font(.title2)
+                .foregroundColor(.white)
+                .padding(8)
+        }
+    }
+        
     private var downloadButton: some View {
         Button(action: {
             downloadCurrentImage()
         }) {
             Image(systemName: "square.and.arrow.down")
-                .font(.title3)
+                .font(.title2)
                 .foregroundColor(.white)
                 .padding(8)
+                .padding(.trailing, 10)
         }
     }
     
     // MARK: - Actions
+    
+    private func toggleZoomMode() {
+        withAnimation(.easeInOut(duration: 0.2)) {
+            if zoomModeEnabled {
+                // Exiting zoom mode - reset zoom and position with proper animation
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    zoomScale = 1.0
+                    lastZoomScale = 1.0
+                    isZooming = false
+                }
+                // Ensure we wait for the zoom reset animation to complete
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    zoomModeEnabled = false
+                    showNavigationBars = true
+                    print("🔍 Exited zoom mode - reset zoom to 1.0")
+                }
+            } else {
+                // Entering zoom mode
+                zoomModeEnabled = true
+                showNavigationBars = false
+                print("🔍 Entered zoom mode")
+            }
+        }
+    }
     
     private func onAppearAction() {
         hasRestoredFromBookmark = false
@@ -425,6 +499,8 @@ struct ReaderView: View {
         ReaderCoordinator.handleTapGesture(
             location: location,
             showNavigationBars: $showNavigationBars,
+            isZooming: isZooming,
+            resetZoom: resetZoom,
             navigateToPreviousPage: navigateToPreviousPage,
             navigateToNextPage: navigateToNextPage
         )
@@ -458,11 +534,11 @@ struct ReaderView: View {
     }
     
     private func resetZoom() {
-        ReaderCoordinator.resetZoom(
-            zoomScale: $zoomScale,
-            lastZoomScale: $lastZoomScale,
-            isZooming: $isZooming
-        )
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+            zoomScale = 1.0
+            lastZoomScale = 1.0
+            isZooming = false
+        }
     }
     
     private func updateDownloadProgress(progress: String) {
