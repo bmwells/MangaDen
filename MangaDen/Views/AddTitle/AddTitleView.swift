@@ -459,9 +459,6 @@ struct AddTitleHelpView: View {
                     Text("• If you would like a site to become compatible, request it by copying the email below and sending a message to our team.")
                         .font(.system(size: 18))
                         .tracking(0.8)
-                    Text("• Swipe down from the top of the page to exit pages such as this one or the In-App browser")
-                        .font(.system(size: 18))
-                        .tracking(0.8)
                     
                     HStack {
                         Spacer()
@@ -469,7 +466,7 @@ struct AddTitleHelpView: View {
                             UIPasteboard.general.string = "brwe47@gmail.com"
                             showCopiedAlert = true
                         }) {
-                            Text("Click me to copy!")
+                            Text("Copy Team Email Here")
                                 .foregroundColor(.blue)
                                 .underline()
                                 .font(.title)

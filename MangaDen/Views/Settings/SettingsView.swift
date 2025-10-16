@@ -320,6 +320,7 @@ struct SettingsView: View {
 // MARK: Settings Help View
 struct SettingsHelpView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @State private var showCopiedAlert = false
     
     var body: some View {
         NavigationView {
@@ -367,7 +368,7 @@ struct SettingsHelpView: View {
                         .padding(.bottom, 20)
                     
                     // Tip
-                    Text("Tip:")
+                    Text("Tips:")
                         .padding(-4)
                         .font(.title3)
                         .bold()
@@ -376,6 +377,29 @@ struct SettingsHelpView: View {
                     Text("• Swipe down from the top of the page to exit pages such as this one or the In-App browser")
                         .font(.system(size: 18))
                         .tracking(1.0)
+                    Text("• For any questions or concerns feel free to email our team by copying the email below")
+                        .font(.system(size: 18))
+                        .tracking(1.0)
+                    
+                    HStack {
+                        Spacer()
+                        Button(action: {
+                            UIPasteboard.general.string = "brwe47@gmail.com"
+                            showCopiedAlert = true
+                        }) {
+                            Text("Copy Team Email Here")
+                                .foregroundColor(.blue)
+                                .underline()
+                                .font(.title)
+                                .padding(.top, 4)
+                        }
+                        Spacer()
+                    }
+                    .alert("Copied to Clipboard", isPresented: $showCopiedAlert) {
+                        Button("OK", role: .cancel) { }
+                    } message: {
+                        Text("Team email has been copied to your clipboard.")
+                    }
                 }
                 .padding()
                 .frame(maxWidth: .infinity)

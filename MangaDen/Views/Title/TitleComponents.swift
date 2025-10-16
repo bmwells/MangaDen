@@ -707,8 +707,62 @@ struct TitleHelpView: View {
                         .padding(.vertical, 8)
                         .padding(.bottom, 20)
                     
+                    // Reader Guide
+                    Text("Reader Guide")
+                        .font(.title)
+                        .bold()
+                        .padding(.bottom, 20)
+                    
+                    HStack(spacing: 8) {
+                        Text("**Zoom Button**")
+                            .font(.title3)
+                            .italic()
+                        Image(systemName: "plus.magnifyingglass")
+                            .font(.title3)
+                            .foregroundColor(.primary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .center)
+
+                    Text("Enables zoom gestures for current page. Pinch page with two fingers to zoom in or out. Drag with one finger to move around image. To exit either double tap or zoom out (pinch in) till zoom mode is exited.")
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .multilineTextAlignment(.center)
+                        .font(.system(size: 20))
+                        .padding(.top, 4)
+                    
+                    //Divider
+                    Rectangle()
+                        .frame(height: 1)
+                        .foregroundColor(.gray.opacity(0.3))
+                        .frame(maxWidth: 400)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                    
+                    HStack(spacing: 8) {
+                        Text("**Download Image Button**")
+                            .font(.title3)
+                            .italic()
+                        Image(systemName: "square.and.arrow.down")
+                            .font(.title3)
+                            .foregroundColor(.primary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .center)
+
+                    Text("Download current panel image to camera roll.")
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .multilineTextAlignment(.center)
+                        .font(.system(size: 20))
+                        .padding(.top, 4)
+                    
+                    //Divider
+                    Rectangle()
+                        .frame(height: 1)
+                        .foregroundColor(.gray.opacity(0.3))
+                        .frame(maxWidth: 400)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                    
                     // Tip
-                    Text("Tip:")
+                    Text("Tips:")
                         .padding(-4)
                         .font(.title3)
                         .bold()
