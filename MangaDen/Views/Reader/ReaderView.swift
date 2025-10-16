@@ -1,5 +1,5 @@
 //
-//  ReaderCoordinator.swift
+//  ReaderView.swift
 //  MangaDen
 //
 //  Created by Brody Wells on 8/25/25.

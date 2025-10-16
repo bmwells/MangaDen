@@ -31,6 +31,7 @@ struct TitleView: View {
     @State private var newChaptersCount = 0
     @State private var isOfflineMode = false
     @State private var bookmarkedChapters: Set<UUID> = []
+    @State private var chapterSortOption: ChapterSortOption = .newToOld
     @Environment(\.dismiss) private var dismiss
     
     // Scrollbar state
@@ -44,17 +45,20 @@ struct TitleView: View {
     
     // Filter chapters based on current tab, manage mode, and offline status
     var displayChapters: [Chapter] {
+        let chapters: [Chapter]
+        
         // If we're in offline mode, only show downloaded chapters
         if isOfflineMode {
-            return title.downloadedChapters.filter { !hiddenChapterURLs.contains($0.url) }
+            chapters = title.downloadedChapters.filter { !hiddenChapterURLs.contains($0.url) }
+        } else if showManageMode && manageMode == .uninstallDownloaded {
+            chapters = title.downloadedChapters
+        } else {
+            let allChapters = title.isDownloaded ? title.downloadedChapters : title.chapters
+            chapters = allChapters.filter { !hiddenChapterURLs.contains($0.url) }
         }
         
-        if showManageMode && manageMode == .uninstallDownloaded {
-            return title.downloadedChapters
-        } else {
-            let chapters = title.isDownloaded ? title.downloadedChapters : title.chapters
-            return chapters.filter { !hiddenChapterURLs.contains($0.url) }
-        }
+        // Sort the chapters based on current sort option
+        return sortChapters(chapters, by: chapterSortOption)
     }
     
     // Compute chapters with bookmark status
@@ -115,10 +119,66 @@ struct TitleView: View {
                             }
                             
                             if !showDownloadMode && !showManageMode {
-                                ReadingDirectionSelector(
-                                    readingDirection: $readingDirection,
-                                    onDirectionChanged: saveReadingDirection
-                                )
+                                HStack {
+                                    // Sort filter dropdown button
+                                    Menu {
+                                        Button(action: { sortChapters(by: .newToOld) }) {
+                                            HStack {
+                                                Text("Newest First")
+                                                if chapterSortOption == .newToOld {
+                                                    Image(systemName: "checkmark")
+                                                }
+                                            }
+                                        }
+                                        
+                                        Button(action: { sortChapters(by: .oldToNew) }) {
+                                            HStack {
+                                                Text("Oldest First")
+                                                if chapterSortOption == .oldToNew {
+                                                    Image(systemName: "checkmark")
+                                                }
+                                            }
+                                        }
+                                    } label: {
+                                        HStack {
+                                            Image(systemName: "arrow.up.arrow.down")
+                                                .font(.title3)
+                                        }
+                                        .foregroundColor(.blue)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 12)
+                                        .background(Color.blue.opacity(0.1))
+                                        .cornerRadius(8)
+                                        .padding(.leading, 30)
+                                    }
+
+                                    Spacer()
+                                    
+                                    ReadingDirectionSelector(
+                                        readingDirection: $readingDirection,
+                                        onDirectionChanged: saveReadingDirection
+                                    )
+                                    
+                                    Spacer()
+                                    
+                                    // Bookmark button to scroll to bookmarked chapter
+                                    if !bookmarkedChapters.isEmpty {
+                                        Button(action: scrollToBookmarkedChapter) {
+                                            HStack {
+                                                Image(systemName: "bookmark.fill")
+                                                    .font(.title3)
+                                            }
+                                            .foregroundColor(.blue)
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 12)
+                                            .background(Color.blue.opacity(0.1))
+                                            .cornerRadius(8)
+                                            .padding(.trailing, 30)
+                                        }
+                                    }
+                                    
+                                }
+                                .padding(.horizontal)
                             }
                             
                             Divider()
@@ -271,6 +331,46 @@ struct TitleView: View {
         print("Current bookmark loaded: Chapter \(chapterNumber) on page \(page)")
     }
     
+    // MARK: - Bookmark Scrolling
+    private func scrollToBookmarkedChapter() {
+        guard let bookmarkedChapterId = bookmarkedChapters.first,
+              let bookmarkedChapter = displayChapters.first(where: { $0.id == bookmarkedChapterId }) else {
+            return
+        }
+        
+        scrollToChapter(bookmarkedChapter)
+    }
+    
+    // MARK: - Chapter Sorting
+    private func sortChapters(_ chapters: [Chapter], by option: ChapterSortOption) -> [Chapter] {
+        switch option {
+        case .newToOld:
+            return chapters.sorted { $0.chapterNumber > $1.chapterNumber }
+        case .oldToNew:
+            return chapters.sorted { $0.chapterNumber < $1.chapterNumber }
+        }
+    }
+
+    private func sortChapters(by option: ChapterSortOption) {
+        chapterSortOption = option
+        saveSortOption()
+    }
+
+    private func loadSortOption() {
+        let sortKey = "chapterSortOption_\(title.id.uuidString)"
+        if let savedSort = UserDefaults.standard.string(forKey: sortKey),
+           let option = ChapterSortOption(rawValue: savedSort) {
+            chapterSortOption = option
+        } else {
+            chapterSortOption = .newToOld // Default
+        }
+    }
+
+    private func saveSortOption() {
+        let sortKey = "chapterSortOption_\(title.id.uuidString)"
+        UserDefaults.standard.set(chapterSortOption.rawValue, forKey: sortKey)
+    }
+    
     // MARK: - Scrollbar Methods
     
     private func scrollToChapter(_ chapter: Chapter) {
@@ -284,6 +384,7 @@ struct TitleView: View {
         loadReadingDirection()
         loadHiddenChapters()
         loadCurrentBookmark()
+        loadSortOption() // Add this line
         editedTitle = title.title
         editedAuthor = title.author
         editedStatus = title.status
@@ -620,6 +721,12 @@ struct TitleView: View {
     private func archiveButtonIcon() -> String {
         return title.isArchived ? "book" : "archivebox"
     }
+}
+
+// MARK: - Supporting Enums
+enum ChapterSortOption: String, CaseIterable {
+    case newToOld = "newToOld"
+    case oldToNew = "oldToNew"
 }
 
 // MARK: - Chapter Scrollbar Component
