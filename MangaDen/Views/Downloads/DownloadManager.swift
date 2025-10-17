@@ -171,14 +171,23 @@ class DownloadManager: ObservableObject {
             self.currentTask = nil
         }
         
+        // CRITICAL: Notify ReaderViewJava to stop extraction
+        NotificationCenter.default.post(name: .downloadsPaused, object: nil)
+        
         saveDownloadState()
         print("Downloads stopped")
     }
+    
+    
     
     func resumeAllDownloads() {
         guard isPaused else { return } // Already running
         
         isPaused = false
+        
+        // CRITICAL: Notify ReaderViewJava that downloads can resume
+        NotificationCenter.default.post(name: .downloadsResumed, object: nil)
+        
         if !downloadQueue.isEmpty && !isDownloading {
             startNextDownload()
         }

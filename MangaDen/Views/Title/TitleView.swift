@@ -194,18 +194,12 @@ struct TitleView: View {
                                 titleID: title.id
                             )
                             .background(
-                                GeometryReader { contentGeometry in
+                                GeometryReader { geometry in
                                     Color.clear
-                                        .onAppear {
-                                            scrollViewContentSize = contentGeometry.size.height
-                                        }
-                                        .onChange(of: contentGeometry.size.height) { _, newHeight in
-                                            scrollViewContentSize = newHeight
-                                        }
+                                        .preference(key: ScrollContentSizeKey.self, value: geometry.size.height)
                                 }
                             )
                         }
-                        .padding(.vertical)
                         .background(GeometryReader {
                             Color.clear.preference(key: ViewOffsetKey.self,
                                 value: -$0.frame(in: .named("scroll")).origin.y)
@@ -213,7 +207,16 @@ struct TitleView: View {
                     }
                     .coordinateSpace(name: "scroll")
                     .onPreferenceChange(ViewOffsetKey.self) { offset in
-                        scrollOffset = offset
+                        // Throttle scroll offset updates
+                        DispatchQueue.main.async {
+                            scrollOffset = offset
+                        }
+                    }
+                    .onPreferenceChange(ScrollContentSizeKey.self) { newHeight in
+                        // Throttle content size updates
+                        DispatchQueue.main.async {
+                            scrollViewContentSize = newHeight
+                        }
                     }
                     .onAppear {
                         scrollProxy = proxy
@@ -850,6 +853,13 @@ struct OfflineModeBanner: View {
         .background(Color.white.opacity(0.1))
         .cornerRadius(8)
         .padding(.horizontal)
+    }
+}
+
+struct ScrollContentSizeKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }
 

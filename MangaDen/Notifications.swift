@@ -25,4 +25,7 @@ extension Notification.Name {
     static let downloadQueueUpdated = Notification.Name("downloadQueueUpdated")
     static let chapterReadStatusChanged = Notification.Name("chapterReadStatusChanged")
     
+    static let downloadsPaused = Notification.Name("downloadsPaused")
+    static let downloadsResumed = Notification.Name("downloadsResumed")
+    
 }

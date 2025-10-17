@@ -21,21 +21,78 @@ class ReaderViewJava: NSObject, ObservableObject {
     // Add cancellation support
     private var currentExtractionTask: Task<Void, Never>?
     private var isStopping = false // Add this flag
+    private var isPaused = false // Add pause state
     
     override init() {
         super.init()
         print("ReaderViewJava: Initializing with navigation delegate")
         // Set self as navigation delegate for webViewManager
         webViewManager.navigationDelegate = self
+        
+        // Listen for pause/resume notifications
+        setupPauseResumeObservers()
+    }
+    
+    private func setupPauseResumeObservers() {
+        NotificationCenter.default.addObserver(
+            forName: .downloadsPaused,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            print("ReaderViewJava: Received pause notification - stopping extraction")
+            Task { @MainActor in
+                self?.pauseExtraction()
+            }
+        }
+        
+        NotificationCenter.default.addObserver(
+            forName: .downloadsResumed,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            print("ReaderViewJava: Received resume notification")
+            Task { @MainActor in
+                self?.isPaused = false
+            }
+        }
+    }
+    
+    private func pauseExtraction() {
+        print("ReaderViewJava: Pausing all extraction operations")
+        isPaused = true
+        isStopping = true
+        
+        // Cancel any ongoing extraction task
+        currentExtractionTask?.cancel()
+        currentExtractionTask = nil
+        
+        // Cancel the extraction coordinator operations
+        extractionCoordinator.cancelAllOperations()
+        
+        // Stop the WebView
+        webViewManager.stopLoading()
+        
+        // Reset state
+        isLoading = false
+        error = "Download paused by user"
+        downloadProgress = ""
+        
+        // Clear images to ensure UI updates
+        images = []
+        
+        print("ReaderViewJava: All extraction operations paused")
     }
     
     func loadChapter(url: URL) {
+        // Reset pause state when starting new load
+        isPaused = false
+        isStopping = false
+        
         print("ReaderViewJava: Loading chapter from URL: \(url)")
         isLoading = true
         error = nil
         images = []
         downloadProgress = "" // Reset progress
-        isStopping = false // Reset stopping flag
         
         // Reset cancellation state before starting new load
         extractionCoordinator.resetCancellation()
@@ -45,8 +102,8 @@ class ReaderViewJava: NSObject, ObservableObject {
         // Set up observation for extraction coordinator images
         Task {
             for await newImages in extractionCoordinator.$images.values {
-                // Check if we're in the process of stopping
-                if !self.isStopping {
+                // Check if we're paused or in the process of stopping
+                if !self.isStopping && !self.isPaused {
                     print("ReaderViewJava: Received \(newImages.count) images from extraction coordinator")
                     self.images = newImages
                     
@@ -57,7 +114,7 @@ class ReaderViewJava: NSObject, ObservableObject {
                         self.downloadProgress = ""
                     }
                 } else {
-                    print("ReaderViewJava: Ignoring images received during stop process")
+                    print("ReaderViewJava: Ignoring images received during pause/stop process")
                 }
             }
         }
@@ -66,8 +123,8 @@ class ReaderViewJava: NSObject, ObservableObject {
         Task {
             for await loadingState in webViewManager.$isLoading.values {
                 print("ReaderViewJava: WebView loading state: \(loadingState)")
-                // Only update if we don't have images yet and not stopping
-                if self.images.isEmpty && !self.isStopping {
+                // Only update if we don't have images yet and not stopping/paused
+                if self.images.isEmpty && !self.isStopping && !self.isPaused {
                     self.isLoading = loadingState
                 }
             }
@@ -77,7 +134,7 @@ class ReaderViewJava: NSObject, ObservableObject {
         Task {
             for await newError in webViewManager.$error.values {
                 print("ReaderViewJava: WebView error: \(newError ?? "nil")")
-                if !self.isStopping {
+                if !self.isStopping && !self.isPaused {
                     self.error = newError
                     if newError != nil {
                         self.isLoading = false
@@ -90,6 +147,7 @@ class ReaderViewJava: NSObject, ObservableObject {
     func stopLoading() {
         print("ReaderViewJava: Stopping all loading and extraction")
         isStopping = true // Set stopping flag first
+        isPaused = false // Reset pause state when explicitly stopping
         
         // Cancel any ongoing extraction task FIRST
         currentExtractionTask?.cancel()
@@ -114,6 +172,7 @@ class ReaderViewJava: NSObject, ObservableObject {
     
     func clearCache() {
         isStopping = true
+        isPaused = false
         webViewManager.clearCache()
         extractionCoordinator.clearCache()
         extractionCoordinator.resetCancellation()
@@ -123,21 +182,11 @@ class ReaderViewJava: NSObject, ObservableObject {
     }
 }
 
-// MARK: - WKNavigationDelegate Extension
-
 extension ReaderViewJava: WKNavigationDelegate {
-    func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
-        print("ReaderViewJava: WebView started loading...")
-    }
-    
-    func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
-        print("ReaderViewJava: WebView committed navigation")
-    }
-    
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        // Check if we're in the process of stopping before starting extraction
-        if isStopping {
-            print("ReaderViewJava: Ignoring page load completion - stopping in progress")
+        // Check if we're paused or in the process of stopping before starting extraction
+        if isStopping || isPaused {
+            print("ReaderViewJava: Ignoring page load completion - paused or stopping in progress")
             return
         }
         
@@ -151,11 +200,11 @@ extension ReaderViewJava: WKNavigationDelegate {
             return
         }
         
-        // Check if operation was cancelled before starting extraction
-        if extractionCoordinator.isCancelled || isStopping {
-            print("ReaderViewJava: Extraction cancelled before starting")
+        // Check if operation was cancelled or paused before starting extraction
+        if extractionCoordinator.isCancelled || isStopping || isPaused {
+            print("ReaderViewJava: Extraction cancelled/paused before starting")
             self.isLoading = false
-            self.error = "Download was cancelled"
+            self.error = "Download was cancelled or paused"
             return
         }
         
@@ -166,12 +215,12 @@ extension ReaderViewJava: WKNavigationDelegate {
             // Add a small delay to ensure the page is fully rendered
             try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
             
-            // Check for cancellation after delay
-            if Task.isCancelled || self?.extractionCoordinator.isCancelled == true || self?.isStopping == true {
-                print("ReaderViewJava: Extraction cancelled during delay")
+            // Check for cancellation/pause after delay
+            if Task.isCancelled || self?.extractionCoordinator.isCancelled == true || self?.isStopping == true || self?.isPaused == true {
+                print("ReaderViewJava: Extraction cancelled/paused during delay")
                 await MainActor.run {
                     self?.isLoading = false
-                    self?.error = "Download was cancelled"
+                    self?.error = "Download was cancelled or paused"
                 }
                 return
             }
@@ -180,8 +229,8 @@ extension ReaderViewJava: WKNavigationDelegate {
                 print("ReaderViewJava: Extraction completed with success: \(success)")
                 
                 Task { @MainActor in
-                    // Only update state if not cancelled or stopping
-                    if self?.extractionCoordinator.isCancelled != true && self?.isStopping != true {
+                    // Only update state if not cancelled, stopping, or paused
+                    if self?.extractionCoordinator.isCancelled != true && self?.isStopping != true && self?.isPaused != true {
                         if success {
                             print("ReaderViewJava: Extraction successful, updating loading state")
                             self?.isLoading = false
@@ -191,7 +240,7 @@ extension ReaderViewJava: WKNavigationDelegate {
                             self?.isLoading = false
                         }
                     } else {
-                        print("ReaderViewJava: Extraction was cancelled or stopping, ignoring results")
+                        print("ReaderViewJava: Extraction was cancelled, paused, or stopping, ignoring results")
                         self?.isLoading = false
                     }
                 }
