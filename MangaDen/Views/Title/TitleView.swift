@@ -149,7 +149,8 @@ struct TitleView: View {
                                         .padding(.vertical, 12)
                                         .background(Color.blue.opacity(0.1))
                                         .cornerRadius(8)
-                                        .padding(.leading, 30)
+                                        .padding(.leading, UIDevice.current.userInterfaceIdiom == .pad ? 30 : 5)
+
                                     }
 
                                     Spacer()
@@ -173,7 +174,7 @@ struct TitleView: View {
                                             .padding(.vertical, 12)
                                             .background(Color.blue.opacity(0.1))
                                             .cornerRadius(8)
-                                            .padding(.trailing, 30)
+                                            .padding(.trailing, UIDevice.current.userInterfaceIdiom == .pad ? 30 : 5)
                                         }
                                     }
                                     

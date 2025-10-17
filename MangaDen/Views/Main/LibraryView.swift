@@ -184,17 +184,14 @@ struct LibraryView: View {
                                             ZStack {
                                                 Rectangle()
                                                     .fill(Color.accentColor.opacity(0.3))
-                                                    .frame(width: UIDevice.current.userInterfaceIdiom == .pad ? 210 : 150,
-                                                           height: UIDevice.current.userInterfaceIdiom == .pad ? 280 : 200)
+                                                    .frame(width: UIDevice.current.userInterfaceIdiom == .pad ? 225 : 175,
+                                                           height: UIDevice.current.userInterfaceIdiom == .pad ? 270 : 260)
                                                     .cornerRadius(12)
                                                 
                                                 VStack {
                                                     Text(title.title.prefix(1))
                                                         .font(.system(size: 40, weight: .bold))
                                                         .foregroundColor(.accentColor)
-                                                    Text("No Cover")
-                                                        .font(.caption)
-                                                        .foregroundColor(.secondary)
                                                 }
                                             }
                                             .overlay(

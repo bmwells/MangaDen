@@ -230,7 +230,8 @@ struct AddTitleView: View {
                         continuation.resume(returning: data)
                     } else {
                         continuation.resume(returning: nil)
-                    }                }
+                    }
+                }
                 task.resume()
             } else {
                 continuation.resume(returning: nil)
@@ -499,5 +500,5 @@ struct AddTitleHelpView: View {
 }
 
 #Preview {
-    AddTitleHelpView()
+    ContentView()
 }
