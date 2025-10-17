@@ -52,6 +52,16 @@ class MetadataExtractionJavaScript {
                     if (img.naturalWidth < 100 || img.naturalHeight < 100) continue;
                     
                     const src = img.src || '';
+                    
+                    // FILTER OUT GIFs
+                    const lowercasedSrc = src.toLowerCase();
+                    if (lowercasedSrc.endsWith('.gif') || 
+                        lowercasedSrc.includes('.gif?') ||
+                        lowercasedSrc.includes('content-type=image/gif') ||
+                        lowercasedSrc.includes('format=gif')) {
+                        continue; // Skip GIF images
+                    }
+                    
                     const alt = (img.alt || '').toLowerCase();
                     const className = (img.className || '').toLowerCase();
                     const parentClassName = (img.parentElement?.className || '').toLowerCase();

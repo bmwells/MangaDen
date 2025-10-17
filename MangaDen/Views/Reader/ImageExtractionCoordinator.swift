@@ -210,7 +210,7 @@ class ImageExtractionCoordinator: ObservableObject {
         
         print("Processing \(imageInfos.count) images...")
         
-        // MINIMAL FILTERING - only remove obviously broken images
+        // ENHANCED FILTERING - remove GIFs and obviously broken images
         let filteredImages = imageInfos.filter { image in
             // Remove images with obviously invalid URLs
             guard !image.src.isEmpty,
@@ -221,16 +221,27 @@ class ImageExtractionCoordinator: ObservableObject {
                 return false
             }
             
-            // Keep ALL images that pass basic URL validation
+            // REMOVE GIFs - check file extension and Content-Type if available
+            let lowercasedSrc = image.src.lowercased()
+            if lowercasedSrc.hasSuffix(".gif") ||
+               lowercasedSrc.contains(".gif?") ||
+               lowercasedSrc.contains("content-type=image/gif") ||
+               lowercasedSrc.contains("format=gif") {
+                print("FILTERED OUT: GIF image - \(image.src)")
+                return false
+            }
+            
+            // Keep images that pass basic URL validation and are not GIFs
             return true
         }
         
-        print("After filtering: \(filteredImages.count) images")
+        print("After filtering: \(filteredImages.count) images (GIFs removed)")
         
         if filteredImages.isEmpty {
             print("No images passed filtering, trying with all images...")
-            // If filtering removes everything, use the original images
-            downloadImages(from: imageInfos, onComplete: onComplete)
+            // If filtering removes everything, use the original images but still exclude GIFs
+            let nonGifImages = imageInfos.filter { !$0.src.lowercased().contains(".gif") }
+            downloadImages(from: nonGifImages, onComplete: onComplete)
             return
         }
         
@@ -251,17 +262,17 @@ class ImageExtractionCoordinator: ObservableObject {
         
         print("=== After deduplication: \(deduplicatedImages.count) unique images ===")
         
-        // Patterns for extracting meaningful page numbers
+        // Patterns for extracting meaningful page numbers - EXCLUDE GIFs
         let patterns = [
-            // Blogspot patterns - match the number before .jpg
-            try? NSRegularExpression(pattern: "/(\\d+)\\.(jpg|jpeg|png|gif|webp)$", options: []),
-            try? NSRegularExpression(pattern: "/(\\d+)\\.(jpg|jpeg|png|gif|webp)\\?", options: []),
-            try? NSRegularExpression(pattern: "/(\\d+)\\.(jpg|jpeg|png|gif|webp)", options: []),
+            // Blogspot patterns - match the number before image extensions (excluding gif)
+            try? NSRegularExpression(pattern: "/(\\d+)\\.(jpg|jpeg|png|webp)$", options: []),
+            try? NSRegularExpression(pattern: "/(\\d+)\\.(jpg|jpeg|png|webp)\\?", options: []),
+            try? NSRegularExpression(pattern: "/(\\d+)\\.(jpg|jpeg|png|webp)", options: []),
             
-            // Other common patterns
-            try? NSRegularExpression(pattern: "/(l\\d+)\\.(jpg|jpeg|png|gif|webp)", options: []),
-            try? NSRegularExpression(pattern: "l(\\d+)\\.(jpg|jpeg|png|gif|webp)", options: []),
-            try? NSRegularExpression(pattern: "_(\\d+)\\.(jpg|jpeg|png|gif|webp)", options: []),
+            // Other common patterns - exclude gif
+            try? NSRegularExpression(pattern: "/(l\\d+)\\.(jpg|jpeg|png|webp)", options: []),
+            try? NSRegularExpression(pattern: "l(\\d+)\\.(jpg|jpeg|png|webp)", options: []),
+            try? NSRegularExpression(pattern: "_(\\d+)\\.(jpg|jpeg|png|webp)", options: []),
             try? NSRegularExpression(pattern: "page[_-]?(\\d+)", options: [.caseInsensitive]),
         ]
         
@@ -358,6 +369,12 @@ class ImageExtractionCoordinator: ObservableObject {
     }
 
     private func extractPageNumber(from url: String, using patterns: [NSRegularExpression?]) -> Int? {
+        // First, check if this is a GIF and return nil immediately
+        let lowercasedUrl = url.lowercased()
+        if lowercasedUrl.hasSuffix(".gif") || lowercasedUrl.contains(".gif?") {
+            return nil
+        }
+        
         for pattern in patterns.compactMap({ $0 }) {
             let matches = pattern.matches(in: url, options: [], range: NSRange(location: 0, length: url.count))
             if let match = matches.last {
