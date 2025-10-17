@@ -204,7 +204,6 @@ struct SettingsView: View {
             let downloadsDirectory = documentsDirectory.appendingPathComponent("Downloads")
             if fileManager.fileExists(atPath: downloadsDirectory.path) {
                 try fileManager.removeItem(at: downloadsDirectory)
-                print("Removed entire Downloads directory")
             }
             
             // Recreate empty Downloads directory
@@ -212,9 +211,7 @@ struct SettingsView: View {
             
             // Update all title files to mark all chapters as not downloaded
             updateAllTitleFiles()
-            
-            print("Successfully uninstalled all downloads for all titles")
-            
+                        
         } catch {
             print("Error uninstalling all downloads: \(error)")
         }
@@ -247,9 +244,7 @@ struct SettingsView: View {
                         // Save the updated title
                         let updatedData = try JSONEncoder().encode(title)
                         try updatedData.write(to: titleFile)
-                        
-                        print("Updated title: \(title.title)")
-                        
+                                                
                     } catch {
                         print("Error updating title file \(titleFile.lastPathComponent): \(error)")
                     }

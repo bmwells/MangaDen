@@ -46,7 +46,6 @@ struct ReaderView: View {
         
         if readingDirection == .rightToLeft {
             let pageNumber = totalPages - currentPageIndex
-            print("RTL Page Calc: currentPageIndex=\(currentPageIndex), totalPages=\(totalPages), result=\(pageNumber)")
             return pageNumber
         } else {
             return currentPageIndex + 1
@@ -136,7 +135,6 @@ struct ReaderView: View {
         let targetPageIndex = Int(round(location * CGFloat(displayImages.count - 1)))
         let clampedIndex = max(0, min(displayImages.count - 1, targetPageIndex))
         
-        print("Scrollbar tap: location=\(location), target=\(targetPageIndex), clamped=\(clampedIndex)")
         currentPageIndex = clampedIndex
         scrollToPage(currentPageIndex, animated: true)
     }
@@ -147,7 +145,6 @@ struct ReaderView: View {
         let targetPageIndex = Int(round(progress * CGFloat(displayImages.count - 1)))
         let clampedIndex = max(0, min(displayImages.count - 1, targetPageIndex))
         
-        print("Scrollbar drag: progress=\(progress), target=\(targetPageIndex), clamped=\(clampedIndex)")
         currentPageIndex = clampedIndex
         scrollToPage(currentPageIndex, animated: false)
     }
@@ -255,14 +252,11 @@ struct ReaderView: View {
                                     isActive: index == currentPageIndex,
                                     zoomModeEnabled: $zoomModeEnabled,
                                     onCenterTap: {
-                                        print("🎯 Center tap received in ReaderView")
                                         withAnimation(.easeInOut(duration: 0.2)) {
                                             showNavigationBars.toggle()
-                                            print("📊 Navigation bars now: \(showNavigationBars)")
                                         }
                                     },
                                     onExitZoomMode: {
-                                        print("🚪 Exit zoom mode requested from SinglePageView")
                                         toggleZoomMode()
                                     }
                                 )
@@ -301,7 +295,6 @@ struct ReaderView: View {
                 Color.clear
                     .contentShape(Rectangle())
                     .onTapGesture {
-                        print("⬅️ Left tap area - navigating previous")
                         navigateToPreviousPage()
                     }
                     .frame(width: UIScreen.main.bounds.width * 0.2) // 20% width
@@ -310,10 +303,8 @@ struct ReaderView: View {
                 Color.clear
                     .contentShape(Rectangle())
                     .onTapGesture {
-                        print("🎯 Center tap area - toggling bars")
                         withAnimation(.easeInOut(duration: 0.2)) {
                             showNavigationBars.toggle()
-                            print("📊 Navigation bars now: \(showNavigationBars)")
                         }
                     }
                     .frame(maxWidth: .infinity) // Takes remaining space (60%)
@@ -322,7 +313,6 @@ struct ReaderView: View {
                 Color.clear
                     .contentShape(Rectangle())
                     .onTapGesture {
-                        print("➡️ Right tap area - navigating next")
                         navigateToNextPage()
                     }
                     .frame(width: UIScreen.main.bounds.width * 0.2) // 20% width
@@ -331,7 +321,6 @@ struct ReaderView: View {
         .gesture(
             DragGesture(minimumDistance: 20, coordinateSpace: .local)
                 .onEnded { value in
-                    print("👆 Drag gesture ended")
                     handleSwipeGesture(value: value)
                 }
         )
@@ -382,7 +371,6 @@ struct ReaderView: View {
                 .font(.caption)
                 .foregroundColor(.white)
                 .onAppear {
-                    print("Title View: displayedPageNumber=\(displayedPageNumber), displayImages.count=\(displayImages.count)")
                 }
         }
     }
@@ -427,13 +415,11 @@ struct ReaderView: View {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                     zoomModeEnabled = false
                     showNavigationBars = true
-                    print("🔍 Exited zoom mode - reset zoom to 1.0")
                 }
             } else {
                 // Entering zoom mode
                 zoomModeEnabled = true
                 showNavigationBars = false
-                print("🔍 Entered zoom mode")
             }
         }
     }

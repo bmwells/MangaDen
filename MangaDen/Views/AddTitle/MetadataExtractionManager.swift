@@ -108,8 +108,8 @@ class MetadataExtractionManager {
             if let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
                 let fileURL = documentsDirectory.appendingPathComponent("manga_metadata.json")
                 
+                // Save metadata to JSON
                 try jsonData.write(to: fileURL)
-                print("Manga metadata saved to: \(fileURL.path)")
             }
         } catch {
             print("Error saving manga metadata to JSON: \(error.localizedDescription)")

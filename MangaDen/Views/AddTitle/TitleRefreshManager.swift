@@ -89,9 +89,7 @@ class TitleRefreshManager {
                 
                 let titleData = try JSONEncoder().encode(updatedTitle)
                 try titleData.write(to: titleFile)
-                
-                print("Successfully updated title with \(newChapters.count) new chapters")
-                
+                                
             } catch {
                 print("Error saving updated title: \(error)")
             }

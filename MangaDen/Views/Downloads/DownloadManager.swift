@@ -66,7 +66,6 @@ class DownloadManager: ObservableObject {
             
             // Check if chapter is already marked as downloaded
             if chapter.safeIsDownloaded {
-                print("Skipping already downloaded chapter: \(chapter.title ?? "Chapter \(chapter.formattedChapterNumber)")")
                 continue
             }
             

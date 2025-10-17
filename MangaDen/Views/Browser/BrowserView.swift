@@ -29,6 +29,7 @@ struct BrowserView: View {
     @State private var mangaMetadata: [String: Any]? = nil
     @FocusState private var isURLFieldFocused: Bool
     @State private var isSwitchingToMobile = false
+    @State private var jsonCheckTimer: Timer?
 
     private let webView = WKWebView()
     private let coordinator: WebViewCoordinator
@@ -192,9 +193,14 @@ struct BrowserView: View {
             checkJSONsExist()
             
             // Set up timer to periodically check for JSON files
-            Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+            jsonCheckTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
                 checkJSONsExist()
             }
+        }
+        .onDisappear {
+            // Invalidate the timer when the view disappears
+            jsonCheckTimer?.invalidate()
+            jsonCheckTimer = nil
         }
         
         .onReceive(NotificationCenter.default.publisher(for: .didUpdateWebViewNav)) { notification in
@@ -310,7 +316,6 @@ struct BrowserView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             ChapterExtractionManager.findChapterLinks(in: webView) { chapterDict in
                 if let chapters = chapterDict {
-                    print("Found \(chapters.count) chapters")
                     let urlDict = ChapterExtractionManager.extractURLs(from: chapters)
                     self.updateChapterRange(from: urlDict)
                 }
@@ -324,7 +329,6 @@ struct BrowserView: View {
             MetadataExtractionManager.findMangaMetadata(in: self.webView) { metadata in
                 if let metadata = metadata {
                     self.mangaMetadata = metadata
-                    print("Found manga metadata: \(metadata)")
                 }
                 
                 // Switch back to mobile user agent but DON'T reload
@@ -333,7 +337,6 @@ struct BrowserView: View {
                     self.isSwitchingToMobile = true
                     
                     WebViewUserAgentManager.setMobileUserAgent(for: self.webView)
-                    print("Switched back to mobile user agent")
                     
                     // Use JavaScript to apply mobile styling instead of reloading
                     let mobileViewportJS = """
@@ -355,8 +358,6 @@ struct BrowserView: View {
                     self.webView.evaluateJavaScript(mobileViewportJS) { _, error in
                         if let error = error {
                             print("Error applying mobile styling: \(error)")
-                        } else {
-                            print("Mobile styling applied successfully")
                         }
                         // Reset flag
                         self.isSwitchingToMobile = false
@@ -440,7 +441,6 @@ struct BrowserView: View {
         if fileManager.fileExists(atPath: chaptersFile.path) {
             do {
                 try "".write(to: chaptersFile, atomically: true, encoding: .utf8)
-                print("Cleared chapters.json")
             } catch {
                 print("Error clearing chapters.json: \(error)")
             }
@@ -450,7 +450,6 @@ struct BrowserView: View {
         if fileManager.fileExists(atPath: metadataFile.path) {
             do {
                 try "".write(to: metadataFile, atomically: true, encoding: .utf8)
-                print("Cleared manga_metadata.json")
             } catch {
                 print("Error clearing manga_metadata.json: \(error)")
             }
@@ -481,7 +480,6 @@ struct BrowserView: View {
                     let chaptersData = try Data(contentsOf: chaptersFile)
                     chaptersHasContent = !chaptersData.isEmpty
                     if !chaptersHasContent {
-                        print("chapters.json exists but is empty")
                     }
                 } catch {
                     print("Error reading chapters.json: \(error)")
@@ -493,7 +491,6 @@ struct BrowserView: View {
                     let metadataData = try Data(contentsOf: metadataFile)
                     metadataHasContent = !metadataData.isEmpty
                     if !metadataHasContent {
-                        print("manga_metadata.json exists but is empty")
                     }
                 } catch {
                     print("Error reading manga_metadata.json: \(error)")
@@ -511,7 +508,6 @@ struct BrowserView: View {
         
         do {
             let imageData = try Data(contentsOf: url)
-            print("Downloaded cover image from: \(urlString)")
             return imageData
         } catch {
             print("Error downloading cover image: \(error)")
@@ -563,7 +559,6 @@ struct BrowserView: View {
                             chapters.append(chapter)
                         }
                     }
-                    print("Successfully parsed \(chapters.count) chapters from array format")
                 } else if let chapterDict = jsonObject as? [String: [String: String]] {
                     // This is the original dictionary format
                     chapters = chapterDict.compactMap { key, value -> Chapter? in
@@ -579,7 +574,6 @@ struct BrowserView: View {
                         )
                     }
                     .sorted { $0.chapterNumber > $1.chapterNumber } // Sort in descending order
-                    print("Successfully parsed \(chapters.count) chapters from dictionary format")
                 } else {
                     throw NSError(domain: "DataError", code: 4, userInfo: [NSLocalizedDescriptionKey: "Unknown chapters.json format"])
                 }
@@ -608,9 +602,7 @@ struct BrowserView: View {
                 let title = metadata["title"] as? String ?? "Unknown Title"
                 let author = metadata["author"] as? String ?? "Unknown Author"
                 let status = metadata["status"] as? String ?? "unknown"
-                
-                print("Extracted metadata - Title: \(title), Author: \(author), Status: \(status)")
-                
+                                
                 // Download cover image (async with timeout)
                 let coverImageUrl = metadata["title_image"] as? String
                 var coverImageData: Data? = nil
@@ -621,7 +613,6 @@ struct BrowserView: View {
                     URLSession.shared.dataTask(with: url) { data, response, error in
                         if let data = data, error == nil {
                             coverImageData = data
-                            print("Downloaded cover image (\(data.count) bytes) from: \(imageUrl)")
                         } else {
                             print("Error downloading cover image: \(error?.localizedDescription ?? "Unknown error")")
                         }
@@ -634,9 +625,8 @@ struct BrowserView: View {
                 
                 // CAPTURE CURRENT URL
                 let currentURL = self.urlString
-                print("Saving title with source URL: \(currentURL)")
                 
-                // Create new title WITH SOURCE URL
+                // Create new title
                 let newTitle = Title(
                     title: title,
                     author: author,
@@ -644,21 +634,18 @@ struct BrowserView: View {
                     coverImageData: coverImageData,
                     chapters: chapters,
                     metadata: metadata,
-                    sourceURL: currentURL // ADD THE URL HERE
+                    sourceURL: currentURL
                 )
                 
                 // Save title to documents directory
                 let titlesDirectory = documentsDirectory.appendingPathComponent("Titles")
                 if !fileManager.fileExists(atPath: titlesDirectory.path) {
                     try fileManager.createDirectory(at: titlesDirectory, withIntermediateDirectories: true)
-                    print("Created Titles directory: \(titlesDirectory.path)")
                 }
                 
                 let titleFile = titlesDirectory.appendingPathComponent("\(newTitle.id.uuidString).json")
                 let titleData = try JSONEncoder().encode(newTitle)
                 try titleData.write(to: titleFile)
-                print("Saved title to: \(titleFile.path) (\(titleData.count) bytes)")
-                print("Title saved with source URL: \(currentURL)")
                 
                 // Notify LibraryView to refresh and show success
                 DispatchQueue.main.async {

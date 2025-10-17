@@ -154,8 +154,6 @@ struct AddTitleView: View {
     @MainActor
     private func processTitleFromURL(_ url: URL) async {
         do {
-            print("Starting title extraction from URL: \(url)")
-            
             // Use WebViewManager to handle the web view
             let webViewManager = WebViewManager()
             
@@ -172,27 +170,21 @@ struct AddTitleView: View {
             guard let webView = webViewManager.webView else {
                 throw NSError(domain: "TitleExtraction", code: 1, userInfo: [NSLocalizedDescriptionKey: "WebView failed to load"])
             }
-            
-            print("Page loaded, extracting metadata and chapters...")
-            
+                        
             // Extract metadata using MetadataExtractionManager
             let metadata = await withCheckedContinuation { continuation in
                 MetadataExtractionManager.findMangaMetadata(in: webView) { metadata in
                     continuation.resume(returning: metadata ?? [:])
                 }
             }
-            
-            print("Metadata extracted: \(metadata)")
-            
+                        
             // Extract chapters using ChapterExtractionManager
             let chapters = await withCheckedContinuation { continuation in
                 ChapterExtractionManager.findChapterLinks(in: webView) { chapters in
                     continuation.resume(returning: chapters ?? [:])
                 }
             }
-            
-            print("Chapters extracted: \(chapters.count) chapters found")
-            
+                        
             // Extract cover image using the title_image from metadata
             let coverImageData = await downloadCoverImage(from: metadata)
             
@@ -220,9 +212,7 @@ struct AddTitleView: View {
             // Get cover image URL from metadata (this is already extracted in your MetadataExtractionJavaScript)
             if let coverImageUrlString = metadata["title_image"] as? String,
                let coverImageUrl = URL(string: coverImageUrlString) {
-                
-                print("Downloading cover image from: \(coverImageUrlString)")
-                
+                                
                 let task = URLSession.shared.dataTask(with: coverImageUrl) { data, response, error in
                     if let error = error {
                         print("Error downloading cover image: \(error)")
@@ -231,23 +221,18 @@ struct AddTitleView: View {
                     }
                     
                     guard let data = data, !data.isEmpty else {
-                        print("No data received for cover image")
                         continuation.resume(returning: nil)
                         return
                     }
                     
                     // Verify it's actually image data
-                    if let image = UIImage(data: data) {
-                        print("Successfully downloaded cover image: \(image.size)")
+                    if UIImage(data: data) != nil {
                         continuation.resume(returning: data)
                     } else {
-                        print("Downloaded data is not a valid image")
                         continuation.resume(returning: nil)
-                    }
-                }
+                    }                }
                 task.resume()
             } else {
-                print("No cover image URL found in metadata")
                 continuation.resume(returning: nil)
             }
         }
@@ -308,15 +293,9 @@ struct AddTitleView: View {
             encoder.outputFormatting = .prettyPrinted
             let titleData = try encoder.encode(title)
             try titleData.write(to: titleFile)
-            print("Title saved to: \(titleFile.path)")
-            print("Title: \(title.title)")
-            print("Author: \(title.author)")
-            print("Chapters: \(title.chapters.count)")
-            print("Cover image: \(title.coverImageData != nil ? "Yes" : "No")")
             
-            // Post notification to refresh library - USE THE CORRECT NAME
+            // Post notification to refresh library
             NotificationCenter.default.post(name: .titleAdded, object: nil)
-            print("Posted titleAdded notification")
             
         } catch {
             print("Error saving title: \(error)")

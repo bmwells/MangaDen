@@ -110,11 +110,6 @@ class ReaderCoordinator: ObservableObject {
                         return page1 < page2
                     }
                 
-                print("Loading \(imageFiles.count) images from storage with order:")
-                for (index, file) in imageFiles.enumerated() {
-                    print("  Page \(index): \(file.lastPathComponent)")
-                }
-                
                 var loadedImagesArray: [UIImage] = []
                 for imageFile in imageFiles {
                     if let imageData = try? Data(contentsOf: imageFile),
@@ -125,24 +120,19 @@ class ReaderCoordinator: ObservableObject {
                 
                 // Create a local copy to avoid capturing the mutable array
                 let finalImages = loadedImagesArray
-                let imagesCount = finalImages.count
                 
                 DispatchQueue.main.async {
                     originalImages.wrappedValue = finalImages
                     loadedImages.wrappedValue = finalImages
                     isLoadingFromStorage.wrappedValue = false
-                    
-                    print("Loaded \(imagesCount) images from storage for downloaded chapter")
-                    
+                                        
                     isChapterReady.wrappedValue = true
                     
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                         setInitialPageIndex()
-                        print("Initial page set for downloaded chapter")
                     }
                 }
             } catch {
-                print("Error loading chapter from storage: \(error)")
                 DispatchQueue.main.async {
                     isLoadingFromStorage.wrappedValue = false
                     isChapterReady.wrappedValue = true
@@ -269,7 +259,6 @@ class ReaderCoordinator: ObservableObject {
     ) {
         guard currentPageIndex.wrappedValue < displayImages.count - 1 else { return }
         let newIndex = currentPageIndex.wrappedValue + 1
-        print("Next page: \(currentPageIndex.wrappedValue) -> \(newIndex)")
         currentPageIndex.wrappedValue = newIndex
         scrollToPage(currentPageIndex.wrappedValue, true)
         resetZoom()
@@ -283,7 +272,6 @@ class ReaderCoordinator: ObservableObject {
     ) {
         guard currentPageIndex.wrappedValue > 0 else { return }
         let newIndex = currentPageIndex.wrappedValue - 1
-        print("Previous page: \(currentPageIndex.wrappedValue) -> \(newIndex)")
         currentPageIndex.wrappedValue = newIndex
         scrollToPage(currentPageIndex.wrappedValue, true)
         resetZoom()
@@ -317,7 +305,6 @@ class ReaderCoordinator: ObservableObject {
         animated: Bool,
         scrollProxy: ScrollViewProxy?
     ) {
-        print("Scrolling to page index: \(pageIndex)")
         if animated {
             withAnimation(.easeInOut(duration: 0.3)) {
                 scrollProxy?.scrollTo(pageIndex, anchor: .center)
@@ -362,8 +349,7 @@ class ReaderCoordinator: ObservableObject {
         
         saveBookmarkToUserDefaults(currentPage: currentPage, chapter: chapter, titleID: titleID)
         
-        print("Bookmark updated: Chapter \(chapter.formattedChapterNumber), Page \(currentPage)")
-    }
+        }
     
     static func saveBookmarkToUserDefaults(currentPage: Int, chapter: Chapter, titleID: UUID) {
         let bookmarkKey = "currentBookmark_\(titleID.uuidString)"
@@ -375,38 +361,28 @@ class ReaderCoordinator: ObservableObject {
         ]
         
         UserDefaults.standard.set(bookmarkData, forKey: bookmarkKey)
-        print("Bookmark saved to UserDefaults: Title \(titleID.uuidString), Chapter \(chapter.formattedChapterNumber), Page \(currentPage)")
         
         NotificationCenter.default.post(name: .titleUpdated, object: nil)
     }
     
     static func loadBookmarkFromUserDefaults(chapter: Chapter, titleID: UUID) -> Int? {
         let bookmarkKey = "currentBookmark_\(titleID.uuidString)"
-        
-        print("Checking for bookmark with key: \(bookmarkKey)")
-        
+                
         guard let bookmarkData = UserDefaults.standard.dictionary(forKey: bookmarkKey) else {
-            print("No bookmark data found for key: \(bookmarkKey)")
             return nil
         }
         
         guard let savedChapterId = bookmarkData["chapterId"] as? String else {
-            print("No chapterId found in bookmark data")
             return nil
         }
         
         guard let savedPage = bookmarkData["page"] as? Int else {
-            print("No page found in bookmark data")
             return nil
         }
-        
-        print("Bookmark data - savedChapterId: \(savedChapterId), currentChapterId: \(chapter.id.uuidString)")
-        
+                
         if savedChapterId == chapter.id.uuidString {
-            print("Bookmark found for current chapter: Chapter \(chapter.formattedChapterNumber), Page \(savedPage)")
             return savedPage
         } else {
-            print("Bookmark exists but for different chapter: \(savedChapterId) vs current: \(chapter.id.uuidString)")
             return nil
         }
     }
@@ -424,25 +400,15 @@ class ReaderCoordinator: ObservableObject {
         titleID: UUID
     ) {
         guard !displayImages.isEmpty else {
-            print("No display images available for setting initial page")
             return
         }
         
-        print("Setting initial page index for \(displayImages.count) images")
-        print("Reading direction: \(readingDirection)")
-        print("Chapter is downloaded: \(isDownloaded)")
-        print("hasRestoredFromBookmark: \(hasRestoredFromBookmark)")
-        
         if let bookmarkedPage = loadBookmarkFromUserDefaults(chapter: chapter, titleID: titleID), !hasRestoredFromBookmark {
-            print("Attempting to restore from bookmark: page \(bookmarkedPage)")
-            
             let targetIndex: Int
             if readingDirection == .rightToLeft {
                 targetIndex = displayImages.count - bookmarkedPage
-                print("RTL conversion: bookmarkedPage \(bookmarkedPage) -> targetIndex \(targetIndex)")
             } else {
                 targetIndex = bookmarkedPage - 1
-                print("LTR conversion: bookmarkedPage \(bookmarkedPage) -> targetIndex \(targetIndex)")
             }
             
             let clampedIndex = max(0, min(displayImages.count - 1, targetIndex))
@@ -450,19 +416,16 @@ class ReaderCoordinator: ObservableObject {
                         
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                 scrollToPage(currentPageIndex.wrappedValue, false)
-                print("Scrolled to bookmarked page: \(currentPageIndex.wrappedValue)")
             }
         } else {
             if readingDirection == .rightToLeft {
                 currentPageIndex.wrappedValue = displayImages.count - 1
-                print("RTL INIT: Set currentPageIndex to \(currentPageIndex.wrappedValue) for Page 1")
                 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                     scrollToPage(currentPageIndex.wrappedValue, false)
                 }
             } else {
                 currentPageIndex.wrappedValue = 0
-                print("LTR: Set initial page to 0 for \(displayImages.count) display images")
                 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                     scrollToPage(currentPageIndex.wrappedValue, false)
@@ -487,7 +450,6 @@ class ReaderCoordinator: ObservableObject {
             let imagesNowLoaded = !newValue.isEmpty
             
             if imagesNowLoaded {
-                print("Images loaded: \(newValue.count), setting chapter ready")
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     originalImages.wrappedValue = newValue
                     setInitialPageIndex()
@@ -495,7 +457,6 @@ class ReaderCoordinator: ObservableObject {
                     downloadProgress.wrappedValue = ""
                     
                     if readerJava.isLoading {
-                        print("Forcing readerJava isLoading to false")
                         readerJava.isLoading = false
                     }
                 }
@@ -547,10 +508,8 @@ struct SinglePageView: View {
         .drawingGroup()
         .allowsHitTesting(true)
         .onAppear {
-            print("📄 SinglePageView appeared - isActive: \(isActive), zoomModeEnabled: \(zoomModeEnabled)")
         }
         .onChange(of: isActive) { oldValue, newValue in
-            print("📄 SinglePageView - isActive changed: \(oldValue) -> \(newValue)")
         }
     }
 }
@@ -595,8 +554,6 @@ struct ZoomableImageView: View {
     private var magnificationGesture: some Gesture {
         MagnificationGesture()
             .onChanged { value in
-                print("🔍 MagnificationGesture - onChanged: \(value), isActive: \(isActive), zoomModeEnabled: \(zoomModeEnabled)")
-                
                 // Only allow zooming when in zoom mode or when navigation bars are hidden
                 if isActive && zoomModeEnabled {
                     let delta = value / lastZoomScale
@@ -608,12 +565,10 @@ struct ZoomableImageView: View {
                     if clampedScale != zoomScale {
                         zoomScale = clampedScale
                         isZooming = clampedScale > 1.0
-                        print("✅ Zoom scale updated: \(zoomScale), isZooming: \(isZooming)")
                     }
                     
                     // Check if we should exit zoom mode (pinch out)
                     if value <= 0.95 {
-                        print("📏 Pinch out detected - resetting zoom before exiting")
                         // Reset zoom immediately before exiting
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                             resetZoomAndPosition()
@@ -626,27 +581,21 @@ struct ZoomableImageView: View {
                 }
             }
             .onEnded { value in
-                print("🔍 MagnificationGesture - onEnded: \(value)")
-                
                 guard isActive && zoomModeEnabled else { return }
                 
                 lastZoomScale = 1.0
                 
                 // Auto-reset if zoomed out too far OR if zoom scale is at minimum
                 if zoomScale <= 1.0 || value <= 1.0 {
-                    print("🔄 Auto-resetting zoom - zoomScale: \(zoomScale), gestureValue: \(value)")
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                         resetZoomAndPosition()
                     }
                     // Also exit zoom mode when completely zoomed out
                     if value <= 0.95 {
-                        print("📏 Completely zoomed out - exiting zoom mode")
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                             onExitZoomMode?()
                         }
                     }
-                } else {
-                    print("📏 Final zoom scale: \(zoomScale)")
                 }
             }
     }
@@ -655,7 +604,6 @@ struct ZoomableImageView: View {
         DragGesture(minimumDistance: 0)
             .onChanged { value in
                 guard isActive && zoomModeEnabled && isZooming else {
-                    print("❌ Drag ignored - isActive: \(isActive), zoomModeEnabled: \(zoomModeEnabled), isZooming: \(isZooming)")
                     return
                 }
                 
@@ -681,13 +629,9 @@ struct ZoomableImageView: View {
     private var doubleTapGesture: some Gesture {
         TapGesture(count: 2)
             .onEnded {
-                print("👆👆 DoubleTapGesture - triggered, isZooming: \(isZooming), zoomModeEnabled: \(zoomModeEnabled)")
-                
                 guard isActive && zoomModeEnabled else { return }
-                
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                     if isZooming {
-                        print("🔄 Double tap - resetting zoom and exiting zoom mode")
                         resetZoomAndPosition()
                     }
                     // Exit zoom mode after reset animation completes
@@ -699,7 +643,6 @@ struct ZoomableImageView: View {
     }
     
     private func resetZoomAndPosition() {
-        print("🔄 resetZoomAndPosition called - resetting to zoomScale: 1.0")
         zoomScale = 1.0
         offset = .zero
         initialOffset = .zero

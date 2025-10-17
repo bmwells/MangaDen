@@ -37,13 +37,11 @@ class WebViewManager: NSObject, ObservableObject {
         webView.navigationDelegate = self.navigationDelegate // Set delegate first
         self.webView = webView
         
-        print("WebViewManager: Loading URL: \(url)")
         let request = URLRequest(url: url)
         webView.load(request)
     }
     
     func stopLoading() {
-        print("WebViewManager: Stopping WebView loading")
         webView?.stopLoading()
         isLoading = false
         error = "Download cancelled by user"

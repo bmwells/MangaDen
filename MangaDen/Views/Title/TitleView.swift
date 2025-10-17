@@ -317,18 +317,15 @@ struct TitleView: View {
         
         guard let bookmarkData = UserDefaults.standard.dictionary(forKey: bookmarkKey),
               let chapterIdString = bookmarkData["chapterId"] as? String,
-              let chapterId = UUID(uuidString: chapterIdString),
-              let chapterNumber = bookmarkData["chapterNumber"] as? Double,
-              let page = bookmarkData["page"] as? Int else {
+              let chapterId = UUID(uuidString: chapterIdString)
+            else {
             // No bookmark found, clear all
             bookmarkedChapters.removeAll()
-            print("No bookmark found for title: \(title.title)")
             return
         }
         
         // Set only this chapter as bookmarked
         bookmarkedChapters = [chapterId]
-        print("Current bookmark loaded: Chapter \(chapterNumber) on page \(page)")
     }
     
     // MARK: - Bookmark Scrolling
@@ -394,8 +391,6 @@ struct TitleView: View {
         // Start network monitoring
         startNetworkMonitoring()
         
-        print("TitleView appeared - Tab bar hidden: \(tabBarManager.isTabBarHidden)")
-        print("Offline mode: \(isOfflineMode)")
     }
     
     // MARK: - Network Monitoring
@@ -404,12 +399,6 @@ struct TitleView: View {
             DispatchQueue.main.async {
                 self.networkStatus = path.status
                 self.isOfflineMode = path.status != .satisfied
-                
-                if self.isOfflineMode {
-                    print("Offline mode detected - showing only downloaded chapters")
-                } else {
-                    print("Online mode - showing all chapters")
-                }
             }
         }
         
@@ -484,7 +473,6 @@ struct TitleView: View {
             let chapterDirectory = documentsDirectory.appendingPathComponent("Downloads/\(chapter.id.uuidString)")
             if fileManager.fileExists(atPath: chapterDirectory.path) {
                 try fileManager.removeItem(at: chapterDirectory)
-                print("Uninstalled chapter: \(chapter.title ?? "Chapter \(chapter.formattedChapterNumber)")")
             }
             
             // Update chapter download status
@@ -511,7 +499,6 @@ struct TitleView: View {
                 let chapterDirectory = documentsDirectory.appendingPathComponent("Downloads/\(chapter.id.uuidString)")
                 if fileManager.fileExists(atPath: chapterDirectory.path) {
                     try fileManager.removeItem(at: chapterDirectory)
-                    print("Removed chapter directory: \(chapterDirectory.lastPathComponent)")
                 }
             }
             
@@ -527,9 +514,7 @@ struct TitleView: View {
             
             let titleData = try JSONEncoder().encode(updatedTitle)
             try titleData.write(to: titleFile)
-            
-            print("Uninstalled all chapters for: \(title.title)")
-            
+                        
             NotificationCenter.default.post(name: .titleUpdated, object: nil)
             
         } catch {
@@ -550,9 +535,7 @@ struct TitleView: View {
             
             let titleData = try JSONEncoder().encode(updatedTitle)
             try titleData.write(to: titleFile)
-            
-            print("Successfully saved updated title: \(updatedTitle.title)")
-            
+                        
             NotificationCenter.default.post(name: .titleUpdated, object: nil)
             
         } catch {
@@ -637,7 +620,6 @@ struct TitleView: View {
             
             let titleData = try JSONEncoder().encode(updatedTitle)
             try titleData.write(to: titleFile)
-            print("Updated archive status for: \(title.title) - isArchived: \(updatedTitle.isArchived)")
             
             NotificationCenter.default.post(name: .titleUpdated, object: nil)
             
@@ -666,7 +648,6 @@ struct TitleView: View {
             
             if fileManager.fileExists(atPath: titleFile.path) {
                 try fileManager.removeItem(at: titleFile)
-                print("Deleted title file: \(titleFile.lastPathComponent)")
             }
             
             NotificationCenter.default.post(name: .titleDeleted, object: nil)
@@ -705,7 +686,6 @@ struct TitleView: View {
             
             let titleData = try JSONEncoder().encode(updatedTitle)
             try titleData.write(to: titleFile)
-            print("Updated title info: \(updatedTitle.title) by \(updatedTitle.author) with status: \(updatedTitle.status)")
             
             NotificationCenter.default.post(name: .titleUpdated, object: nil)
             
@@ -862,10 +842,10 @@ struct OfflineModeBanner: View {
                 .font(.title)
                 .foregroundColor(.orange)
             Text("Offline Mode")
-                .font(.headline)
+                .font(.title3)
                 .foregroundColor(.orange)
         }
-        .padding(8)
+        .padding(16)
         .background(Color.white.opacity(0.1))
         .cornerRadius(8)
         .padding(.horizontal)

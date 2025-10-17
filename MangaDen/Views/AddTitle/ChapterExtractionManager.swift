@@ -78,8 +78,8 @@ class ChapterExtractionManager {
             if let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
                 let fileURL = documentsDirectory.appendingPathComponent("chapters.json")
                 
+                // Save chapters to JSON
                 try jsonData.write(to: fileURL)
-                print("Chapters saved to: \(fileURL.path)")
             }
         } catch {
             print("Error saving chapters to JSON: \(error.localizedDescription)")
