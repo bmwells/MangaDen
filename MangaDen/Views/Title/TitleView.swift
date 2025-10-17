@@ -147,7 +147,7 @@ struct TitleView: View {
                                         .foregroundColor(.blue)
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 12)
-                                        .background(Color.blue.opacity(0.1))
+                                        .background(ButtonBackground())
                                         .cornerRadius(8)
                                         .padding(.leading, UIDevice.current.userInterfaceIdiom == .pad ? 30 : 5)
 
@@ -172,7 +172,7 @@ struct TitleView: View {
                                             .foregroundColor(.blue)
                                             .padding(.horizontal, 12)
                                             .padding(.vertical, 12)
-                                            .background(Color.blue.opacity(0.1))
+                                            .background(ButtonBackground())
                                             .cornerRadius(8)
                                             .padding(.trailing, UIDevice.current.userInterfaceIdiom == .pad ? 30 : 5)
                                         }
@@ -711,6 +711,21 @@ struct TitleView: View {
 enum ChapterSortOption: String, CaseIterable {
     case newToOld = "newToOld"
     case oldToNew = "oldToNew"
+}
+
+// MARK: - Button Background (Sort & Bookmark)
+struct ButtonBackground: View {
+    @Environment(\.colorScheme) private var colorScheme
+    
+    var body: some View {
+        Group {
+            if colorScheme == .dark {
+                Color.gray.opacity(0.3) // Gray background for dark mode
+            } else {
+                Color.blue.opacity(0.1) // Blue background for light mode
+            }
+        }
+    }
 }
 
 // MARK: - Chapter Scrollbar Component
