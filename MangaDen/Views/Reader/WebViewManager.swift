@@ -47,6 +47,29 @@ class WebViewManager: NSObject, ObservableObject {
         error = "Download cancelled by user"
     }
     
+    func clearContent() {
+        print("WebViewManager: Clearing WebView content")
+        
+        // Stop any ongoing loading
+        webView?.stopLoading()
+        
+        // Clear the WebView content by loading a blank page
+        webView?.load(URLRequest(url: URL(string: "about:blank")!))
+        
+        // Clear navigation delegate to prevent callbacks
+        webView?.navigationDelegate = nil
+        
+        // Clear current URL
+        currentURL = nil
+        
+        // Update state
+        isLoading = false
+        error = nil
+        downloadProgress = ""
+        
+        print("WebViewManager: WebView content cleared")
+    }
+    
     func clearCache() {
         webView?.stopLoading()
         webView = nil

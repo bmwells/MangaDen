@@ -70,9 +70,12 @@ struct ReaderView: View {
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-            mainContent
             
-            // Bottom Scrollbar
+            // Main content - will automatically adjust based on navigation bar visibility
+            mainContent
+                .ignoresSafeArea(.all, edges: .bottom)
+            
+            // Bottom Scrollbar - always overlayed
             if showNavigationBars && !displayImages.isEmpty && !isZooming && !zoomModeEnabled {
                 VStack {
                     Spacer()
@@ -103,7 +106,12 @@ struct ReaderView: View {
             onAppearAction()
         }
         .onDisappear {
-            onDisappearAction()
+            ReaderCoordinator.onDisappearAction(
+                isDownloaded: isDownloaded,
+                stopLoading: { readerJava.stopLoading() },
+                updateBookmark: updateBookmark,
+                tabBarManager: tabBarManager
+            )
         }
         .statusBar(hidden: !showNavigationBars)
         .animation(.easeInOut(duration: 0.2), value: currentPageIndex)
@@ -150,7 +158,7 @@ struct ReaderView: View {
     }
     
     // MARK: - Main Content Views
-    
+
     @ViewBuilder
     private var mainContent: some View {
         if !isChapterReady {
@@ -159,7 +167,7 @@ struct ReaderView: View {
             contentView
         }
     }
-    
+
     private var loadingView: some View {
         VStack(spacing: 16) {
             ProgressView()
@@ -174,10 +182,29 @@ struct ReaderView: View {
                 Text(downloadProgress)
                     .font(.subheadline)
                     .foregroundColor(.white.opacity(0.8))
+                    .multilineTextAlignment(.center)
+                    .lineLimit(3)
+                    .minimumScaleFactor(0.8)
                     .transition(.opacity)
             }
         }
         .animation(.easeInOut(duration: 0.3), value: downloadProgress)
+        .padding(.horizontal)
+    }
+
+    // Helper method to determine loading title based on progress
+    private func getLoadingTitle() -> String {
+        if downloadProgress.contains("Starting extraction") || downloadProgress.contains("Strategy") {
+            return "Extracting Images..."
+        } else if downloadProgress.contains("Processing") || downloadProgress.contains("Sorting") {
+            return "Processing Images..."
+        } else if downloadProgress.contains("DOWNLOAD") || downloadProgress.contains("Downloading") {
+            return "Downloading Images..."
+        } else if downloadProgress.contains("Attempt") || downloadProgress.contains("RETRY") {
+            return "Loading Chapter..."
+        } else {
+            return "Loading Chapter..."
+        }
     }
     
     @ViewBuilder
@@ -266,6 +293,7 @@ struct ReaderView: View {
                         }
                     }
                     .scrollTargetBehavior(.paging)
+                    .ignoresSafeArea(.all, edges: .bottom)
                     .onAppear {
                         scrollProxy = proxy
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -286,7 +314,7 @@ struct ReaderView: View {
             }
         }
     }
-
+    
     private var navigationOverlay: some View {
         ZStack {
             // Always have tap areas present for gestures
@@ -353,6 +381,9 @@ struct ReaderView: View {
     
     private var backButton: some View {
         Button(action: {
+            // Stop all loading processes BEFORE dismissing
+            readerJava.stopLoading()
+            readerJava.clearCache()
             dismiss()
         }) {
             Image(systemName: "chevron.left")
@@ -438,9 +469,9 @@ struct ReaderView: View {
     }
     
     private func onDisappearAction() {
-        if !isDownloaded {
-            readerJava.clearCache()
-        }
+        // Stop ALL processes when leaving the reader - ONLY CALL stopLoading
+        readerJava.stopLoading() // This will stop WebView, extraction, and clear content
+        
         updateBookmark()
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {

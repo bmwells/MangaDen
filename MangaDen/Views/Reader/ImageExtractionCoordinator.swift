@@ -37,6 +37,7 @@ class ImageExtractionCoordinator: ObservableObject {
     @Published var images: [UIImage] = []
     private var extractionResults: [ExtractionResult] = []
     private let extractionStrategies = ImageExtractionStrategies()
+    @Published var extractionProgress: String = ""
     
     // MARK: - Cancellation Support
     var isCancelled = false
@@ -58,6 +59,14 @@ class ImageExtractionCoordinator: ObservableObject {
         imageCache.removeAll()
     }
     
+    // MARK: - Progress Updates
+    private func updateProgress(_ message: String) {
+        Task { @MainActor in
+            self.extractionProgress = message
+            print("EXTRACTION PROGRESS: \(message)")
+        }
+    }
+    
     // MARK: - Execute All Strategies
         
     func executeAllExtractionStrategies(webView: WKWebView, onComplete: @escaping (Bool) -> Void) {
@@ -68,6 +77,7 @@ class ImageExtractionCoordinator: ObservableObject {
         var strategyResults: [ExtractionResult] = []
         var completedStrategies = 0
         
+        updateProgress("Starting extraction strategies...")
         print("EXTRACTION: Starting all extraction strategies")
         
         // Execute strategies 1-3 first
@@ -86,6 +96,7 @@ class ImageExtractionCoordinator: ObservableObject {
             }
             
             dispatchGroup.enter()
+            updateProgress("Starting Strategy \(index + 1)...")
             print("EXTRACTION: Starting Strategy \(index + 1)")
             
             strategy(webView) { images in
@@ -93,6 +104,7 @@ class ImageExtractionCoordinator: ObservableObject {
                 if !self.isCancelled {
                     strategyResults.append(ExtractionResult(strategy: index + 1, images: images))
                     completedStrategies += 1
+                    self.updateProgress("Strategy \(index + 1) completed - found \(images.count) images")
                     print("EXTRACTION: Strategy \(index + 1) completed with \(images.count) images (completed: \(completedStrategies)/3)")
                 } else {
                     print("EXTRACTION: Strategy \(index + 1) results ignored due to cancellation")
@@ -114,6 +126,7 @@ class ImageExtractionCoordinator: ObservableObject {
                 return
             }
             
+            updateProgress("All strategies completed - processing results...")
             print("EXTRACTION: ALL STRATEGIES 1-3 COMPLETED")
             let totalImages = strategyResults.reduce(0) { $0 + $1.images.count }
             let maxImagesFromSingleStrategy = strategyResults.map { $0.images.count }.max() ?? 0
@@ -127,6 +140,7 @@ class ImageExtractionCoordinator: ObservableObject {
             let shouldTrystrategy0 = maxImagesFromSingleStrategy <= 13
             
             if shouldTrystrategy0 {
+                self.updateProgress("Starting page extraction...")
                 print("EXTRACTION: Strategy 0 TRIGGERED - No strategy found more than 13 images (max: \(maxImagesFromSingleStrategy))")
                 print("EXTRACTION: STARTING Strategy 0 - Page Menu Extraction")
                 
@@ -144,6 +158,7 @@ class ImageExtractionCoordinator: ObservableObject {
                     }) { strategy0Images in
                         // Check for cancellation before processing Strategy 0 results
                         if let self = self, !self.isCancelled {
+                            self.updateProgress("Extraction completed - found \(strategy0Images.count) images")
                             print("EXTRACTION: Strategy 0 COMPLETED - Found \(strategy0Images.count) images")
                             strategyResults.append(ExtractionResult(strategy: 0, images: strategy0Images))
                             
@@ -151,9 +166,11 @@ class ImageExtractionCoordinator: ObservableObject {
                             print("EXTRACTION: FINAL RESULTS - \(allImages.count) total images after Strategy 0")
                             
                             if allImages.isEmpty {
+                                self.updateProgress("No images found")
                                 print("EXTRACTION: No images found after all strategies")
                                 onComplete(false)
                             } else {
+                                self.updateProgress("Processing \(allImages.count) images...")
                                 print("EXTRACTION: Processing and downloading \(allImages.count) images")
                                 self.processAndDownloadImages(allImages, onComplete: onComplete)
                             }
@@ -165,12 +182,15 @@ class ImageExtractionCoordinator: ObservableObject {
                 }
             } else {
                 let allImages = strategyResults.flatMap { $0.images }
+                self.updateProgress("Found \(allImages.count) images - processing...")
                 print("EXTRACTION: Sufficient images found (max: \(maxImagesFromSingleStrategy) per strategy), skipping Strategy 0")
                 
                 if allImages.isEmpty {
+                    self.updateProgress("No images found")
                     print("EXTRACTION: No images found in strategies 1-3")
                     onComplete(false)
                 } else {
+                    self.updateProgress("Processing \(allImages.count) images...")
                     print("EXTRACTION: Processing and downloading \(allImages.count) images from strategies 1-3")
                     self.processAndDownloadImages(allImages, onComplete: onComplete)
                 }
@@ -419,6 +439,9 @@ class ImageExtractionCoordinator: ObservableObject {
         
         print("RETRY: Attempt \(attempt) of \(maxAttempts) - waiting \(delay) seconds")
         
+        // ADD PROGRESS UPDATE:
+        updateProgress("Preparing extraction...")
+        
         // Store the retry task for cancellation
         currentExtractionTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
@@ -465,7 +488,6 @@ class ImageExtractionCoordinator: ObservableObject {
     }
     
     // MARK: - Download and Cache
-    
     private func downloadImages(from imageInfos: [EnhancedImageInfo], onComplete: ((Bool) -> Void)? = nil) {
         // Store the download task for cancellation
         currentDownloadTask = Task { [weak self] in
@@ -478,6 +500,7 @@ class ImageExtractionCoordinator: ObservableObject {
             let totalImages = imageInfos.count
             var successfulDownloads = 0
             
+            self.updateProgress("Downloading \(totalImages) images...")
             print("DOWNLOAD: Starting download of \(totalImages) images")
             
             for (index, imageInfo) in imageInfos.enumerated() {
@@ -487,7 +510,8 @@ class ImageExtractionCoordinator: ObservableObject {
                     break
                 }
                 
-                // Update download progress would be handled by the main coordinator
+                // Update download progress
+                self.updateProgress("Downloading image \(index + 1) of \(totalImages)...")
                 
                 print("DOWNLOAD: [\(index + 1)/\(totalImages)] Attempting: \(imageInfo.src)")
                 
@@ -556,9 +580,11 @@ class ImageExtractionCoordinator: ObservableObject {
                 print("DOWNLOAD: Completed - \(successfulDownloads)/\(totalImages) successful downloads")
                 
                 if downloadedImages.isEmpty {
+                    self.updateProgress("Download failed - no images")
                     print("DOWNLOAD: CRITICAL - No images were successfully downloaded")
                     onComplete?(false)
                 } else {
+                    self.updateProgress("Download completed - \(downloadedImages.count) images ready")
                     print("DOWNLOAD: SUCCESS - Setting \(downloadedImages.count) images to display")
                     // Set images
                     self.images = downloadedImages

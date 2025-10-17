@@ -34,13 +34,13 @@ class ReaderCoordinator: ObservableObject {
     
     static func onDisappearAction(
         isDownloaded: Bool,
-        clearCache: @escaping () -> Void,
+        stopLoading: @escaping () -> Void, // ADD THIS PARAMETER
         updateBookmark: @escaping () -> Void,
         tabBarManager: TabBarManager
     ) {
-        if !isDownloaded {
-            clearCache()
-        }
+        // Stop ALL processes when leaving the reader, regardless of download status
+        stopLoading() // Stop WebView and extraction
+        
         updateBookmark()
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -435,7 +435,7 @@ class ReaderCoordinator: ObservableObject {
     }
     
     // MARK: - Modified Helper Methods
-    
+
     static func handleImagesChange(
         oldValue: [UIImage],
         newValue: [UIImage],
@@ -448,16 +448,22 @@ class ReaderCoordinator: ObservableObject {
     ) {
         if !isDownloaded {
             let imagesNowLoaded = !newValue.isEmpty
-            
+
             if imagesNowLoaded {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     originalImages.wrappedValue = newValue
                     setInitialPageIndex()
                     isChapterReady.wrappedValue = true
-                    downloadProgress.wrappedValue = ""
+                    // Don't clear progress immediately - show success message briefly
+                    downloadProgress.wrappedValue = "Chapter loaded successfully!"
                     
                     if readerJava.isLoading {
                         readerJava.isLoading = false
+                    }
+                    
+                    // Clear success message after a brief delay
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                        downloadProgress.wrappedValue = ""
                     }
                 }
             }
@@ -483,7 +489,6 @@ class ReaderCoordinator: ObservableObject {
 }
 
 // MARK: - Single Page View
-
 struct SinglePageView: View {
     let image: UIImage
     @Binding var zoomScale: CGFloat
@@ -507,12 +512,17 @@ struct SinglePageView: View {
         )
         .drawingGroup()
         .allowsHitTesting(true)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .contentShape(Rectangle())
+        // FIX: Only ignore bottom safe area to respect top bar space
+        .ignoresSafeArea(.all, edges: .bottom)
         .onAppear {
         }
         .onChange(of: isActive) { oldValue, newValue in
         }
     }
 }
+
 
 // MARK: - Zoomable Image View
 struct ZoomableImageView: View {
@@ -530,14 +540,20 @@ struct ZoomableImageView: View {
     
     var body: some View {
         GeometryReader { geometry in
+            let availableWidth = geometry.size.width
+            let availableHeight = geometry.size.height
+            
             Image(uiImage: image)
                 .resizable()
                 .scaledToFit()
                 .scaleEffect(isActive ? zoomScale : 1.0)
                 .offset(x: isActive ? offset.width : 0, y: isActive ? offset.height : 0)
-                .frame(width: geometry.size.width, height: geometry.size.height)
+                .frame(width: availableWidth, height: availableHeight)
                 .background(Color.black)
                 .clipped()
+                .onTapGesture {
+                    onCenterTap()
+                }
                 .gesture(
                     SimultaneousGesture(
                         magnificationGesture,
@@ -548,9 +564,12 @@ struct ZoomableImageView: View {
                     )
                 )
         }
+        // FIX: Only ignore bottom safe area to respect top bar space
+        .ignoresSafeArea(.all, edges: .bottom)
         .contentShape(Rectangle())
     }
     
+    // Zoom Gesture
     private var magnificationGesture: some Gesture {
         MagnificationGesture()
             .onChanged { value in
@@ -567,17 +586,8 @@ struct ZoomableImageView: View {
                         isZooming = clampedScale > 1.0
                     }
                     
-                    // Check if we should exit zoom mode (pinch out)
-                    if value <= 0.95 {
-                        // Reset zoom immediately before exiting
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                            resetZoomAndPosition()
-                        }
-                        // Exit zoom mode after reset animation completes
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                            onExitZoomMode?()
-                        }
-                    }
+                    // REMOVED: Automatic exit on pinch out
+                    // User can now zoom out freely without exiting zoom mode
                 }
             }
             .onEnded { value in
@@ -585,16 +595,14 @@ struct ZoomableImageView: View {
                 
                 lastZoomScale = 1.0
                 
-                // Auto-reset if zoomed out too far OR if zoom scale is at minimum
-                if zoomScale <= 1.0 || value <= 1.0 {
+                // Only exit zoom mode if user has zoomed out to less than full size
+                if zoomScale <= 1.0 {
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                         resetZoomAndPosition()
                     }
-                    // Also exit zoom mode when completely zoomed out
-                    if value <= 0.95 {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                            onExitZoomMode?()
-                        }
+                    // Exit zoom mode after reset animation completes
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        onExitZoomMode?()
                     }
                 }
             }
@@ -649,8 +657,8 @@ struct ZoomableImageView: View {
         isZooming = false
         lastZoomScale = 1.0
     }
-    
 }
+
 
 // Helper extension for clamping values
 extension Comparable {

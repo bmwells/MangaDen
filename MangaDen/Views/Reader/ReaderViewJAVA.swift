@@ -22,6 +22,8 @@ class ReaderViewJava: NSObject, ObservableObject {
     private var currentExtractionTask: Task<Void, Never>?
     private var isStopping = false // Add this flag
     private var isPaused = false // Add pause state
+    private var hasExtractionStarted = false // ADD THIS FLAG
+    private var extractionFallbackTask: Task<Void, Never>? // ADD THIS
     
     override init() {
         super.init()
@@ -29,8 +31,24 @@ class ReaderViewJava: NSObject, ObservableObject {
         // Set self as navigation delegate for webViewManager
         webViewManager.navigationDelegate = self
         
+        // Set up progress observation from extraction coordinator
+        setupProgressObservation()
+        
         // Listen for pause/resume notifications
         setupPauseResumeObservers()
+    }
+    
+    private func setupProgressObservation() {
+        Task {
+            for await progress in extractionCoordinator.$extractionProgress.values {
+                if !self.isStopping && !self.isPaused {
+                    await MainActor.run {
+                        self.downloadProgress = progress
+                        print("ReaderViewJava: Progress update - \(progress)")
+                    }
+                }
+            }
+        }
     }
     
     private func setupPauseResumeObservers() {
@@ -66,6 +84,10 @@ class ReaderViewJava: NSObject, ObservableObject {
         currentExtractionTask?.cancel()
         currentExtractionTask = nil
         
+        // Cancel fallback timer
+        extractionFallbackTask?.cancel()
+        extractionFallbackTask = nil
+        
         // Cancel the extraction coordinator operations
         extractionCoordinator.cancelAllOperations()
         
@@ -87,17 +109,21 @@ class ReaderViewJava: NSObject, ObservableObject {
         // Reset pause state when starting new load
         isPaused = false
         isStopping = false
+        hasExtractionStarted = false // RESET EXTRACTION FLAG
         
         print("ReaderViewJava: Loading chapter from URL: \(url)")
         isLoading = true
         error = nil
         images = []
-        downloadProgress = "" // Reset progress
+        downloadProgress = "Starting chapter load..." // Initial progress
         
         // Reset cancellation state before starting new load
         extractionCoordinator.resetCancellation()
         
         webViewManager.loadChapter(url: url)
+        
+        // Set up a fallback timer in case extraction doesn't start
+        setupExtractionFallbackTimer()
         
         // Set up observation for extraction coordinator images
         Task {
@@ -111,7 +137,7 @@ class ReaderViewJava: NSObject, ObservableObject {
                     if !newImages.isEmpty && self.isLoading {
                         print("ReaderViewJava: Images received, updating loading state to false")
                         self.isLoading = false
-                        self.downloadProgress = ""
+                        self.downloadProgress = "Chapter ready!"
                     }
                 } else {
                     print("ReaderViewJava: Ignoring images received during pause/stop process")
@@ -126,6 +152,16 @@ class ReaderViewJava: NSObject, ObservableObject {
                 // Only update if we don't have images yet and not stopping/paused
                 if self.images.isEmpty && !self.isStopping && !self.isPaused {
                     self.isLoading = loadingState
+                    if loadingState {
+                        self.downloadProgress = "Loading webpage..."
+                    } else {
+                        // WebView finished loading but extraction hasn't started
+                        if !self.hasExtractionStarted && self.images.isEmpty && !self.isStopping {
+                            self.downloadProgress = "Webpage loaded, preparing extraction..."
+                            // Force extraction start if it hasn't happened
+                            self.forceStartExtractionIfNeeded()
+                        }
+                    }
                 }
             }
         }
@@ -138,26 +174,69 @@ class ReaderViewJava: NSObject, ObservableObject {
                     self.error = newError
                     if newError != nil {
                         self.isLoading = false
+                        self.downloadProgress = "Error loading chapter"
                     }
                 }
             }
         }
+    }
+
+    // ADD THESE NEW METHODS:
+
+    private func setupExtractionFallbackTimer() {
+        // Cancel any existing fallback task first
+        extractionFallbackTask?.cancel()
+        
+        // Start a timer that will trigger extraction if it doesn't start within 5 seconds
+        extractionFallbackTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds
+            
+            // Check if extraction still hasn't started and we're not stopped/paused
+            if let self = self, !self.hasExtractionStarted && !self.isStopping && !self.isPaused && self.images.isEmpty {
+                print("ReaderViewJava: Fallback timer triggered - forcing extraction start")
+                await MainActor.run {
+                    self.downloadProgress = "Starting image extraction..."
+                }
+                self.forceStartExtractionIfNeeded()
+            }
+        }
+    }
+
+    private func forceStartExtractionIfNeeded() {
+        guard let webView = webViewManager.webView else {
+            print("ReaderViewJava: Cannot force extraction - WebView is nil")
+            return
+        }
+        
+        // Check if we're already in the process of extraction or stopping
+        if hasExtractionStarted || isStopping || isPaused {
+            return
+        }
+        
+        print("ReaderViewJava: Forcing extraction start")
+        startExtractionProcess(webView: webView)
     }
     
     func stopLoading() {
         print("ReaderViewJava: Stopping all loading and extraction")
         isStopping = true // Set stopping flag first
         isPaused = false // Reset pause state when explicitly stopping
+        hasExtractionStarted = false // RESET EXTRACTION FLAG
         
-        // Cancel any ongoing extraction task FIRST
+        // Cancel fallback timer FIRST
+        extractionFallbackTask?.cancel()
+        extractionFallbackTask = nil
+        
+        // Cancel any ongoing extraction task
         currentExtractionTask?.cancel()
         currentExtractionTask = nil
         
         // Cancel the extraction coordinator operations
         extractionCoordinator.cancelAllOperations()
         
-        // Stop the WebView
+        // Stop the WebView and clear its content
         webViewManager.stopLoading()
+        webViewManager.clearContent() // ADD THIS METHOD CALL
         
         // Reset state
         isLoading = false
@@ -173,12 +252,27 @@ class ReaderViewJava: NSObject, ObservableObject {
     func clearCache() {
         isStopping = true
         isPaused = false
-        webViewManager.clearCache()
+        hasExtractionStarted = false
+        
+        // Cancel fallback timer
+        extractionFallbackTask?.cancel()
+        extractionFallbackTask = nil
+        
+        // Stop WebView first
+        webViewManager.stopLoading()
+        webViewManager.clearContent() // ADD THIS
+        
+        // Clear extraction coordinator
+        extractionCoordinator.cancelAllOperations()
         extractionCoordinator.clearCache()
         extractionCoordinator.resetCancellation()
+        
+        // Clear local state
         images = []
         currentExtractionTask = nil
         isStopping = false
+        
+        print("ReaderViewJava: Cache cleared and all processes stopped")
     }
 }
 
@@ -209,6 +303,17 @@ extension ReaderViewJava: WKNavigationDelegate {
         }
         
         print("ReaderViewJava: Starting extraction strategies on web view")
+        startExtractionProcess(webView: webView)
+    }
+    
+    // ADD THIS NEW METHOD:
+    private func startExtractionProcess(webView: WKWebView) {
+        // Mark extraction as started
+        hasExtractionStarted = true
+        
+        // Cancel fallback timer since extraction is starting
+        extractionFallbackTask?.cancel()
+        extractionFallbackTask = nil
         
         // Store the extraction task for potential cancellation
         currentExtractionTask = Task { [weak self] in
