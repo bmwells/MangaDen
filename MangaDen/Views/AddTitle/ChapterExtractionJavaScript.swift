@@ -129,7 +129,9 @@ class ChapterExtractionJavaScript {
                 /\\bSpecial\\b/i, // Matches "Special" word
                 /\\bOne[\\-\\s]?Shot\\b/i, // Matches "One-Shot", "One Shot"
                 /\\bExtra\\b/i, // Matches "Extra" word
-                /\\bBonus\\b/i // Matches "Bonus" word
+                /\\bBonus\\b/i, // Matches "Bonus" word
+                /\\bAnnual\\b/i, // Matches "Annual" word
+                /\\bThe_Deluxe_Edition\\b/i // Matches "The_Deluxe_Edition"
             ];
             
             // Get current page URL to filter same-series chapters
@@ -165,6 +167,9 @@ class ChapterExtractionJavaScript {
                     currentMangaId = pathParts[pathParts.length - 1];
                 }
             }
+            
+            // NEW: Special logic for readcomiconline.li site
+            const isReadComicOnline = currentUrl.includes('readcomiconline.li');
             
             // First, check if there's a table with chapter/date structure
             const tableDateMap = findDatesInTables();
@@ -325,6 +330,24 @@ class ChapterExtractionJavaScript {
                         continue;
                     }
                     
+                    // NEW: Special filtering for readcomiconline.li
+                    if (isReadComicOnline) {
+                        // Ensure we only add links for the current title
+                        const currentTitleUrl = currentUrl.toLowerCase();
+                        const linkUrl = href.toLowerCase();
+                        
+                        // Skip URLs that are different titles (like Omnibus, Super-Special)
+                        if (linkUrl.includes('/comic/ultimate-spider-man-omnibus') || 
+                            linkUrl.includes('/comic/ultimate-spider-man-super-special')) {
+                            continue;
+                        }
+                        
+                        // Only include links that belong to the current title
+                        if (!linkUrl.includes(currentTitleUrl.split('/comic/')[1])) {
+                            continue;
+                        }
+                    }
+                    
                     // Check if text contains special chapter identifiers
                     let hasSpecialChapterIdentifier = false;
                     for (const pattern of specialChapterPatterns) {
@@ -335,7 +358,7 @@ class ChapterExtractionJavaScript {
                     }
                     
                     // Filter out links from different manga series
-                    if (currentMangaId) {
+                    if (currentMangaId && !isReadComicOnline) {
                         let isSameSeries = false;
                         
                         // Check if link href contains the current manga ID
@@ -382,122 +405,170 @@ class ChapterExtractionJavaScript {
                     let chapterNumber = null;
                     let cleanTitle = text; // Start with original text
                     
-                    // Pattern 1: Chapter X, Issue X, Volume X, etc.
-                    const pattern1 = /(chapter|chp|ch|chap|issue|iss|is|volume|vol|v|episode|ep|eps|part|pt)[\\s:]*([\\d\\.]+)/i;
-                    let match1 = text.match(pattern1);
-                    if (match1 && match1[2]) {
-                        chapterNumber = match1[2];
-                        // Don't modify the title - keep the full original text
-                    }
-                    
-                    // Pattern 2: #X, #01, #001, etc.
-                    if (!chapterNumber) {
-                        const pattern2 = /#\\s*([\\d\\.]+)/i;
-                        let match2 = text.match(pattern2);
-                        if (match2 && match2[1]) {
-                            chapterNumber = match2[1];
-                            // Don't modify the title - keep the full original text
+                    // NEW: Special numbering logic for readcomiconline.li
+                    if (isReadComicOnline) {
+                        // Handle Annuals - numbered as 100000, 200000, etc.
+                        const annualMatch = text.match(/_Annual\\s+(\\d+)/i);
+                        if (annualMatch) {
+                            const annualNum = parseInt(annualMatch[1]);
+                            chapterNumber = (annualNum * 100000).toString();
+                        }
+                        // Handle TPB (Trade Paperbacks) - numbered as 11000, 12000, 21000, etc.
+                        else if (text.includes('_TPB')) {
+                            const tpbMatch = text.match(/_TPB\\s+(\\d+)\\s*\\(Part\\s+(\\d+)\\)/i);
+                            if (tpbMatch) {
+                                const tpbNum = parseInt(tpbMatch[1]);
+                                const partNum = parseInt(tpbMatch[2]);
+                                chapterNumber = (tpbNum * 10000 + partNum * 1000).toString();
+                            }
+                        }
+                        // Handle The_Deluxe_Edition - same numbering as TPB
+                        else if (text.includes('_The_Deluxe_Edition')) {
+                            const deluxeMatch = text.match(/_The_Deluxe_Edition\\s+(\\d+)\\s*\\(Part\\s+(\\d+)\\)/i);
+                            if (deluxeMatch) {
+                                const editionNum = parseInt(deluxeMatch[1]);
+                                const partNum = parseInt(deluxeMatch[2]);
+                                chapterNumber = (editionNum * 10000 + partNum * 1000).toString();
+                            }
+                        }
+                        // Handle Specials - numbered as 1000, 2000, 3000, etc.
+                        else if (text.includes('_Special')) {
+                            // Assign sequential numbers for specials
+                            const specialCount = Object.keys(chapterLinks).filter(key => 
+                                chapterLinks[key].title && chapterLinks[key].title.includes('_Special')
+                            ).length;
+                            chapterNumber = ((specialCount + 1) * 1000).toString();
+                        }
+                        // Handle regular issues
+                        else {
+                            const issueMatch = text.match(/Issue\\s+#(\\d+(?:\\.\\d+)?)/i);
+                            if (issueMatch) {
+                                chapterNumber = issueMatch[1];
+                            }
                         }
                     }
                     
-                    // Pattern 3: Number at beginning or end (standalone numbers)
+                    // If not readcomiconline.li or no special numbering applied, use normal patterns
                     if (!chapterNumber) {
-                        const pattern3 = /^\\s*([\\d\\.]+)\\s*$|\\b([\\d\\.]+)\\s*(?:chapter|chp|ch|chap|issue|iss|is|volume|vol|v|episode|ep|eps|part|pt)\\b/i;
-                        let match3 = text.match(pattern3);
-                        if (match3 && (match3[1] || match3[2])) {
-                            chapterNumber = match3[1] || match3[2];
+                        // Pattern 1: Chapter X, Issue X, Volume X, etc.
+                        const pattern1 = /(chapter|chp|ch|chap|issue|iss|is|volume|vol|v|episode|ep|eps|part|pt)[\\s:]*([\\d\\.]+)/i;
+                        let match1 = text.match(pattern1);
+                        if (match1 && match1[2]) {
+                            chapterNumber = match1[2];
                             // Don't modify the title - keep the full original text
                         }
-                    }
-                    
-                    // Pattern 4: Look for numbers in the text (fallback)
-                    if (!chapterNumber) {
-                        const numberMatch = text.match(/\\b(\\d+(?:\\.\\d+)?)\\b/);
-                        if (numberMatch) {
-                            chapterNumber = numberMatch[1];
-                            // Don't modify the title - keep the full original text
-                        }
-                    }
-                    
-                    // Pattern 5: Special chapter identifiers (assign special numbers)
-                    if (!chapterNumber) {
-                        // Enhanced detection for complex patterns like "Batman '66 [II] TPB 5 (Part 2)"
-                        let tpbNumber = null;
-                        let partNumber = null;
-                        let hasSpecialIdentifier = false;
                         
-                        // More robust TPB detection that handles various formats
-                        const tpbPatterns = [
-                            /TPB[\\s\\-]*(\\d+)/i,        // TPB 1, TPB-1, TPB1
-                        ];
-                        
-                        // Try all TPB patterns
-                        for (const pattern of tpbPatterns) {
-                            const match = text.match(pattern);
-                            if (match && match[1]) {
-                                tpbNumber = parseInt(match[1]);
-                                hasSpecialIdentifier = true;
-                                break;
+                        // Pattern 2: #X, #01, #001, etc.
+                        if (!chapterNumber) {
+                            const pattern2 = /#\\s*([\\d\\.]+)/i;
+                            let match2 = text.match(pattern2);
+                            if (match2 && match2[1]) {
+                                chapterNumber = match2[1];
+                                // Don't modify the title - keep the full original text
                             }
                         }
                         
-                        // Part number detection
-                        const partPatterns = [
-                            /\\(Part[\\s\\-]*(\\d+)\\)/i,    // (Part 1)
-                            /\\(Pt\\.?[\\s\\-]*(\\d+)\\)/i,  // (Pt. 1), (Pt 1)
-                            /Part[\\s\\-]*(\\d+)/i,          // Part 1 (without parentheses)
-                            /Pt\\.?[\\s\\-]*(\\d+)/i         // Pt. 1, Pt 1 (without parentheses)
-                        ];
-                        
-                        for (const pattern of partPatterns) {
-                            const match = text.match(pattern);
-                            if (match && match[1]) {
-                                partNumber = parseInt(match[1]);
-                                hasSpecialIdentifier = true;
-                                break;
+                        // Pattern 3: Number at beginning or end (standalone numbers)
+                        if (!chapterNumber) {
+                            const pattern3 = /^\\s*([\\d\\.]+)\\s*$|\\b([\\d\\.]+)\\s*(?:chapter|chp|ch|chap|issue|iss|is|volume|vol|v|episode|ep|eps|part|pt)\\b/i;
+                            let match3 = text.match(pattern3);
+                            if (match3 && (match3[1] || match3[2])) {
+                                chapterNumber = match3[1] || match3[2];
+                                // Don't modify the title - keep the full original text
                             }
                         }
                         
-                        // Also check for other special identifiers as fallback
-                        if (!hasSpecialIdentifier) {
-                            for (const pattern of specialChapterPatterns) {
-                                if (pattern.test(text)) {
+                        // Pattern 4: Look for numbers in the text (fallback)
+                        if (!chapterNumber) {
+                            const numberMatch = text.match(/\\b(\\d+(?:\\.\\d+)?)\\b/);
+                            if (numberMatch) {
+                                chapterNumber = numberMatch[1];
+                                // Don't modify the title - keep the full original text
+                            }
+                        }
+                        
+                        // Pattern 5: Special chapter identifiers (assign special numbers)
+                        if (!chapterNumber) {
+                            // Enhanced detection for complex patterns like "Batman '66 [II] TPB 5 (Part 2)"
+                            let tpbNumber = null;
+                            let partNumber = null;
+                            let hasSpecialIdentifier = false;
+                            
+                            // More robust TPB detection that handles various formats
+                            const tpbPatterns = [
+                                /TPB[\\s\\-]*(\\d+)/i,        // TPB 1, TPB-1, TPB1
+                            ];
+                            
+                            // Try all TPB patterns
+                            for (const pattern of tpbPatterns) {
+                                const match = text.match(pattern);
+                                if (match && match[1]) {
+                                    tpbNumber = parseInt(match[1]);
                                     hasSpecialIdentifier = true;
                                     break;
                                 }
                             }
-                        }
-                        
-                        if (hasSpecialIdentifier) {
-                            // Handle the Batman '66 series and similar patterns
-                            if (tpbNumber !== null && partNumber !== null) {
-                                // Both TPB number and part number exist
-                                // Calculate sequential numbering: TPB1 Part1=1, TPB1 Part2=2, TPB2 Part1=3, etc.
-                                chapterNumber = ((tpbNumber - 1) * 2 + partNumber).toString();
-                            } else if (tpbNumber !== null) {
-                                // Only TPB number exists
-                                chapterNumber = (900 + tpbNumber).toString(); // TPB1=901, TPB2=902, etc.
-                            } else if (partNumber !== null) {
-                                // Only part number exists
-                                chapterNumber = (800 + partNumber).toString(); // Part1=801, Part2=802, etc.
-                            } else {
-                                // Other special types
-                                if (/Full/i.test(text)) {
-                                    chapterNumber = "701";
-                                } else if (/Omnibus/i.test(text)) {
-                                    chapterNumber = "702";
-                                } else if (/Special/i.test(text)) {
-                                    chapterNumber = "703";
-                                } else if (/One[\\-\\s]?Shot/i.test(text)) {
-                                    chapterNumber = "704";
-                                } else if (/Extra/i.test(text)) {
-                                    chapterNumber = "705";
-                                } else if (/Bonus/i.test(text)) {
-                                    chapterNumber = "706";
-                                } else if (/TPB/i.test(text)) {
-                                    chapterNumber = "707"; // TPB without number
+                            
+                            // Part number detection
+                            const partPatterns = [
+                                /\\(Part[\\s\\-]*(\\d+)\\)/i,    // (Part 1)
+                                /\\(Pt\\.?[\\s\\-]*(\\d+)\\)/i,  // (Pt. 1), (Pt 1)
+                                /Part[\\s\\-]*(\\d+)/i,          // Part 1 (without parentheses)
+                                /Pt\\.?[\\s\\-]*(\\d+)/i         // Pt. 1, Pt 1 (without parentheses)
+                            ];
+                            
+                            for (const pattern of partPatterns) {
+                                const match = text.match(pattern);
+                                if (match && match[1]) {
+                                    partNumber = parseInt(match[1]);
+                                    hasSpecialIdentifier = true;
+                                    break;
+                                }
+                            }
+                            
+                            // Also check for other special identifiers as fallback
+                            if (!hasSpecialIdentifier) {
+                                for (const pattern of specialChapterPatterns) {
+                                    if (pattern.test(text)) {
+                                        hasSpecialIdentifier = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            if (hasSpecialIdentifier) {
+                                // Handle the Batman '66 series and similar patterns
+                                if (tpbNumber !== null && partNumber !== null) {
+                                    // Both TPB number and part number exist
+                                    // Calculate sequential numbering: TPB1 Part1=1, TPB1 Part2=2, TPB2 Part1=3, etc.
+                                    chapterNumber = ((tpbNumber - 1) * 2 + partNumber).toString();
+                                } else if (tpbNumber !== null) {
+                                    // Only TPB number exists
+                                    chapterNumber = (900 + tpbNumber).toString(); // TPB1=901, TPB2=902, etc.
+                                } else if (partNumber !== null) {
+                                    // Only part number exists
+                                    chapterNumber = (800 + partNumber).toString(); // Part1=801, Part2=802, etc.
                                 } else {
-                                    chapterNumber = "799";
+                                    // Other special types
+                                    if (/Full/i.test(text)) {
+                                        chapterNumber = "701";
+                                    } else if (/Omnibus/i.test(text)) {
+                                        chapterNumber = "702";
+                                    } else if (/Special/i.test(text)) {
+                                        chapterNumber = "703";
+                                    } else if (/One[\\-\\s]?Shot/i.test(text)) {
+                                        chapterNumber = "704";
+                                    } else if (/Extra/i.test(text)) {
+                                        chapterNumber = "705";
+                                    } else if (/Bonus/i.test(text)) {
+                                        chapterNumber = "706";
+                                    } else if (/TPB/i.test(text)) {
+                                        chapterNumber = "707"; // TPB without number
+                                    } else if (/Annual/i.test(text)) {
+                                        chapterNumber = "708"; // Annual without number
+                                    } else {
+                                        chapterNumber = "799";
+                                    }
                                 }
                             }
                         }
@@ -602,6 +673,10 @@ class ChapterExtractionJavaScript {
                                 chapterType = "extra";
                             } else if (/Bonus/i.test(text)) {
                                 chapterType = "bonus";
+                            } else if (/Annual/i.test(text)) {
+                                chapterType = "annual";
+                            } else if (/The_Deluxe_Edition/i.test(text)) {
+                                chapterType = "deluxe";
                             }
                             
                             chapterData["chapter_type"] = chapterType;
