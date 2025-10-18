@@ -75,8 +75,7 @@ struct JSONViewerView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Refresh") {
-                        loadJSON()
-                        loadMangaMetadata()
+                        refreshData()
                     }
                 }
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -94,6 +93,20 @@ struct JSONViewerView: View {
                     MangaMetadataDetailView(metadata: metadata)
                 }
             }
+        }
+    }
+    
+    private func refreshData() {
+        // Post notification to trigger the same refresh as in BrowserView
+        NotificationCenter.default.post(
+            name: .jsonViewerRefreshRequested,
+            object: nil
+        )
+        
+        // Also refresh the local data after a short delay to allow for external updates
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            loadJSON()
+            loadMangaMetadata()
         }
     }
     
@@ -362,8 +375,7 @@ struct MangaMetadataDetailView: View {
     }
 }
 
-struct JSONViewerView_Previews: PreviewProvider {
-    static var previews: some View {
-        JSONViewerView()
-    }
+// Add this extension for the notification name
+extension Notification.Name {
+    static let jsonViewerRefreshRequested = Notification.Name("jsonViewerRefreshRequested")
 }

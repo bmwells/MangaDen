@@ -249,6 +249,10 @@ struct BrowserView: View {
                 showSuccessAlert = true
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .jsonViewerRefreshRequested)) { _ in
+            findChapters()
+            findMetadata()
+        }
         .sheet(isPresented: $showJSONViewer) {
             JSONViewerView()
         }
