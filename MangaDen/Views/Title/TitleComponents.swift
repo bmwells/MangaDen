@@ -337,6 +337,8 @@ struct EditTitleView: View {
     let title: Title
     @Binding var editedTitle: String
     @Binding var editedAuthor: String
+    @FocusState private var isTitleFocused: Bool
+    @FocusState private var isAuthorFocused: Bool
     @Binding var editedStatus: String
     @Binding var selectedCoverImage: UIImage?
     @Binding var coverImageItem: PhotosPickerItem?
@@ -384,11 +386,6 @@ struct EditTitleView: View {
     
     private var titleURLView: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Title URL:")
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .foregroundColor(.primary)
-            
             if let urlString = title.sourceURL, !urlString.isEmpty,
                let url = URL(string: urlString) {
                 Link(destination: url) {
@@ -474,8 +471,29 @@ struct EditTitleView: View {
                 }
                 
                 Section(header: Text("Title Information")) {
-                    TextField("Title", text: $editedTitle)
-                    TextField("Author (optional)", text: $editedAuthor)
+                    HStack {
+                        TextField("Title", text: $editedTitle)
+                            .focused($isTitleFocused)
+                        if !editedTitle.isEmpty && isTitleFocused {
+                            Button(action: { editedTitle = "" }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(.secondary)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
+                    }
+                    
+                    HStack {
+                        TextField("Author (optional)", text: $editedAuthor)
+                            .focused($isAuthorFocused)
+                        if !editedAuthor.isEmpty && isAuthorFocused {
+                            Button(action: { editedAuthor = "" }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(.secondary)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
+                    }
                 }
                 
                 // Status Picker Section
@@ -484,7 +502,7 @@ struct EditTitleView: View {
                 }
                 
                 // Title URL
-                Section() {
+                Section(header: Text("Title URL")) {
                     titleURLView
                 }
             }
@@ -893,5 +911,9 @@ extension View {
 
 
 #Preview {
-    TitleHelpView()
+    ContentView()
 }
+
+//#Preview {
+//    TitleHelpView()
+//}
