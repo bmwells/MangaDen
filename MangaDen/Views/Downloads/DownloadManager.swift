@@ -21,6 +21,9 @@ class DownloadManager: ObservableObject {
     private let maxConcurrentDownloads = 1 // One at a time for simplicity
     private var currentDownloadTask: Task<Void, Never>?
     
+    // Add ReaderViewJava instance for progress tracking
+    private var currentReaderJava: ReaderViewJava?
+    
     private init() {
         loadDownloadState()
     }
@@ -93,6 +96,8 @@ class DownloadManager: ObservableObject {
         // If this was the current task, start next one
         if currentTask?.chapter.id == chapterId {
             currentTask = nil
+            currentReaderJava?.stopLoading()
+            currentReaderJava = nil
             if !isPaused {
                 startNextDownload()
             }
@@ -105,7 +110,7 @@ class DownloadManager: ObservableObject {
             failedDownloads.remove(at: index)
             var newTask = task
             newTask.status = .queued
-            newTask.progress = 0.0
+            newTask.progress = 0.0 // Reset progress to 0% when retrying
             newTask.error = nil
             downloadQueue.append(newTask)
             saveDownloadState()
@@ -139,11 +144,18 @@ class DownloadManager: ObservableObject {
         }
         downloadQueue.removeAll()
         currentTask = nil
+        currentReaderJava = nil
         isDownloading = false
         isPaused = false
         saveDownloadState()
         
         print("Download queue cleared")
+    }
+    
+    // MARK: - Progress Text Access
+    
+    func getCurrentDownloadProgressText() -> String {
+        return currentReaderJava?.downloadProgress ?? "Starting download..."
     }
     
     // MARK: - Stop/Resume Methods
@@ -158,13 +170,16 @@ class DownloadManager: ObservableObject {
         currentDownloadTask?.cancel()
         currentDownloadTask = nil
         
+        // Stop the current reader
+        currentReaderJava?.stopLoading()
+        
         // Cancel the current task but keep it in queue for resuming
         if let currentTask = currentTask {
             // Reset the current task status to queued so it can be resumed later
             if let index = downloadQueue.firstIndex(where: { $0.id == currentTask.id }) {
                 var updatedTask = downloadQueue[index]
                 updatedTask.status = .queued
-                updatedTask.progress = 0.0 // Reset progress when stopped
+                updatedTask.progress = 0.1 // Keep at 10% when paused
                 updatedTask.estimatedTimeRemaining = nil
                 downloadQueue[index] = updatedTask
             }
@@ -177,8 +192,6 @@ class DownloadManager: ObservableObject {
         saveDownloadState()
         print("Downloads stopped")
     }
-    
-    
     
     func resumeAllDownloads() {
         guard isPaused else { return } // Already running
@@ -232,8 +245,12 @@ class DownloadManager: ObservableObject {
         var task = downloadQueue[nextTaskIndex]
         task.status = .downloading
         task.startTime = Date()
+        task.progress = 0.1 // Start at 10% when initiated
         downloadQueue[nextTaskIndex] = task
         currentTask = task
+        
+        // Create new ReaderViewJava for this download
+        currentReaderJava = ReaderViewJava()
         
         // Store the async task so we can cancel it
         currentDownloadTask = Task {
@@ -248,35 +265,35 @@ class DownloadManager: ObservableObject {
             return
         }
         
-        guard let url = URL(string: task.chapter.url) else {
-            markDownloadFailed(task: task, error: "Invalid URL")
+        guard let url = URL(string: task.chapter.url),
+              let readerJava = currentReaderJava else {
+            markDownloadFailed(task: task, error: "Invalid URL or reader initialization failed")
             return
         }
         
         do {
-            // CRITICAL FIX: Create a NEW ReaderViewJava instance for each chapter
-            // This prevents image caching/reuse between chapters
-            let chapterReaderJava = ReaderViewJava()
-            
-            // Load chapter images with the fresh instance
-            chapterReaderJava.clearCache()
-            chapterReaderJava.loadChapter(url: url)
+            // Load chapter images
+            readerJava.clearCache()
+            readerJava.loadChapter(url: url)
             
             // Wait for images to load with cancellation support
             var attempts = 0
-            while chapterReaderJava.isLoading && attempts < 180 {
+            while readerJava.isLoading && attempts < 180 {
                 // Check for cancellation
                 if Task.isCancelled || isPaused {
                     print("Download cancelled during image loading for chapter \(task.chapter.formattedChapterNumber)")
-                    chapterReaderJava.stopLoading()
+                    readerJava.stopLoading()
                     return
                 }
+                
+                // Update progress based on download progress text
+                updateProgressBasedOnStatus(readerJava: readerJava, task: task)
                 
                 try await Task.sleep(nanoseconds: 1_000_000_000)
                 attempts += 1
                 
-                if chapterReaderJava.images.count > 0 && attempts > 30 {
-                    print("Proceeding with \(chapterReaderJava.images.count) images despite loading state for chapter \(task.chapter.formattedChapterNumber)")
+                if readerJava.images.count > 0 && attempts > 30 {
+                    print("Proceeding with \(readerJava.images.count) images despite loading state for chapter \(task.chapter.formattedChapterNumber)")
                     break
                 }
             }
@@ -284,17 +301,17 @@ class DownloadManager: ObservableObject {
             // Check for cancellation after loading
             if Task.isCancelled || isPaused {
                 print("Download cancelled after image loading for chapter \(task.chapter.formattedChapterNumber)")
-                chapterReaderJava.stopLoading()
+                readerJava.stopLoading()
                 return
             }
             
             // Check if we have images
-            if chapterReaderJava.images.isEmpty {
-                markDownloadFailed(task: task, error: chapterReaderJava.error ?? "No images found after \(attempts) seconds")
+            if readerJava.images.isEmpty {
+                markDownloadFailed(task: task, error: readerJava.error ?? "No images found after \(attempts) seconds")
                 return
             }
             
-            let totalImages = chapterReaderJava.images.count
+            let totalImages = readerJava.images.count
             print("Starting download of \(totalImages) images for chapter \(task.chapter.formattedChapterNumber)")
             
             // Download images with cancellation support
@@ -302,16 +319,16 @@ class DownloadManager: ObservableObject {
             var totalSize: Int64 = 0
             var failedDownloads = 0
             
-            for (index, image) in chapterReaderJava.images.enumerated() {
+            for (index, image) in readerJava.images.enumerated() {
                 // Check for cancellation frequently
                 if Task.isCancelled || isPaused {
                     print("Download cancelled during image processing for chapter \(task.chapter.formattedChapterNumber)")
                     return
                 }
                 
-                // Update progress
-                let progress = Double(index + 1) / Double(totalImages)
-                updateDownloadProgress(taskId: task.id, progress: progress)
+                // Update progress based on image processing
+                let imageProgress = 0.1 + (Double(index + 1) / Double(totalImages)) * 0.9 // Scale from 10% to 100%
+                updateDownloadProgress(taskId: task.id, progress: imageProgress)
                 
                 // Add small delay to avoid overwhelming the system
                 try await Task.sleep(nanoseconds: 50_000_000)
@@ -364,6 +381,28 @@ class DownloadManager: ObservableObject {
         }
     }
     
+    private func updateProgressBasedOnStatus(readerJava: ReaderViewJava, task: DownloadTask) {
+        let progressText = readerJava.downloadProgress
+        
+        // Update progress based on the current stage
+        var progress: Double = 0.1 // Start at 10%
+        
+        if progressText.contains("DOWNLOAD") || progressText.contains("Downloading") {
+            progress = 0.3
+        } else if progressText.contains("Starting extraction") || progressText.contains("Strategy") {
+            progress = 0.4
+        } else if progressText.contains("Processing") || progressText.contains("Sorting") {
+            progress = 0.6
+        } else if progressText.contains("Attempt") || progressText.contains("RETRY") {
+            progress = 0.2
+        } else if !readerJava.images.isEmpty {
+            // If we have images, progress should be higher
+            progress = max(0.1, Double(readerJava.images.count) / 100.0)
+        }
+        
+        updateDownloadProgress(taskId: task.id, progress: progress)
+    }
+    
     private func updateDownloadProgress(taskId: UUID, progress: Double) {
         if let index = self.downloadQueue.firstIndex(where: { $0.id == taskId }) {
             // Create a new task with updated progress
@@ -372,8 +411,8 @@ class DownloadManager: ObservableObject {
             
             // Calculate estimated time remaining
             let elapsedTime = Date().timeIntervalSince(updatedTask.startTime)
-            if progress > 0 {
-                let totalEstimatedTime = elapsedTime / progress
+            if progress > 0.1 { // Only calculate ETA after initial 10%
+                let totalEstimatedTime = elapsedTime / (progress - 0.1) * 0.9 // Adjust for starting at 10%
                 updatedTask.estimatedTimeRemaining = totalEstimatedTime - elapsedTime
             }
             
@@ -445,6 +484,7 @@ class DownloadManager: ObservableObject {
             self.updateChapterDownloadStatus(chapterId: task.chapter.id, isDownloaded: false)
             
             self.currentTask = nil
+            self.currentReaderJava = nil
             self.isDownloading = false
             self.saveDownloadState()
             
@@ -469,6 +509,7 @@ class DownloadManager: ObservableObject {
             self.updateChapterDownloadStatus(chapterId: task.chapter.id, isDownloaded: true, fileSize: fileSize)
             
             self.currentTask = nil
+            self.currentReaderJava = nil
             self.isDownloading = false
             self.saveDownloadState()
             

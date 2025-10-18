@@ -18,7 +18,7 @@ struct DownloadsView: View {
             ZStack {
                 VStack(spacing: 12) {
                     // Current Downloads Section
-                    VStack(alignment: .leading, spacing: 8) { 
+                    VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             Text("Downloading")
                                 .font(.headline)
@@ -59,7 +59,7 @@ struct DownloadsView: View {
                                 .padding()
                         } else {
                             ScrollView {
-                                LazyVStack(spacing: 8) { 
+                                LazyVStack(spacing: 8) {
                                     ForEach(downloadManager.downloadQueue) { task in
                                         DownloadTaskRow(task: task, isPaused: downloadManager.isPaused)
                                     }
@@ -68,14 +68,14 @@ struct DownloadsView: View {
                             .frame(maxHeight: 256)
                         }
                     }
-                    .padding(.horizontal, 12) 
-                    .padding(.vertical, 2) 
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 2)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(Color(.systemGray6))
                     .cornerRadius(12)
                     
                     // Completed Downloads Section
-                    VStack(alignment: .leading, spacing: 8) { 
+                    VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             Text("Completed")
                                 .font(.headline)
@@ -99,7 +99,7 @@ struct DownloadsView: View {
                                 .padding()
                         } else {
                             ScrollView {
-                                LazyVStack(spacing: 6) { 
+                                LazyVStack(spacing: 6) {
                                     ForEach(downloadManager.completedDownloads) { task in
                                         CompletedDownloadRow(task: task)
                                     }
@@ -108,15 +108,15 @@ struct DownloadsView: View {
                             .frame(maxHeight: 150)
                         }
                     }
-                    .padding(.horizontal, 12) 
-                    .padding(.vertical, 8) 
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(Color(.systemGray6))
                     .cornerRadius(12)
                     
                     // Failed Downloads Section - Only show when there are failed downloads
                     if !downloadManager.failedDownloads.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) { 
+                        VStack(alignment: .leading, spacing: 8) {
                             HStack {
                                 Text("Failed")
                                     .font(.headline)
@@ -132,7 +132,7 @@ struct DownloadsView: View {
                             }
                             
                             ScrollView {
-                                LazyVStack(spacing: 6) { 
+                                LazyVStack(spacing: 6) {
                                     ForEach(downloadManager.failedDownloads) { task in
                                         FailedDownloadRow(task: task)
                                     }
@@ -140,8 +140,8 @@ struct DownloadsView: View {
                             }
                             .frame(maxHeight: 65)
                         }
-                        .padding(.horizontal, 12) 
-                        .padding(.vertical, 8) 
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(Color(.systemGray6))
                         .cornerRadius(12)
@@ -149,7 +149,7 @@ struct DownloadsView: View {
                     
                     Spacer()
                 }
-                .padding(.horizontal, 8) 
+                .padding(.horizontal, 8)
                 .padding(.vertical, -30)
                 .toolbar {
                     // Page title
@@ -355,6 +355,7 @@ struct DownloadTaskRow: View {
     let isPaused: Bool
     @Environment(\.colorScheme) private var colorScheme
     @State private var seriesTitle: String = ""
+    @ObservedObject private var downloadManager = DownloadManager.shared // Use shared instance
     
     var body: some View {
         HStack {
@@ -408,10 +409,13 @@ struct DownloadTaskRow: View {
                     
                     Spacer()
                     
-                    if let remaining = task.estimatedTimeRemaining, remaining > 0 && !isPaused {
-                        Text("ETA: \(formatTime(remaining))")
+                    // Replace ETA time with download progress text
+                    if task.status == .downloading && !isPaused {
+                        Text(getProgressText())
                             .font(.caption2)
                             .foregroundColor(.secondary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
                     }
                 }
             }
@@ -435,11 +439,9 @@ struct DownloadTaskRow: View {
         }
     }
     
-    private func formatTime(_ timeInterval: TimeInterval) -> String {
-        let formatter = DateComponentsFormatter()
-        formatter.allowedUnits = [.minute, .second]
-        formatter.unitsStyle = .abbreviated
-        return formatter.string(from: timeInterval) ?? ""
+    private func getProgressText() -> String {
+        // Get the current download progress text from DownloadManager
+        return downloadManager.getCurrentDownloadProgressText()
     }
 }
 
