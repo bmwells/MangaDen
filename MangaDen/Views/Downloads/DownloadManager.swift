@@ -388,11 +388,11 @@ class DownloadManager: ObservableObject {
         var progress: Double = 0.1 // Start at 10%
         
         if progressText.contains("DOWNLOAD") || progressText.contains("Downloading") {
-            progress = 0.3
+            progress = 0.5
         } else if progressText.contains("Starting extraction") || progressText.contains("Strategy") {
-            progress = 0.4
-        } else if progressText.contains("Processing") || progressText.contains("Sorting") {
             progress = 0.6
+        } else if progressText.contains("Processing") || progressText.contains("Sorting") {
+            progress = 0.8
         } else if progressText.contains("Attempt") || progressText.contains("RETRY") {
             progress = 0.2
         } else if !readerJava.images.isEmpty {
