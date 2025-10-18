@@ -28,7 +28,7 @@ struct SettingsView: View {
                         Toggle("Dark Mode", isOn: $isDarkMode)
                         
                         HStack {
-                            Text("Reading Direction")
+                            Text("Default Reading Direction")
                                 .foregroundColor(.primary)
                                 .lineLimit(1)
                             

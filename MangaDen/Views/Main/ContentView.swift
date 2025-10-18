@@ -60,11 +60,11 @@ struct ContentView: View {
                             if index < 2 {
                                 Rectangle()
                                     .fill(isDarkMode ? Color.white.opacity(0.3) : Color.white.opacity(0.4))
-                                    .frame(width: 1, height: 65)
+                                    .frame(width: 1, height: 74)
                             }
                         }
                     }
-                    .frame(height: 65)
+                    .frame(height: 74)
                     .background(isDarkMode ? Color(.systemGray2) : Color.blue) // Background color for the bottom bar
                     .overlay(
                         RoundedRectangle(cornerRadius: 0)
@@ -115,18 +115,18 @@ struct TabButton: View {
                 Image(systemName: icon)
                     .font(.system(size: 22, weight: isSelected ? .bold : .medium))
                     .frame(height: 24)
-                    .offset(y: -2)
+                    .offset(y: -7)
                 
                 Text(label)
                     .font(.system(size: 12, weight: isSelected ? .bold : .medium))
                     .multilineTextAlignment(.center)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
-                    .offset(y: -2)
+                    .offset(y: -7)
             }
             .foregroundColor(isSelected ? .white : (isDarkMode ? .white.opacity(0.7) : .white.opacity(0.6)))
             .frame(maxWidth: .infinity)
-            .frame(height: 60)
+            .frame(height: 69)
             .contentShape(Rectangle())
         }
         .buttonStyle(PlainButtonStyle())
