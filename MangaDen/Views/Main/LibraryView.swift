@@ -18,6 +18,7 @@ struct LibraryView: View {
     @State private var searchText: String = ""
     @State private var isSearching: Bool = false
     @State private var isLoading: Bool = true
+    @State private var isLandscape: Bool = false
     
     // Tabs (Reading and Archive)
     enum LibraryTab: String, CaseIterable {
@@ -51,178 +52,206 @@ struct LibraryView: View {
         return isDarkMode ? .dark : .light
     }
     
+    // Computed cover image height based on device and orientation
+    private var coverImageHeight: CGFloat {
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            return isLandscape ? 263 : 275
+        } else {
+            return 265
+        }
+    }
+    
+    // Computed cover image width based on device and orientation
+    private var coverImageWidth: CGFloat {
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            return isLandscape ? 225 : 225
+        } else {
+            return 175
+        }
+    }
+    
     var body: some View {
         NavigationStack {
-            VStack {
-                // Top Bar with Add, Picker, and Search
-                HStack {
-                    // Add Button
-                    Button(action: { showAddManga = true }) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 28, weight: .medium))
-                            .foregroundColor(.accentColor)
-                            .padding(8)
-                            .offset(
-                                x: UIDevice.current.userInterfaceIdiom == .pad ? 10 : 0,
-                                y: UIDevice.current.userInterfaceIdiom == .pad ? 0 : -10
-                            )
-                    }
-                    .sheet(isPresented: $showAddManga) { AddTitleView() }
-                    
-                    Spacer()
-                    
-                    // Segmented Picker
-                    Picker("", selection: $selectedTab) {
-                        ForEach(LibraryTab.allCases, id: \.self) { tab in
-                            Text(tab.rawValue).tag(tab)
-                        }
-                    }
-                    .pickerStyle(SegmentedPickerStyle())
-                    .fixedSize()
-                    .padding(.horizontal)
-                    .scaleEffect(x: 1.3, y: 1.3)
-                    .offset(y: -10)
-                    
-                    Spacer()
-                    
-                    // Search Button
-                    Button(action: {
-                        withAnimation(.spring()) {
-                            isSearching.toggle()
-                            if !isSearching {
-                                searchText = ""
-                            }
-                        }
-                    }) {
-                        Image(systemName: isSearching ? "xmark" : "magnifyingglass")
-                            .font(.system(size: 25, weight: .medium))
-                            .foregroundColor(.accentColor)
-                            .padding(8)
-                            .offset(
-                                x: UIDevice.current.userInterfaceIdiom == .pad ? -10 : 0,
-                                y: UIDevice.current.userInterfaceIdiom == .pad ? 0 : -10
-                            )
-                    }
-                }
-                .padding(.horizontal)
-                .padding(.top, 8)
-                .background(Color(.systemBackground))
-                
-                // Search Bar (appears when searching)
-                if isSearching {
+            GeometryReader { geometry in
+                VStack {
+                    // Top Bar with Add, Picker, and Search
                     HStack {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundColor(.secondary)
-                            .padding(.leading, 8)
+                        // Add Button
+                        Button(action: { showAddManga = true }) {
+                            Image(systemName: "plus")
+                                .font(.system(size: 28, weight: .medium))
+                                .foregroundColor(.accentColor)
+                                .padding(8)
+                                .offset(
+                                    x: UIDevice.current.userInterfaceIdiom == .pad ? 10 : 0,
+                                    y: UIDevice.current.userInterfaceIdiom == .pad ? 0 : -10
+                                )
+                        }
+                        .sheet(isPresented: $showAddManga) { AddTitleView() }
                         
-                        TextField("Search your library...", text: $searchText)
-                            .textFieldStyle(PlainTextFieldStyle())
-                            .padding(.vertical, 8)
-                            .autocapitalization(.none)
-                            .disableAutocorrection(true)
+                        Spacer()
                         
-                        if !searchText.isEmpty {
-                            Button(action: {
-                                searchText = ""
-                            }) {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundColor(.secondary)
-                                    .padding(.trailing, 8)
+                        // Segmented Picker
+                        Picker("", selection: $selectedTab) {
+                            ForEach(LibraryTab.allCases, id: \.self) { tab in
+                                Text(tab.rawValue).tag(tab)
                             }
+                        }
+                        .pickerStyle(SegmentedPickerStyle())
+                        .fixedSize()
+                        .padding(.horizontal)
+                        .scaleEffect(x: 1.3, y: 1.3)
+                        .offset(y: -10)
+                        
+                        Spacer()
+                        
+                        // Search Button
+                        Button(action: {
+                            withAnimation(.spring()) {
+                                isSearching.toggle()
+                                if !isSearching {
+                                    searchText = ""
+                                }
+                            }
+                        }) {
+                            Image(systemName: isSearching ? "xmark" : "magnifyingglass")
+                                .font(.system(size: 25, weight: .medium))
+                                .foregroundColor(.accentColor)
+                                .padding(8)
+                                .offset(
+                                    x: UIDevice.current.userInterfaceIdiom == .pad ? -10 : 0,
+                                    y: UIDevice.current.userInterfaceIdiom == .pad ? 0 : -10
+                                )
                         }
                     }
-                    .background(Color(.systemGray6))
-                    .cornerRadius(10)
                     .padding(.horizontal)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-                }
-                
-                ScrollView {
-                    if isLoading {
-                        ProgressView("Loading Library...")
-                            .scaleEffect(1.5)
-                            .padding(.top, 100)
-                    } else if filteredTitles.isEmpty {
-                        VStack(spacing: 20) {
-                            Image(systemName: emptyStateIcon)
-                                .font(.system(size: 60))
+                    .padding(.top, 8)
+                    .background(Color(.systemBackground))
+                    
+                    // Search Bar (appears when searching)
+                    if isSearching {
+                        HStack {
+                            Image(systemName: "magnifyingglass")
                                 .foregroundColor(.secondary)
+                                .padding(.leading, 8)
                             
-                            VStack(spacing: 8) {
-                                Text(emptyStateTitle)
-                                    .font(.title2)
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(.primary)
-                                
-                                Text(emptyStateMessage)
-                                    .font(.body)
-                                    .foregroundColor(.secondary)
-                                    .multilineTextAlignment(.center)
-                                    .padding(.horizontal, 40)
+                            TextField("Search your library...", text: $searchText)
+                                .textFieldStyle(PlainTextFieldStyle())
+                                .padding(.vertical, 8)
+                                .autocapitalization(.none)
+                                .disableAutocorrection(true)
+                            
+                            if !searchText.isEmpty {
+                                Button(action: {
+                                    searchText = ""
+                                }) {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundColor(.secondary)
+                                        .padding(.trailing, 8)
+                                }
                             }
                         }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .padding(.top, 100)
-                    } else {
-                        LazyVGrid(columns: [GridItem(.adaptive(minimum: UIDevice.current.userInterfaceIdiom == .pad ? 200 : 150), spacing: 20)], spacing: 20) {
-                            ForEach(filteredTitles) { title in
-                                NavigationLink(destination: TitleView(title: title)) {
-                                    VStack(spacing: 8) {
-                                        if let imageData = title.coverImageData, let uiImage = UIImage(data: imageData) {
-                                            Image(uiImage: uiImage)
-                                                .resizable()
-                                                .scaledToFill()
-                                                .frame(width: UIDevice.current.userInterfaceIdiom == .pad ? 225 : 175,
-                                                       height: UIDevice.current.userInterfaceIdiom == .pad ? 270 : 260)
-                                                .cornerRadius(12)
-                                                .clipped()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(10)
+                        .padding(.horizontal)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
+                    
+                    ScrollView {
+                        if isLoading {
+                            ProgressView("Loading Library...")
+                                .scaleEffect(1.5)
+                                .padding(.top, 100)
+                        } else if filteredTitles.isEmpty {
+                            VStack(spacing: 20) {
+                                Image(systemName: emptyStateIcon)
+                                    .font(.system(size: 60))
+                                    .foregroundColor(.secondary)
+                                
+                                VStack(spacing: 8) {
+                                    Text(emptyStateTitle)
+                                        .font(.title2)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(.primary)
+                                    
+                                    Text(emptyStateMessage)
+                                        .font(.body)
+                                        .foregroundColor(.secondary)
+                                        .multilineTextAlignment(.center)
+                                        .padding(.horizontal, 40)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .padding(.top, 100)
+                        } else {
+                            LazyVGrid(columns: [GridItem(.adaptive(minimum: UIDevice.current.userInterfaceIdiom == .pad ? 200 : 150), spacing: 20)], spacing: 20) {
+                                ForEach(filteredTitles) { title in
+                                    NavigationLink(destination: TitleView(title: title)) {
+                                        VStack(spacing: 8) {
+                                            if let imageData = title.coverImageData, let uiImage = UIImage(data: imageData) {
+                                                Image(uiImage: uiImage)
+                                                    .resizable()
+                                                    .scaledToFill()
+                                                    .frame(width: coverImageWidth,
+                                                           height: coverImageHeight)
+                                                    .cornerRadius(12)
+                                                    .clipped()
+                                                    .overlay(
+                                                        RoundedRectangle(cornerRadius: 12)
+                                                            .stroke(Color(.systemGray4), lineWidth: 1)
+                                                    )
+                                            } else {
+                                                ZStack {
+                                                    Rectangle()
+                                                        .fill(Color.accentColor.opacity(0.3))
+                                                        .frame(width: coverImageWidth,
+                                                               height: coverImageHeight)
+                                                        .cornerRadius(12)
+                                                    
+                                                    VStack {
+                                                        Text(title.title.prefix(1))
+                                                            .font(.system(size: 40, weight: .bold))
+                                                            .foregroundColor(.accentColor)
+                                                    }
+                                                }
                                                 .overlay(
                                                     RoundedRectangle(cornerRadius: 12)
                                                         .stroke(Color(.systemGray4), lineWidth: 1)
                                                 )
-                                        } else {
-                                            ZStack {
-                                                Rectangle()
-                                                    .fill(Color.accentColor.opacity(0.3))
-                                                    .frame(width: UIDevice.current.userInterfaceIdiom == .pad ? 225 : 175,
-                                                           height: UIDevice.current.userInterfaceIdiom == .pad ? 270 : 260)
-                                                    .cornerRadius(12)
-                                                
-                                                VStack {
-                                                    Text(title.title.prefix(1))
-                                                        .font(.system(size: 40, weight: .bold))
-                                                        .foregroundColor(.accentColor)
-                                                }
                                             }
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: 12)
-                                                    .stroke(Color(.systemGray4), lineWidth: 1)
-                                            )
+                                            
+                                            VStack(spacing: 4) {
+                                                // Title Text below Image
+                                                Text(title.title)
+                                                    .font(.custom("AndaleMono", size: 23))
+                                                    .tracking(0.5) // Letter spacing
+                                                    .fontWeight(.bold)
+                                                    .foregroundColor(.primary)
+                                                    .lineLimit(2)
+                                                    .multilineTextAlignment(.center)
+                                                    .fixedSize(horizontal: false, vertical: true)
+                                            }
+                                            .frame(height: 40) // Fixed height for entire text container
+                                            .frame(maxWidth: UIScreen.main.bounds.width * 0.5) // 50% of screen width allowed for title text line
                                         }
-                                        
-                                        VStack(spacing: 4) {
-                                            // Title Text below Image
-                                            Text(title.title)
-                                                .font(.custom("AndaleMono", size: 23))
-                                                .tracking(0.5) // Letter spacing
-                                                .fontWeight(.bold)
-                                                .foregroundColor(.primary)
-                                                .lineLimit(2)
-                                                .multilineTextAlignment(.center)
-                                                .fixedSize(horizontal: false, vertical: true)
-                                        }
-                                        .frame(height: 40) // Fixed height for entire text container
-                                        .frame(maxWidth: UIScreen.main.bounds.width * 0.5) // 50% of screen width allowed for title text line
                                     }
+                                    .buttonStyle(PlainButtonStyle())
                                 }
-                                .buttonStyle(PlainButtonStyle())
                             }
+                            .padding(16)
                         }
-                        .padding(16)
                     }
+                    .padding(.bottom, UIDevice.current.userInterfaceIdiom == .pad ? 48 : 38)
+                    .background(Color(.systemGroupedBackground))
                 }
-                .padding(.bottom, 30)
-                .background(Color(.systemGroupedBackground))
+                .onChange(of: geometry.size) { oldSize, newSize in
+                    // Update orientation based on screen size ratio
+                    updateOrientation(for: newSize)
+                }
+                .onAppear {
+                    // Initial orientation check
+                    updateOrientation(for: geometry.size)
+                }
             }
             .preferredColorScheme(effectiveColorScheme)
             .onAppear {
@@ -333,6 +362,17 @@ struct LibraryView: View {
                     self.titles = []
                     self.isLoading = false
                 }
+            }
+        }
+    }
+    
+    private func updateOrientation(for size: CGSize) {
+        DispatchQueue.main.async {
+            if UIDevice.current.userInterfaceIdiom == .pad {
+                // Use screen size ratio to determine orientation
+                self.isLandscape = size.width > size.height
+            } else {
+                self.isLandscape = false
             }
         }
     }
