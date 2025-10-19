@@ -436,10 +436,11 @@ struct EditTitleView: View {
                 .foregroundColor(editedStatus == value ? .white : color)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
-                .background(editedStatus == value ? color : color.opacity(0.1))
+                .background( Group { if editedStatus == value { color } else { color.opacity(0.1) } } )
+                .cornerRadius(8) // Add corner radius to the background
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)
-                        .stroke(color, lineWidth: 2)
+                        .stroke(color, lineWidth: editedStatus == value ? 0 : 2) // Hide stroke when selected
                 )
         }
         .buttonStyle(PlainButtonStyle())
