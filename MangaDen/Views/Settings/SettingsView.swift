@@ -10,12 +10,17 @@ import SwiftUI
 struct SettingsView: View {
     @AppStorage("isDarkMode") private var isDarkMode = false
     @AppStorage("defaultReadingDirection") private var defaultReadingDirection: ReadingDirection = .rightToLeft
+    @StateObject private var autoRefreshManager = AutoRefreshManager.shared
     @EnvironmentObject private var tabBarManager: TabBarManager
     @State private var showUninstallAllConfirmation = false
     @State private var showNoDownloadsAlert = false
     @State private var totalDownloadSize = "Calculating..."
     @State private var isUninstalling = false
     @State private var showHelp = false
+    
+    private var currentRefreshPeriod: RefreshPeriod {
+        autoRefreshManager.getRefreshPeriod()
+    }
     
     var body: some View {
         NavigationView {
@@ -27,6 +32,7 @@ struct SettingsView: View {
                         // Dark Mode
                         Toggle("Dark Mode", isOn: $isDarkMode)
                         
+                        // Reading Direction
                         HStack {
                             Text("Default Reading Direction")
                                 .foregroundColor(.primary)
@@ -59,7 +65,31 @@ struct SettingsView: View {
                             .background(Color.blue.opacity(0.1))
                             .cornerRadius(8)
                         }
+                        
+                        // Default Title Refresh Period
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Default Title Refresh Period")
+                                .foregroundColor(.primary)
+                            
+                            Picker("Refresh Period", selection: Binding(
+                                get: { currentRefreshPeriod },
+                                set: { autoRefreshManager.setRefreshPeriod($0) }
+                            )) {
+                                ForEach(RefreshPeriod.allCases, id: \.self) { period in
+                                    Text(period.displayName).tag(period)
+                                }
+                            }
+                            .pickerStyle(SegmentedPickerStyle())
+                            .onAppear {
+                                // Customize segmented control appearance
+                                UISegmentedControl.appearance().selectedSegmentTintColor = .systemBlue
+                                UISegmentedControl.appearance().setTitleTextAttributes([.foregroundColor: UIColor.white], for: .selected)
+                                UISegmentedControl.appearance().setTitleTextAttributes([.foregroundColor: UIColor.systemBlue], for: .normal)
+                            }
+                        }
+                        .padding(.vertical, 4)
                     }
+                        
                     
                     // Manage Storage
                     Section(header: Text("Manage Storage")) {
@@ -407,5 +437,5 @@ struct SettingsHelpView: View {
 
 
 #Preview {
-    SettingsHelpView()
+    ContentView()
 }

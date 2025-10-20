@@ -42,6 +42,7 @@
 		27901F4B2E8732A800C57418 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27901F4A2E8732A800C57418 /* Models.swift */; };
 		27901F4D2E8732C400C57418 /* DownloadManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27901F4C2E8732C400C57418 /* DownloadManager.swift */; };
 		2793268B2E835FFE001AA1AC /* TabBarManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2793268A2E835FFE001AA1AC /* TabBarManager.swift */; };
+		27C5FC7A2EA6CA9400E026F6 /* AutoRefreshManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27C5FC792EA6CA9300E026F6 /* AutoRefreshManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -101,6 +102,7 @@
 		27901F4C2E8732C400C57418 /* DownloadManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadManager.swift; sourceTree = "<group>"; };
 		279326892E833F33001AA1AC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		2793268A2E835FFE001AA1AC /* TabBarManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabBarManager.swift; sourceTree = "<group>"; };
+		27C5FC792EA6CA9300E026F6 /* AutoRefreshManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoRefreshManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -220,6 +222,7 @@
 			isa = PBXGroup;
 			children = (
 				271346052E67B4D400BC7435 /* TitleView.swift */,
+				27C5FC792EA6CA9300E026F6 /* AutoRefreshManager.swift */,
 				27130DAE2E8DF4FE006FF48A /* ChapterRows.swift */,
 				27130DB02E8DF51E006FF48A /* TitleComponents.swift */,
 			);
@@ -434,6 +437,7 @@
 				27901F4D2E8732C400C57418 /* DownloadManager.swift in Sources */,
 				271345F62E5E53A400BC7435 /* BrowserView.swift in Sources */,
 				271345F22E5D28D800BC7435 /* SettingsView.swift in Sources */,
+				27C5FC7A2EA6CA9400E026F6 /* AutoRefreshManager.swift in Sources */,
 				271345EC2E5D283700BC7435 /* LibraryView.swift in Sources */,
 				27130DB12E8DF51E006FF48A /* TitleComponents.swift in Sources */,
 				276EE41A2E9635570023E592 /* ChapterExtractionJavaScript.swift in Sources */,

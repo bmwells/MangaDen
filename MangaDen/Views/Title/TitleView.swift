@@ -39,6 +39,8 @@ struct TitleView: View {
     @State private var isOfflineMode = false
     @State private var bookmarkedChapters: Set<UUID> = []
     @State private var chapterSortOption: ChapterSortOption = .newToOld
+    @StateObject private var autoRefreshManager = AutoRefreshManager.shared
+    @State private var hasAutoRefreshed = false
     @Environment(\.dismiss) private var dismiss
     
     // Scrollbar state
@@ -389,20 +391,22 @@ struct TitleView: View {
     
     // MARK: - Lifecycle
     private func onAppearActions() {
-        loadReadingDirection()
-        loadHiddenChapters()
-        loadCurrentBookmark()
-        loadSortOption() // Add this line
-        editedTitle = title.title
-        editedAuthor = title.author
-        editedStatus = title.status
-        manageMode = !title.downloadedChapters.isEmpty ? .uninstallDownloaded : .hideFromList
-        tabBarManager.isTabBarHidden = true
-        
-        // Start network monitoring
-        startNetworkMonitoring()
-        
-    }
+           loadReadingDirection()
+           loadHiddenChapters()
+           loadCurrentBookmark()
+           loadSortOption()
+           editedTitle = title.title
+           editedAuthor = title.author
+           editedStatus = title.status
+           manageMode = !title.downloadedChapters.isEmpty ? .uninstallDownloaded : .hideFromList
+           tabBarManager.isTabBarHidden = true
+           
+           // Start network monitoring
+           startNetworkMonitoring()
+           
+           // NEW: Check for automatic refresh
+           checkForAutoRefresh()
+       }
     
     // MARK: - Network Monitoring
     private func startNetworkMonitoring() {
@@ -417,6 +421,23 @@ struct TitleView: View {
         networkMonitor.start(queue: queue)
     }
     
+    
+    // NEW: Automatic refresh check
+        private func checkForAutoRefresh() {
+            // Only auto-refresh if we haven't already done so in this session
+            // and if we're not in offline mode
+            guard !hasAutoRefreshed && !isOfflineMode else { return }
+            
+            if autoRefreshManager.shouldRefreshTitle(title) {
+                // Small delay to let the view fully appear
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    refreshTitle()
+                    hasAutoRefreshed = true
+                    autoRefreshManager.markTitleRefreshed(title)
+                }
+            }
+        }
+        
     // MARK: - Refresh Title Function
     private func refreshTitle() {
         // Don't allow refresh in offline mode
@@ -427,6 +448,9 @@ struct TitleView: View {
         }
         
         isRefreshing = true
+        
+        // Mark refresh attempt immediately when starting
+        autoRefreshManager.markRefreshAttempt(title)
         
         let webView = WKWebView()
         WebViewUserAgentManager.setDesktopUserAgent(for: webView)
@@ -445,8 +469,13 @@ struct TitleView: View {
                             refreshResultMessage = newChaptersCount > 0 ?
                                 "Title Refresh Successful. \(newChaptersCount) new Chapter\(newChaptersCount == 1 ? "" : "s") found." :
                                 "No new Chapters found."
+                            
+                            // Note: Refresh timestamp was already updated when the attempt started
+                            
                         case .failure(let error):
-                            refreshResultMessage = "Refresh failed: \(error)"
+                            refreshResultMessage = "\(error)"
+                            // Refresh timestamp was already updated when the attempt started
+                            // This prevents immediate retries on failure
                         }
                         
                         showRefreshResult = true
@@ -458,8 +487,11 @@ struct TitleView: View {
             isRefreshing = false
             refreshResultMessage = "Invalid source URL for refresh"
             showRefreshResult = true
+            // NEW: Even for immediate failures, mark the attempt
+            autoRefreshManager.markRefreshAttempt(title)
         }
     }
+    
     
     // MARK: - Manage Mode Functions
     private func deleteChapter(_ chapter: Chapter) {

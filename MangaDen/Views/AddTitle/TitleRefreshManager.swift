@@ -35,7 +35,7 @@ class TitleRefreshManager {
                             let newChapters = processNewChapters(newChapterDict, for: title)
                             completion(.success(newChapters))
                         } else {
-                            completion(.failure("No chapters found"))
+                            completion(.failure("No new chapters found"))
                         }
                     }
                 }
