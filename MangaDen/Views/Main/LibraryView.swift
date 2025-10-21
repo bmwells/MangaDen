@@ -19,6 +19,12 @@ struct LibraryView: View {
     @State private var isSearching: Bool = false
     @State private var isLoading: Bool = true
     @State private var isLandscape: Bool = false
+    @AppStorage("accentColor") private var accentColor: String = "systemBlue"
+        
+    // Get current accent color
+    private var currentAccentColor: Color {
+        Color.fromStorage(accentColor)
+    }
     
     // Tabs (Reading and Archive)
     enum LibraryTab: String, CaseIterable {
@@ -80,7 +86,7 @@ struct LibraryView: View {
                         Button(action: { showAddManga = true }) {
                             Image(systemName: "plus")
                                 .font(.system(size: 28, weight: .medium))
-                                .foregroundColor(.accentColor)
+                                .foregroundColor(currentAccentColor)
                                 .padding(8)
                                 .offset(
                                     x: UIDevice.current.userInterfaceIdiom == .pad ? 10 : 0,
@@ -91,23 +97,31 @@ struct LibraryView: View {
                         
                         Spacer()
                         
-                        // Segmented Picker
-                        Picker("", selection: $selectedTab) {
+                        // Custom Segmented Picker
+                        HStack(spacing: 0) {
                             ForEach(LibraryTab.allCases, id: \.self) { tab in
-                                Text(tab.rawValue).tag(tab)
+                                Button(action: {
+                                    selectedTab = tab
+                                }) {
+                                    Text(tab.rawValue)
+                                        .font(.system(size: 16, weight: .medium))
+                                        .foregroundColor(selectedTab == tab ? .white : currentAccentColor)
+                                        .frame(width: 100, height: 36)
+                                        .background(selectedTab == tab ? currentAccentColor : Color.clear)
+                                        .cornerRadius(8)
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                                
+                                if tab != LibraryTab.allCases.last {
+                                    Spacer().frame(width: 4)
+                                }
                             }
                         }
-                        .pickerStyle(SegmentedPickerStyle())
+                        .background(currentAccentColor.opacity(0.1))
+                        .cornerRadius(10)
                         .fixedSize()
                         .padding(.horizontal)
-                        .scaleEffect(x: 1.3, y: 1.3)
                         .offset(y: -10)
-                        .onAppear {
-                            // Customize segmented control appearance
-                            UISegmentedControl.appearance().selectedSegmentTintColor = .systemBlue
-                            UISegmentedControl.appearance().setTitleTextAttributes([.foregroundColor: UIColor.white], for: .selected)
-                            UISegmentedControl.appearance().setTitleTextAttributes([.foregroundColor: UIColor.systemBlue], for: .normal)
-                        }
                         
                         Spacer()
                         
@@ -122,7 +136,7 @@ struct LibraryView: View {
                         }) {
                             Image(systemName: isSearching ? "xmark" : "magnifyingglass")
                                 .font(.system(size: 25, weight: .medium))
-                                .foregroundColor(.accentColor)
+                                .foregroundColor(currentAccentColor)
                                 .padding(8)
                                 .offset(
                                     x: UIDevice.current.userInterfaceIdiom == .pad ? -10 : 0,

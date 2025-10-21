@@ -12,6 +12,12 @@ struct DownloadsView: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var isClearingQueue = false
     @State private var showHelp = false
+    @AppStorage("accentColor") private var accentColor: String = "systemBlue"
+        
+    // Get current accent color
+    private var currentAccentColor: Color {
+        Color.fromStorage(accentColor)
+    }
     
     var body: some View {
         NavigationView {
@@ -167,7 +173,7 @@ struct DownloadsView: View {
                         }) {
                             Image(systemName: "questionmark.circle")
                                 .font(.system(size: 22))
-                                .foregroundColor(.blue)
+                                .foregroundColor(currentAccentColor)
                         }
                         .padding(.trailing, 10)
                     }

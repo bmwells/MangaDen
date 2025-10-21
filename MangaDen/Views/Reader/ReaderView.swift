@@ -640,6 +640,13 @@ struct BottomScrollbar: View {
     
     @State private var isDragging = false
     
+    @AppStorage("accentColor") private var accentColor: String = "systemBlue"
+        
+    // Get current accent color
+    private var currentAccentColor: Color {
+        Color.fromStorage(accentColor)
+    }
+    
     var body: some View {
         GeometryReader { geometry in
             ZStack {
@@ -659,7 +666,7 @@ struct BottomScrollbar: View {
                 
                 if progress > 0 {
                     Capsule()
-                        .fill(Color.blue)
+                        .fill(currentAccentColor)
                         .frame(
                             width: calculateProgressWidth(width: 300),
                             height: 12
@@ -683,7 +690,7 @@ struct BottomScrollbar: View {
                     .zIndex(3)
                 
                 Circle()
-                    .fill(Color.blue)
+                    .fill(currentAccentColor)
                     .frame(width: 30, height: 30)
                     .position(
                         x: calculateCirclePosition(width: 300),

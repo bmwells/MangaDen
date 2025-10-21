@@ -20,6 +20,13 @@ struct ChapterRowView: View {
     
     @StateObject private var downloadManager = DownloadManager.shared
     
+    @AppStorage("accentColor") private var accentColor: String = "systemBlue"
+        
+    // Get current accent color
+    private var currentAccentColor: Color {
+        Color.fromStorage(accentColor)
+    }
+    
     private var isInQueue: Bool {
         downloadManager.downloadQueue.contains { $0.chapter.id == chapter.id }
     }
@@ -35,7 +42,7 @@ struct ChapterRowView: View {
                     if !isDownloaded && !isInQueue {
                         Image(systemName: "plus.circle.fill")
                             .font(.title)
-                            .foregroundColor(.blue)
+                            .foregroundColor(currentAccentColor)
                     }
                 }
                 .buttonStyle(PlainButtonStyle())
@@ -77,6 +84,13 @@ struct ChapterRowContent: View {
     let showManageMode: Bool
     
     @StateObject private var downloadManager = DownloadManager.shared
+    
+    @AppStorage("accentColor") private var accentColor: String = "systemBlue"
+        
+    // Get current accent color
+    private var currentAccentColor: Color {
+        Color.fromStorage(accentColor)
+    }
     
     private var isInQueue: Bool {
         downloadManager.downloadQueue.contains { $0.chapter.id == chapter.id }
@@ -200,7 +214,7 @@ struct ChapterRowContent: View {
             if chapter.safeIsBookmarked {
                 Image(systemName: "bookmark.fill")
                     .font(.title2)
-                    .foregroundColor(.blue)
+                    .foregroundColor(currentAccentColor)
             }
             
             Spacer()

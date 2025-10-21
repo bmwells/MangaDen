@@ -16,6 +16,12 @@ struct AddTitleView: View {
     @State private var showAlert = false
     @State private var alertMessage = ""
     @State private var alertTitle = ""
+    @AppStorage("accentColor") private var accentColor: String = "systemBlue"
+        
+    // Get current accent color
+    private var currentAccentColor: Color {
+        Color.fromStorage(accentColor)
+    }
     
     var body: some View {
         NavigationView {
@@ -44,7 +50,7 @@ struct AddTitleView: View {
                             }
                         }) {
                             Image(systemName: "doc.on.clipboard")
-                                .foregroundColor(.blue)
+                                .foregroundColor(currentAccentColor)
                                 .font(.title2)
                         }
                         .disabled(isLoading)
@@ -89,7 +95,7 @@ struct AddTitleView: View {
                         .font(.title2)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(Color.blue)
+                        .background(currentAccentColor)
                         .foregroundColor(.white)
                         .cornerRadius(10)
                         .padding(.horizontal)
@@ -106,7 +112,7 @@ struct AddTitleView: View {
                             .resizable()
                             .scaledToFit()
                             .frame(width: 24, height: 24)
-                            .foregroundColor(.blue)
+                            .foregroundColor(currentAccentColor)
                             .padding(20)
                             .background(Circle().fill(Color.gray.opacity(0.2)))
                 }

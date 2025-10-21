@@ -52,6 +52,13 @@ struct TitleView: View {
     private let networkMonitor = NWPathMonitor()
     @State private var networkStatus: NWPath.Status = .satisfied
     
+    @AppStorage("accentColor") private var accentColor: String = "systemBlue"
+        
+    // Get current accent color
+    private var currentAccentColor: Color {
+        Color.fromStorage(accentColor)
+    }
+    
     // Filter chapters based on current tab, manage mode, and offline status
     var displayChapters: [Chapter] {
         let chapters: [Chapter]
@@ -151,11 +158,12 @@ struct TitleView: View {
                                     } label: {
                                         HStack {
                                             Image(systemName: "arrow.up.arrow.down")
-                                                .font(.title3)
+                                                .font(.system(size: 25))
+                                                .bold()
                                         }
-                                        .foregroundColor(.blue)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 12)
+                                        .foregroundColor(currentAccentColor)
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 10)
                                         .background(ButtonBackground())
                                         .cornerRadius(8)
                                         .padding(.leading, UIDevice.current.userInterfaceIdiom == .pad ? 30 : 5)
@@ -176,11 +184,11 @@ struct TitleView: View {
                                         Button(action: scrollToBookmarkedChapter) {
                                             HStack {
                                                 Image(systemName: "bookmark.fill")
-                                                    .font(.title3)
+                                                    .font(.system(size: 25))
                                             }
-                                            .foregroundColor(.blue)
-                                            .padding(.horizontal, 12)
-                                            .padding(.vertical, 12)
+                                            .foregroundColor(currentAccentColor)
+                                            .padding(.horizontal, 10)
+                                            .padding(.vertical, 10)
                                             .background(ButtonBackground())
                                             .cornerRadius(8)
                                             .padding(.trailing, UIDevice.current.userInterfaceIdiom == .pad ? 30 : 5)
@@ -250,7 +258,7 @@ struct TitleView: View {
                 Button(action: { dismiss() }) {
                     Image(systemName: "chevron.left")
                         .font(.title2)
-                        .foregroundColor(.blue)
+                        .foregroundColor(currentAccentColor)
                         .padding(8)
                 }
             }
@@ -281,6 +289,7 @@ struct TitleView: View {
                     onDelete: { showDeleteConfirmation = true }
                 )
                 .font(.title2)
+                .foregroundColor(currentAccentColor)
                 .padding(8)
                 .disabled(isOfflineMode && isRefreshing) // Only disable refresh when offline
             }
@@ -755,13 +764,19 @@ enum ChapterSortOption: String, CaseIterable {
 // MARK: - Button Background (Sort & Bookmark)
 struct ButtonBackground: View {
     @Environment(\.colorScheme) private var colorScheme
+    @AppStorage("accentColor") private var accentColor: String = "systemBlue"
+        
+    // Get current accent color
+    private var currentAccentColor: Color {
+        Color.fromStorage(accentColor)
+    }
     
     var body: some View {
         Group {
             if colorScheme == .dark {
                 Color.gray.opacity(0.3) // Gray background for dark mode
             } else {
-                Color.blue.opacity(0.1) // Blue background for light mode
+                currentAccentColor.opacity(0.2) // Blue background for light mode
             }
         }
     }
@@ -869,12 +884,18 @@ struct ChapterScrollbarNumber: View {
     let chapter: Chapter
     let position: ScrollbarPosition
     let onTap: () -> Void
+    @AppStorage("accentColor") private var accentColor: String = "systemBlue"
+        
+    // Get current accent color
+    private var currentAccentColor: Color {
+        Color.fromStorage(accentColor)
+    }
     
     var body: some View {
         Button(action: onTap) {
             Text(chapter.formattedChapterNumber)
                 .font(.headline)
-                .foregroundColor(.blue)
+                .foregroundColor(currentAccentColor)
                 .frame(width: 40, height: 20)
                 .contentShape(Rectangle())
         }

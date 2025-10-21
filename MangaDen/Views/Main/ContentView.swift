@@ -11,6 +11,12 @@ struct ContentView: View {
     @State private var selectedTab = 0
     @AppStorage("isDarkMode") private var isDarkMode = false
     @StateObject private var tabBarManager = TabBarManager()
+    @AppStorage("accentColor") private var accentColor: String = "systemBlue"
+        
+    // Get current accent color
+    private var currentAccentColor: Color {
+        Color.fromStorage(accentColor)
+    }
     
     init() {
         customizeTabBar()
@@ -65,10 +71,10 @@ struct ContentView: View {
                         }
                     }
                     .frame(height: 74)
-                    .background(isDarkMode ? Color(.systemGray2) : Color.blue) // Background color for the bottom bar
+                    .background(isDarkMode ? currentAccentColor : currentAccentColor) // Background color for the bottom bar
                     .overlay(
                         RoundedRectangle(cornerRadius: 0)
-                            .stroke(isDarkMode ? Color.white.opacity(0.2) : Color.blue.opacity(0.3), lineWidth: 1)
+                            .stroke(isDarkMode ? Color.white.opacity(0.2) : currentAccentColor.opacity(0.3), lineWidth: 1)
                     )
                 }
                 .edgesIgnoringSafeArea(.bottom)

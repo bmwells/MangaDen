@@ -11,6 +11,8 @@ struct SettingsView: View {
     @AppStorage("isDarkMode") private var isDarkMode = true
     @AppStorage("defaultReadingDirection") private var defaultReadingDirection: ReadingDirection = .rightToLeft
     @AppStorage("defaultBrowserWebsite") private var defaultBrowserWebsite: String = "https://google.com"
+    @AppStorage("accentColor") private var accentColor: String = "systemBlue"
+    @AppStorage("defaultRefreshPeriod") private var refreshPeriod: String = RefreshPeriod.sevenDays.rawValue
     @StateObject private var autoRefreshManager = AutoRefreshManager.shared
     @EnvironmentObject private var tabBarManager: TabBarManager
     @State private var showUninstallAllConfirmation = false
@@ -20,158 +22,204 @@ struct SettingsView: View {
     @State private var showHelp = false
     @State private var browserWebsiteInput: String = ""
     @State private var showInvalidURLError = false
+    @State private var showAccentColorPicker = false
+    @State private var selectedAccentColor: String = "systemBlue"
     
-    private var currentRefreshPeriod: RefreshPeriod {
-        autoRefreshManager.getRefreshPeriod()
+    // Get current accent color
+    private var currentAccentColor: Color {
+        Color.fromStorage(accentColor)
     }
     
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                Form {
-                    // User Preferences
-                    Section(header: Text("User Preferences")) {
-                        
-                        // Dark Mode
-                        Toggle("Dark Mode", isOn: $isDarkMode)
-                        
-                        // Reading Direction
-                        HStack {
-                            Text("Default Reading Direction")
-                                .foregroundColor(.primary)
-                                .lineLimit(1)
+                ScrollViewReader { proxy in
+                    Form {
+                        // User Preferences
+                        Section(header: Text("User Preferences")) {
                             
-                            Spacer()
+                            // Dark Mode
+                            Toggle("Dark Mode", isOn: $isDarkMode)
                             
-                            HStack(spacing: 0) {
-                                Button(action: { defaultReadingDirection = .leftToRight }) {
-                                    Text("L to R")
-                                        .font(.system(size: 14, weight: .medium))
-                                        .foregroundColor(defaultReadingDirection == .leftToRight ? .white : .blue)
-                                        .frame(width: 60, height: 32)
-                                        .background(defaultReadingDirection == .leftToRight ? Color.blue : Color.clear)
-                                        .cornerRadius(6)
-                                }
-                                .buttonStyle(PlainButtonStyle())
-                                
-                                Button(action: { defaultReadingDirection = .rightToLeft }) {
-                                    Text("R to L")
-                                        .font(.system(size: 14, weight: .medium))
-                                        .foregroundColor(defaultReadingDirection == .rightToLeft ? .white : .blue)
-                                        .frame(width: 60, height: 32)
-                                        .background(defaultReadingDirection == .rightToLeft ? Color.blue : Color.clear)
-                                        .cornerRadius(6)
-                                        
-                                }
-                                .buttonStyle(PlainButtonStyle())
-                            }
-                            .background(Color.blue.opacity(0.1))
-                            .cornerRadius(8)
-                        }
-                        
-                        // Default Title Refresh Period
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Default Title Refresh Period")
-                                .foregroundColor(.primary)
-                            
-                            Picker("Refresh Period", selection: Binding(
-                                get: { currentRefreshPeriod },
-                                set: { autoRefreshManager.setRefreshPeriod($0) }
-                            )) {
-                                ForEach(RefreshPeriod.allCases, id: \.self) { period in
-                                    Text(period.displayName).tag(period)
-                                }
-                            }
-                            .pickerStyle(SegmentedPickerStyle())
-                            .onAppear {
-                                // Customize segmented control appearance
-                                UISegmentedControl.appearance().selectedSegmentTintColor = .systemBlue
-                                UISegmentedControl.appearance().setTitleTextAttributes([.foregroundColor: UIColor.white], for: .selected)
-                                UISegmentedControl.appearance().setTitleTextAttributes([.foregroundColor: UIColor.systemBlue], for: .normal)
-                            }
-                        }
-                        .padding(.vertical, 4)
-                        
-                        // NEW: Default Browser Website
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Default Browser Website")
-                                .foregroundColor(.primary)
-                            
+                            // Reading Direction
                             HStack {
-                                TextField("Enter website URL", text: $browserWebsiteInput)
-                                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                                    .keyboardType(.URL)
-                                    .autocapitalization(.none)
-                                    .disableAutocorrection(true)
-                                    .onAppear {
-                                        // Initialize the input field with the stored value
-                                        browserWebsiteInput = formatWebsiteForDisplay(defaultBrowserWebsite)
-                                    }
+                                Text("Default Reading Direction")
+                                    .foregroundColor(.primary)
+                                    .lineLimit(1)
                                 
-                                Button("Save") {
-                                    saveBrowserWebsite()
+                                Spacer()
+                                
+                                HStack(spacing: 0) {
+                                    Button(action: { defaultReadingDirection = .leftToRight }) {
+                                        Text("L to R")
+                                            .font(.system(size: 14, weight: .medium))
+                                            .foregroundColor(defaultReadingDirection == .leftToRight ? .white : currentAccentColor)
+                                            .frame(width: 60, height: 32)
+                                            .background(defaultReadingDirection == .leftToRight ? currentAccentColor : Color.clear)
+                                            .cornerRadius(6)
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                    
+                                    Button(action: { defaultReadingDirection = .rightToLeft }) {
+                                        Text("R to L")
+                                            .font(.system(size: 14, weight: .medium))
+                                            .foregroundColor(defaultReadingDirection == .rightToLeft ? .white : currentAccentColor)
+                                            .frame(width: 60, height: 32)
+                                            .background(defaultReadingDirection == .rightToLeft ? currentAccentColor : Color.clear)
+                                            .cornerRadius(6)
+                                            
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
                                 }
-                                .buttonStyle(.bordered)
-                                .disabled(browserWebsiteInput.isEmpty)
+                                .background(currentAccentColor.opacity(0.1))
+                                .cornerRadius(8)
                             }
                             
-                            if showInvalidURLError {
-                                Text("Please enter a valid website (e.g., google.com or https://website.com)")
-                                    .font(.caption)
-                                    .foregroundColor(.red)
-                            }
-                        }
-                        .padding(.vertical, 4)
-                    }
-                        
-                    
-                    // Manage Storage
-                    Section(header: Text("Manage Storage")) {
-                        HStack(alignment: .center) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Uninstall ALL Downloads")
+                            // Default Title Refresh Period
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Default Title Refresh Period")
                                     .foregroundColor(.primary)
                                 
-                                // Storage size display
+                                // Custom segmented control that properly reacts to accent color
+                                HStack(spacing: 0) {
+                                    ForEach(RefreshPeriod.allCases, id: \.self) { period in
+                                        Button(action: {
+                                            refreshPeriod = period.rawValue
+                                        }) {
+                                            Text(period.displayName)
+                                                .font(.system(size: 12, weight: .medium))
+                                                .foregroundColor(RefreshPeriod(rawValue: refreshPeriod) == period ? .white : currentAccentColor)
+                                                .frame(maxWidth: .infinity, minHeight: 32)
+                                                .background(RefreshPeriod(rawValue: refreshPeriod) == period ? currentAccentColor : Color.clear)
+                                                .cornerRadius(6)
+                                        }
+                                        .buttonStyle(PlainButtonStyle())
+                                        
+                                        if period != RefreshPeriod.allCases.last {
+                                            Spacer().frame(width: 4)
+                                        }
+                                    }
+                                }
+                                .background(currentAccentColor.opacity(0.1))
+                                .cornerRadius(8)
+                            }
+                            .padding(.vertical, 4)
+                            
+                            // Default Browser Website
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Default Browser Website")
+                                    .foregroundColor(.primary)
+                                
                                 HStack {
-                                    Text("Total Download Size:")
-                                        .font(.footnote)
-                                        .foregroundColor(.gray)
-                                    Text(totalDownloadSize)
-                                        .font(.subheadline)
-                                        .foregroundColor(.blue)
-                                        .fontWeight(.medium)
+                                    TextField("Enter website URL", text: $browserWebsiteInput)
+                                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                                        .keyboardType(.URL)
+                                        .autocapitalization(.none)
+                                        .disableAutocorrection(true)
+                                        .onAppear {
+                                            // Initialize the input field with the stored value
+                                            browserWebsiteInput = formatWebsiteForDisplay(defaultBrowserWebsite)
+                                        }
+                                    
+                                    Button("Save") {
+                                        saveBrowserWebsite()
+                                    }
+                                    .buttonStyle(.borderedProminent)
+                                    .tint(currentAccentColor)
+                                    .font(.headline.weight(.bold))
+                                    .padding(.leading, 10)
+                                    .padding(.vertical, 10)
+                                    .disabled(browserWebsiteInput.isEmpty)
+                                }
+                                
+                                if showInvalidURLError {
+                                    Text("Please enter a valid website (e.g., google.com or https://website.com)")
+                                        .font(.caption)
+                                        .foregroundColor(.red)
                                 }
                             }
+                            .padding(.vertical, 4)
                             
-                            Spacer()
-                            
-                            if isUninstalling {
-                                ProgressView()
-                                    .scaleEffect(0.8)
-                            } else {
+                            // Accent Color
+                            HStack {
+                                Text("Accent Color")
+                                    .foregroundColor(.primary)
+                                
+                                Spacer()
+                                
                                 Button(action: {
-                                    if totalDownloadSize == "0 MB" {
-                                        showNoDownloadsAlert = true
-                                    } else {
-                                        showUninstallAllConfirmation = true
-                                    }
+                                    selectedAccentColor = accentColor
+                                    showAccentColorPicker = true
                                 }) {
-                                    Image(systemName: "trash")
-                                        .font(.system(size: 25))
-                                        .foregroundColor(.red)
-                                        .padding(8)
-                                        .background(Color.red.opacity(0.1))
-                                        .cornerRadius(8)
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .fill(currentAccentColor)
+                                        .frame(width: 40, height: 40)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 6)
+                                                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                                        )
                                 }
                                 .buttonStyle(PlainButtonStyle())
                             }
+                            .padding(.vertical, 4)
+                            
+                            
                         }
-                        .padding(.vertical, 4)
+                        .id("userPreferences") // Add ID for scrolling
+                            
+                        
+                        // Manage Storage
+                        Section(header: Text("Manage Storage")) {
+                            HStack(alignment: .center) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Uninstall ALL Downloads")
+                                        .foregroundColor(.primary)
+                                    
+                                    // Storage size display
+                                    HStack {
+                                        Text("Total Download Size:")
+                                            .font(.footnote)
+                                            .foregroundColor(.gray)
+                                        Text(totalDownloadSize)
+                                            .font(.subheadline)
+                                            .foregroundColor(currentAccentColor)
+                                            .fontWeight(.medium)
+                                    }
+                                }
+                                
+                                Spacer()
+                                
+                                if isUninstalling {
+                                    ProgressView()
+                                        .scaleEffect(0.8)
+                                } else {
+                                    Button(action: {
+                                        if totalDownloadSize == "0 MB" {
+                                            showNoDownloadsAlert = true
+                                        } else {
+                                            showUninstallAllConfirmation = true
+                                        }
+                                    }) {
+                                        Image(systemName: "trash")
+                                            .font(.system(size: 25))
+                                            .foregroundColor(.red)
+                                            .padding(8)
+                                            .background(Color.red.opacity(0.1))
+                                            .cornerRadius(8)
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                }
+                            }
+                            .padding(.vertical, 4)
+                        }
+                        
                     }
-                    
+                    .listSectionSpacing(.compact)
+                    .onAppear {
+                        // Scroll to top when view appears
+                        proxy.scrollTo("userPreferences", anchor: .top)
+                    }
                 }
-                .listSectionSpacing(.compact)
                 
                 // Help Button
                 HStack {
@@ -183,13 +231,13 @@ struct SettingsView: View {
                             .resizable()
                             .scaledToFit()
                             .frame(width: 24, height: 24)
-                            .foregroundColor(.blue)
+                            .foregroundColor(currentAccentColor)
                             .padding(20)
                             .background(Circle().fill(Color.gray.opacity(0.2)))
                     }
                     Spacer()
                 }
-                .padding(.vertical, 20)
+                .padding(.bottom, 10)
                 .background(Color(.systemGroupedBackground))
                 
                 // Version at bottom of page
@@ -197,7 +245,7 @@ struct SettingsView: View {
                     Text("Version 1.0")
                         .font(.title3)
                         .foregroundColor(.primary)
-                        .padding(.bottom, 74)
+                        .padding(.bottom, 55)
                         .frame(maxWidth: .infinity)
                 }
                 .background(Color(.systemGroupedBackground))
@@ -225,6 +273,20 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showHelp) {
                 SettingsHelpView()
+            }
+            // Accent Color Picker Sheet
+            .sheet(isPresented: $showAccentColorPicker) {
+                AccentColorPickerView(
+                    selectedColor: $selectedAccentColor,
+                    currentColor: accentColor,
+                    isPresented: $showAccentColorPicker,
+                    onSave: {
+                        accentColor = selectedAccentColor
+                        // Update segmented control appearance
+                        UISegmentedControl.appearance().selectedSegmentTintColor = UIColor(currentAccentColor)
+                        UISegmentedControl.appearance().setTitleTextAttributes([.foregroundColor: UIColor(currentAccentColor)], for: .normal)
+                    }
+                )
             }
         }
         .navigationViewStyle(StackNavigationViewStyle())
@@ -532,7 +594,6 @@ struct SettingsHelpView: View {
         }
     }
 }
-
 
 #Preview {
     ContentView()

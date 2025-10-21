@@ -74,12 +74,19 @@ struct TitleInfoSection: View {
     let editedStatus: String
     let scrollOffset: CGFloat
     
+    @AppStorage("accentColor") private var accentColor: String = "systemBlue"
+        
+    // Get current accent color
+    private var currentAccentColor: Color {
+        Color.fromStorage(accentColor)
+    }
+    
     var body: some View {
         VStack(spacing: 8) {
             if !title.downloadedChapters.isEmpty {
                 Text("\(title.downloadedChapters.count) Chapter\(title.downloadedChapters.count == 1 ? "" : "s") Downloaded [\(title.formattedDownloadSize)]")
                     .font(.subheadline)
-                    .foregroundColor(.blue)
+                    .foregroundColor(currentAccentColor)
                     .fontWeight(.medium)
                     .padding(.top, 4)
             }
@@ -142,7 +149,7 @@ struct ManageModeControls: View {
     @Binding var manageMode: ManageMode
     @Binding var showManageMode: Bool
     @Binding var showUninstallAllConfirmation: Bool
-    let onUninstallAll: () -> Void  // Add this callback
+    let onUninstallAll: () -> Void
     
     var body: some View {
         VStack(spacing: 12) {
@@ -229,6 +236,12 @@ struct ManageModeControls: View {
 struct ReadingDirectionSelector: View {
     @Binding var readingDirection: ReadingDirection
     let onDirectionChanged: () -> Void
+    @AppStorage("accentColor") private var accentColor: String = "systemBlue"
+        
+    // Get current accent color
+    private var currentAccentColor: Color {
+        Color.fromStorage(accentColor)
+    }
     
     var body: some View {
         HStack {
@@ -243,20 +256,20 @@ struct ReadingDirectionSelector: View {
                             .font(.system(size: readingDirection == .rightToLeft ? 18 : 12))
                         
                         Text("←")
-                            .font(.system(size: readingDirection == .rightToLeft ? 28 : 22)) // Larger arrow
+                            .font(.system(size: readingDirection == .rightToLeft ? 28 : 22))
                         
                         Text("R")
                             .font(.system(size: readingDirection == .rightToLeft ? 18 : 12))
                     }
                     .fontWeight(.semibold)
-                    .foregroundColor(readingDirection == .rightToLeft ? .white : .blue)
+                    .foregroundColor(readingDirection == .rightToLeft ? .white : currentAccentColor)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
-                    .background(readingDirection == .rightToLeft ? Color.blue : Color.blue.opacity(0.1))
+                    .background(readingDirection == .rightToLeft ? currentAccentColor : currentAccentColor.opacity(0.1))
                     .cornerRadius(8)
                     .overlay(
                         RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color.blue, lineWidth: 2)
+                            .stroke(currentAccentColor, lineWidth: 2)
                     )
                 }
                 Button(action: {
@@ -268,24 +281,24 @@ struct ReadingDirectionSelector: View {
                             .font(.system(size: readingDirection == .leftToRight ? 18 : 12))
                         
                         Text("→")
-                            .font(.system(size: readingDirection == .leftToRight ? 28 : 22)) // Larger arrow
+                            .font(.system(size: readingDirection == .leftToRight ? 28 : 22)) 
                         
                         Text("R")
                             .font(.system(size: readingDirection == .leftToRight ? 18 : 12))
                     }
                     .fontWeight(.semibold)
-                    .foregroundColor(readingDirection == .leftToRight ? .white : .blue)
+                    .foregroundColor(readingDirection == .leftToRight ? .white : currentAccentColor)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
-                    .background(readingDirection == .leftToRight ? Color.blue : Color.blue.opacity(0.1))
+                    .background(readingDirection == .leftToRight ? currentAccentColor : currentAccentColor.opacity(0.1))
                     .cornerRadius(8)
                     .overlay(
                         RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color.blue, lineWidth: 2)
+                            .stroke(currentAccentColor, lineWidth: 2)
                     )
                 }
             }
-            .background(Color.blue.opacity(0.05))
+            .background(currentAccentColor.opacity(0.05))
             .cornerRadius(8)
         }
         .padding(.top, 4)
