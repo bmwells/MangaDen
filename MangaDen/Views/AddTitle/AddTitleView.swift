@@ -343,15 +343,14 @@ private class TitleExtractionNavigationDelegate: NSObject, WKNavigationDelegate 
     }
 }
 
-// MARK: - Notification Extension
-
-extension Notification.Name {
-    static let titleAddedToLibrary = Notification.Name("titleAddedToLibrary")
-}
-
 // MARK: - Help View
 struct AddTitleHelpView: View {
     @State private var showCopiedAlert = false
+    
+    private var isiPad: Bool {
+        UIDevice.current.userInterfaceIdiom == .pad
+    }
+    
     var body: some View {
         NavigationView {
             ScrollView {
@@ -470,6 +469,7 @@ struct AddTitleHelpView: View {
             }
             .padding(10)
         }
+        .frame(height: isiPad ? 900 : nil)
     }
     
     struct WebsiteButton: View {

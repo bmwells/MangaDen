@@ -509,6 +509,10 @@ struct SettingsHelpView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var showCopiedAlert = false
     
+    private var isiPad: Bool {
+        UIDevice.current.userInterfaceIdiom == .pad
+    }
+    
     var body: some View {
         NavigationView {
             ScrollView {
@@ -527,7 +531,16 @@ struct SettingsHelpView: View {
                     Text("**Dark Mode**").font(.system(size: 20)).italic() + Text(": Toggle between light and dark app appearance.")
                         .font(.system(size: 20))
 
-                    Text("**Reading Direction**").font(.system(size: 20)).italic() + Text(": Choose between Left to Right (L to R) or Right to Left (L to R) reading direction.")
+                    Text("**Default Reading Direction**").font(.system(size: 20)).italic() + Text(": Choose between Left to Right (L to R) or Right to Left (L to R) reading direction.")
+                        .font(.system(size: 20))
+                    
+                    Text("**Default Title Refresh Period**").font(.system(size: 20)).italic() + Text(": Set how frequently titles should automatically check for new chapters. Options range from everytime the title is opened to monthly updates.")
+                        .font(.system(size: 20))
+                    
+                    Text("**Default Browser Website**").font(.system(size: 20)).italic() + Text(": Set your preferred default website that will open when using the in-app browser. Enter any valid website URL.")
+                        .font(.system(size: 20))
+
+                    Text("**Accent Color**").font(.system(size: 20)).italic() + Text(": Customize the app's accent color to match your personal style. Choose from a variety of color options.")
                         .font(.system(size: 20))
                     
                     //Divider
@@ -594,6 +607,7 @@ struct SettingsHelpView: View {
             .padding(.horizontal, horizontalSizeClass == .regular ? 20 : 15)
             .frame(maxWidth: horizontalSizeClass == .regular ? 800 : .infinity)
         }
+        .frame(height: isiPad ? 920 : nil) // Help frame size on iPad
     }
 }
 

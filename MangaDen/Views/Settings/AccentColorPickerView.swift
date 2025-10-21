@@ -20,51 +20,58 @@ struct AccentColorPickerView: View {
         GridItem(.flexible())
     ]
     
+    private var isiPad: Bool {
+        UIDevice.current.userInterfaceIdiom == .pad
+    }
+    
     var body: some View {
         NavigationView {
-            VStack(spacing: 20) {
-                //Grid of color options
-                LazyVGrid(columns: columns, spacing: 16) {
-                    ForEach(Color.accentColorOptions, id: \.name) { colorOption in
-                        Button(action: {
-                            selectedColor = colorOption.name
-                        }) {
-                            VStack(spacing: 8) {
-                                ZStack {
-                                    // Fixed size container for consistent layout
-                                    Circle()
-                                        .fill(colorOption.color)
-                                        .frame(width: 65, height: 65)
-                                    
-                                    // Selection indicator - doesn't affect layout
-                                    if selectedColor == colorOption.name {
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Grid of color options
+                    LazyVGrid(columns: columns, spacing: 16) {
+                        ForEach(Color.accentColorOptions, id: \.name) { colorOption in
+                            Button(action: {
+                                selectedColor = colorOption.name
+                            }) {
+                                VStack(spacing: 8) {
+                                    ZStack {
+                                        // Fixed size container for consistent layout
                                         Circle()
-                                            .stroke(Color.primary, lineWidth: 3)
+                                            .fill(colorOption.color)
                                             .frame(width: 65, height: 65)
                                         
-                                        Image(systemName: "checkmark")
-                                            .font(.system(size: 20, weight: .bold))
-                                            .foregroundColor(.white)
-                                            .shadow(color: .black, radius: 1)
+                                        // Selection indicator - doesn't affect layout
+                                        if selectedColor == colorOption.name {
+                                            Circle()
+                                                .stroke(Color.primary, lineWidth: 3)
+                                                .frame(width: 65, height: 65)
+                                            
+                                            Image(systemName: "checkmark")
+                                                .font(.system(size: 20, weight: .bold))
+                                                .foregroundColor(.white)
+                                                .shadow(color: .black, radius: 1)
+                                        }
                                     }
+                                    .frame(width: 65, height: 65)
+                                    
+                                    Text(colorOption.displayName)
+                                        .font(.caption)
+                                        .foregroundColor(.primary)
+                                        .multilineTextAlignment(.center)
+                                        .lineLimit(2)
+                                        .fixedSize(horizontal: false, vertical: true)
                                 }
-                                .frame(width: 65, height: 65)
-                                
-                                Text(colorOption.displayName)
-                                    .font(.caption)
-                                    .foregroundColor(.primary)
-                                    .multilineTextAlignment(.center)
-                                    .lineLimit(2)
-                                    .fixedSize(horizontal: false, vertical: true)
                             }
+                            .buttonStyle(PlainButtonStyle())
                         }
-                        .buttonStyle(PlainButtonStyle())
                     }
+                    .padding(.horizontal)
+                    .padding(.top, 20)
+                    
+                    Spacer()
                 }
-                .padding(.horizontal)
-                
-                Spacer()
-                
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -73,9 +80,7 @@ struct AccentColorPickerView: View {
                         selectedColor = currentColor
                         isPresented = false
                     }
-                    .font(.title)  // Even larger font
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 16)
+                    .font(.title2)
                     .foregroundColor(.red)
                 }
                 
@@ -84,13 +89,11 @@ struct AccentColorPickerView: View {
                         onSave()
                         isPresented = false
                     }
-                    .font(.title.weight(.semibold))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 16)
+                    .font(.title2.weight(.semibold))
                 }
             }
-            .padding(.top, 60)
         }
+        .frame(height: isiPad ? 850 : nil) // Only set height for iPad
         .onAppear {
             selectedColor = currentColor
         }

@@ -231,6 +231,10 @@ struct DownloadsView: View {
 struct DownloadsHelpView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     
+    private var isiPad: Bool {
+        UIDevice.current.userInterfaceIdiom == .pad
+    }
+    
     var body: some View {
         NavigationView {
             ScrollView {
@@ -314,6 +318,7 @@ struct DownloadsHelpView: View {
             .padding(.horizontal, horizontalSizeClass == .regular ? 20 : 15) // Only horizontal padding
             .frame(maxWidth: horizontalSizeClass == .regular ? 800 : .infinity) // Wider on iPad
         }
+        .frame(height: isiPad ? 820 : nil) // Add this line
     }
 }
 
