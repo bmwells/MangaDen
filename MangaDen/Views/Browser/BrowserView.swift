@@ -34,6 +34,10 @@ struct BrowserView: View {
     private let webView = WKWebView()
     private let coordinator: WebViewCoordinator
     @AppStorage("defaultBrowserWebsite") private var defaultBrowserWebsite: String = "https://google.com"
+    
+    private var isiPad: Bool {
+        UIDevice.current.userInterfaceIdiom == .pad
+    }
 
     init() {
         let coord = WebViewCoordinator()
@@ -178,6 +182,7 @@ struct BrowserView: View {
             WebViewWrapper(webView: webView)
                 .edgesIgnoringSafeArea(.bottom)
         }
+        .frame(width: isiPad ? 800 : nil, height: isiPad ? 1200 : nil)
         .onAppear {
             // Clear both JSON files when browser is opened
             clearJSONCache()
