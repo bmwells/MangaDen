@@ -375,7 +375,3 @@ struct MangaMetadataDetailView: View {
     }
 }
 
-// Add this extension for the notification name
-extension Notification.Name {
-    static let jsonViewerRefreshRequested = Notification.Name("jsonViewerRefreshRequested")
-}

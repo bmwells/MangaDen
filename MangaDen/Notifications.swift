@@ -14,6 +14,7 @@ extension Notification.Name {
     static let didFindChapterWord = Notification.Name("didFindChapterWord")
     static let didUpdateChapterRange = Notification.Name("didUpdateChapterRange")
     static let chapterReadStatusChanged = Notification.Name("chapterReadStatusChanged")
+    static let jsonViewerRefreshRequested = Notification.Name("jsonViewerRefreshRequested")
     
     // MARK: - Title Management
     static let titleAdded = Notification.Name("titleAdded")
