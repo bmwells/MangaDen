@@ -56,7 +56,7 @@ struct BrowserView: View {
                 // Back Button
                 Button(action: { webView.goBack() }) {
                     Image(systemName: "arrow.left")
-                        .font(.system(size: 20))
+                        .font(.system(size: isiPad ? 30 : 20))
                         .foregroundColor(canGoBack ? .blue : .gray)
                 }
                 .disabled(!canGoBack)
@@ -68,7 +68,7 @@ struct BrowserView: View {
                             .scaleEffect(0.8)
                     } else {
                         Image(systemName: "arrow.clockwise")
-                            .font(.system(size: 20))
+                            .font(.system(size: isiPad ? 30 : 20))
                             .foregroundColor(.blue)
                     }
                 }
@@ -76,7 +76,7 @@ struct BrowserView: View {
                 // Forward Button
                 Button(action: { webView.goForward() }) {
                     Image(systemName: "arrow.right")
-                        .font(.system(size: 20))
+                        .font(.system(size: isiPad ? 30 : 20))
                         .foregroundColor(canGoForward ? .blue : .gray)
                 }
                 .disabled(!canGoForward)
@@ -91,16 +91,24 @@ struct BrowserView: View {
                 .disableAutocorrection(true)
                 .focused($isURLFieldFocused)
                 .submitLabel(.go)
-                .onSubmit {
-                        loadURL()
+                .onChange(of: isURLFieldFocused) {
+                    if isURLFieldFocused {
+                        // Select all text when field becomes focused
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            UIApplication.shared.sendAction(#selector(UIResponder.selectAll(_:)), to: nil, from: nil, for: nil)
+                        }
                     }
+                }
+                .onSubmit {
+                    loadURL()
+                }
 
                 // Go Button
                 Button(action: {
                     loadURL()
                 }) {
                     Image(systemName: "arrow.right.circle.fill")
-                        .font(.system(size: 24))
+                        .font(.system(size: isiPad ? 30 : 20))
                         .foregroundColor(.blue)
                 }
             }
@@ -118,7 +126,7 @@ struct BrowserView: View {
                             .scaleEffect(0.8)
                     } else {
                         Text("Add Title")
-                            .font(.system(size: 18, weight: .semibold))
+                            .font(.system(size: isiPad ? 27 : 18))
                             .padding(.horizontal, 20)
                             .padding(.vertical, 6)
                             .background(bothJSONsExist ? Color.green : Color.red)
@@ -139,13 +147,13 @@ struct BrowserView: View {
                         findMetadata()
                     }) {
                         Image(systemName: "arrow.clockwise")
-                            .font(.system(size: 20))
+                            .font(.system(size: isiPad ? 30 : 20))
                             .foregroundColor(.blue)
                     }
                     
                     // Chapter Range
                     Text(chapterRange)
-                        .font(.system(size: 16, weight: .medium))
+                        .font(.system(size: isiPad ? 25 : 16))
                         .foregroundColor(.secondary)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
@@ -157,7 +165,7 @@ struct BrowserView: View {
                         showJSONViewer.toggle()
                     }) {
                         Image(systemName: "list.bullet")
-                            .font(.system(size: 20))
+                            .font(.system(size: isiPad ? 30 : 20))
                             .foregroundColor(.blue)
                     }
                 }
