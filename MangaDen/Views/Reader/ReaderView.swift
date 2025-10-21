@@ -30,6 +30,8 @@ struct ReaderView: View {
     @State private var scrollProxy: ScrollViewProxy?
     @State private var hasRestoredFromBookmark = false
     @State private var zoomModeEnabled: Bool = false
+    @State private var showChapterNavigationAlert = false
+    @State private var chapterNavigationType: ChapterNavigationType = .next
     
     // Computed property to get images in correct order based on reading direction
     private var displayImages: [UIImage] {
@@ -121,6 +123,12 @@ struct ReaderView: View {
         } message: {
             Text(downloadAlertMessage)
         }
+        .alert(chapterNavigationAlertTitle, isPresented: $showChapterNavigationAlert) {
+            Button("No", role: .cancel) { }
+            Button("Yes") {
+                navigateToAdjacentChapter()
+            }
+        }
         .onChange(of: readerJava.images) { oldValue, newValue in
             handleImagesChange(oldValue: oldValue, newValue: newValue)
         }
@@ -133,6 +141,172 @@ struct ReaderView: View {
         .onChange(of: currentPageIndex) { oldValue, newValue in
             handlePageChange(oldValue: oldValue, newValue: newValue)
         }
+    }
+    
+    // MARK: - Chapter Navigation Alert Properties
+    
+    private var chapterNavigationAlertTitle: String {
+        switch chapterNavigationType {
+        case .next:
+            return "Open Next Chapter?"
+        case .previous:
+            return "Open Previous Chapter?"
+        }
+    }
+
+    
+    // MARK: - Chapter Navigation Logic
+    
+    private func checkForChapterNavigation() {
+        guard !displayImages.isEmpty else { return }
+        
+        // Check if we're at the boundary and should navigate to adjacent chapter
+        let isAtLastPage = currentPageIndex == displayImages.count - 1
+        let isAtFirstPage = currentPageIndex == 0
+        
+        if isAtLastPage {
+            // For RTL: last page (leftmost) should go to previous chapter
+            // For LTR: last page (rightmost) should go to next chapter
+            if readingDirection == .rightToLeft {
+                // RTL - at last page (leftmost), check for previous chapter
+                if hasPreviousChapter() {
+                    chapterNavigationType = .previous
+                    showChapterNavigationAlert = true
+                }
+            } else {
+                // LTR - at last page (rightmost), check for next chapter
+                if hasNextChapter() {
+                    chapterNavigationType = .next
+                    showChapterNavigationAlert = true
+                }
+            }
+        } else if isAtFirstPage {
+            // For RTL: first page (rightmost) should go to next chapter
+            // For LTR: first page (leftmost) should go to previous chapter
+            if readingDirection == .rightToLeft {
+                // RTL - at first page (rightmost), check for next chapter
+                if hasNextChapter() {
+                    chapterNavigationType = .next
+                    showChapterNavigationAlert = true
+                }
+            } else {
+                // LTR - at first page (leftmost), check for previous chapter
+                if hasPreviousChapter() {
+                    chapterNavigationType = .previous
+                    showChapterNavigationAlert = true
+                }
+            }
+        }
+    }
+    
+    private func hasNextChapter() -> Bool {
+        // Get all chapters for the title
+        guard let title = getTitle() else { return false }
+        
+        // Get current chapter index
+        let allChapters = getSortedChapters(for: title)
+        guard let currentIndex = allChapters.firstIndex(where: { $0.id == chapter.id }) else { return false }
+        
+        // Check if there's a next chapter that's not hidden
+        let nextIndex = currentIndex + 1
+        return nextIndex < allChapters.count
+    }
+    
+    private func hasPreviousChapter() -> Bool {
+        // Get all chapters for the title
+        guard let title = getTitle() else { return false }
+        
+        // Get current chapter index
+        let allChapters = getSortedChapters(for: title)
+        guard let currentIndex = allChapters.firstIndex(where: { $0.id == chapter.id }) else { return false }
+        
+        // Check if there's a previous chapter that's not hidden
+        let previousIndex = currentIndex - 1
+        return previousIndex >= 0
+    }
+    
+    private func getNextChapter() -> Chapter? {
+        guard let title = getTitle() else { return nil }
+        let allChapters = getSortedChapters(for: title)
+        guard let currentIndex = allChapters.firstIndex(where: { $0.id == chapter.id }) else { return nil }
+        
+        let nextIndex = currentIndex + 1
+        return nextIndex < allChapters.count ? allChapters[nextIndex] : nil
+    }
+    
+    private func getPreviousChapter() -> Chapter? {
+        guard let title = getTitle() else { return nil }
+        let allChapters = getSortedChapters(for: title)
+        guard let currentIndex = allChapters.firstIndex(where: { $0.id == chapter.id }) else { return nil }
+        
+        let previousIndex = currentIndex - 1
+        return previousIndex >= 0 ? allChapters[previousIndex] : nil
+    }
+    
+    private func getTitle() -> Title? {
+        // Load title from storage
+        do {
+            let fileManager = FileManager.default
+            guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+                return nil
+            }
+            
+            let titlesDirectory = documentsDirectory.appendingPathComponent("Titles")
+            let titleFile = titlesDirectory.appendingPathComponent("\(titleID.uuidString).json")
+            
+            guard fileManager.fileExists(atPath: titleFile.path) else {
+                return nil
+            }
+            
+            let titleData = try Data(contentsOf: titleFile)
+            let title = try JSONDecoder().decode(Title.self, from: titleData)
+            return title
+        } catch {
+            print("Error loading title: \(error)")
+            return nil
+        }
+    }
+    
+    private func getSortedChapters(for title: Title) -> [Chapter] {
+        // Get hidden chapters
+        let hiddenKey = "hiddenChapters_\(title.id.uuidString)"
+        let hiddenChapterURLs = UserDefaults.standard.array(forKey: hiddenKey) as? [String] ?? []
+        let hiddenSet = Set(hiddenChapterURLs)
+        
+        // Filter out hidden chapters and sort
+        let allChapters = title.chapters.filter { !hiddenSet.contains($0.url) }
+        return allChapters.sorted { $0.chapterNumber < $1.chapterNumber }
+    }
+    
+    private func navigateToAdjacentChapter() {
+        let targetChapter: Chapter?
+        
+        switch chapterNavigationType {
+        case .next:
+            targetChapter = getNextChapter()
+        case .previous:
+            targetChapter = getPreviousChapter()
+        }
+        
+        guard let nextChapter = targetChapter else { return }
+        
+        // Close current reader and open new one
+        readerJava.stopLoading()
+        readerJava.clearCache()
+        
+        // Post notification to open the new chapter
+        NotificationCenter.default.post(
+            name: .openChapterInReader,
+            object: nil,
+            userInfo: [
+                "chapter": nextChapter,
+                "titleID": titleID,
+                "readingDirection": readingDirection.rawValue
+            ]
+        )
+        
+        // Dismiss current reader
+        dismiss()
     }
     
     // MARK: - Scrollbar Handling
@@ -537,7 +711,8 @@ struct ReaderView: View {
             currentPageIndex: $currentPageIndex,
             displayImages: displayImages,
             scrollToPage: scrollToPage,
-            resetZoom: resetZoom
+            resetZoom: resetZoom,
+            checkForChapterNavigation: checkForChapterNavigation
         )
     }
     
@@ -546,7 +721,8 @@ struct ReaderView: View {
             currentPageIndex: $currentPageIndex,
             displayImages: displayImages,
             scrollToPage: scrollToPage,
-            resetZoom: resetZoom
+            resetZoom: resetZoom,
+            checkForChapterNavigation: checkForChapterNavigation
         )
     }
     
@@ -628,6 +804,12 @@ struct ReaderView: View {
             isChapterReady: $isChapterReady
         )
     }
+}
+
+// MARK: - Chapter Navigation Type
+enum ChapterNavigationType {
+    case next
+    case previous
 }
 
 // MARK: - Bottom Scrollbar Component

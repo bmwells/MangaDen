@@ -33,4 +33,5 @@ extension Notification.Name {
     static let downloadsPaused = Notification.Name("downloadsPaused")
     static let downloadsResumed = Notification.Name("downloadsResumed")
     
+    static let openChapterInReader = Notification.Name("openChapterInReader")
 }

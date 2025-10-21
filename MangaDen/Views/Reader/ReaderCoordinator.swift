@@ -255,9 +255,14 @@ class ReaderCoordinator: ObservableObject {
         currentPageIndex: Binding<Int>,
         displayImages: [UIImage],
         scrollToPage: @escaping (Int, Bool) -> Void,
-        resetZoom: @escaping () -> Void
+        resetZoom: @escaping () -> Void,
+        checkForChapterNavigation: @escaping () -> Void
     ) {
-        guard currentPageIndex.wrappedValue < displayImages.count - 1 else { return }
+        guard currentPageIndex.wrappedValue < displayImages.count - 1 else {
+            // At last page, check for chapter navigation
+            checkForChapterNavigation()
+            return
+        }
         let newIndex = currentPageIndex.wrappedValue + 1
         currentPageIndex.wrappedValue = newIndex
         scrollToPage(currentPageIndex.wrappedValue, true)
@@ -268,9 +273,14 @@ class ReaderCoordinator: ObservableObject {
         currentPageIndex: Binding<Int>,
         displayImages: [UIImage],
         scrollToPage: @escaping (Int, Bool) -> Void,
-        resetZoom: @escaping () -> Void
+        resetZoom: @escaping () -> Void,
+        checkForChapterNavigation: @escaping () -> Void
     ) {
-        guard currentPageIndex.wrappedValue > 0 else { return }
+        guard currentPageIndex.wrappedValue > 0 else {
+            // At first page, check for chapter navigation
+            checkForChapterNavigation()
+            return
+        }
         let newIndex = currentPageIndex.wrappedValue - 1
         currentPageIndex.wrappedValue = newIndex
         scrollToPage(currentPageIndex.wrappedValue, true)
@@ -669,4 +679,8 @@ extension Comparable {
     
 enum TapLocation {
     case left, center, right
+}
+
+#Preview {
+    ContentView()
 }
