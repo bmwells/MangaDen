@@ -102,6 +102,12 @@ struct LibraryView: View {
                         .padding(.horizontal)
                         .scaleEffect(x: 1.3, y: 1.3)
                         .offset(y: -10)
+                        .onAppear {
+                            // Customize segmented control appearance
+                            UISegmentedControl.appearance().selectedSegmentTintColor = .systemBlue
+                            UISegmentedControl.appearance().setTitleTextAttributes([.foregroundColor: UIColor.white], for: .selected)
+                            UISegmentedControl.appearance().setTitleTextAttributes([.foregroundColor: UIColor.systemBlue], for: .normal)
+                        }
                         
                         Spacer()
                         

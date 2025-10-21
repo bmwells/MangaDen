@@ -8,8 +8,9 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @AppStorage("isDarkMode") private var isDarkMode = false
+    @AppStorage("isDarkMode") private var isDarkMode = true
     @AppStorage("defaultReadingDirection") private var defaultReadingDirection: ReadingDirection = .rightToLeft
+    @AppStorage("defaultBrowserWebsite") private var defaultBrowserWebsite: String = "https://google.com"
     @StateObject private var autoRefreshManager = AutoRefreshManager.shared
     @EnvironmentObject private var tabBarManager: TabBarManager
     @State private var showUninstallAllConfirmation = false
@@ -17,6 +18,8 @@ struct SettingsView: View {
     @State private var totalDownloadSize = "Calculating..."
     @State private var isUninstalling = false
     @State private var showHelp = false
+    @State private var browserWebsiteInput: String = ""
+    @State private var showInvalidURLError = false
     
     private var currentRefreshPeriod: RefreshPeriod {
         autoRefreshManager.getRefreshPeriod()
@@ -85,6 +88,37 @@ struct SettingsView: View {
                                 UISegmentedControl.appearance().selectedSegmentTintColor = .systemBlue
                                 UISegmentedControl.appearance().setTitleTextAttributes([.foregroundColor: UIColor.white], for: .selected)
                                 UISegmentedControl.appearance().setTitleTextAttributes([.foregroundColor: UIColor.systemBlue], for: .normal)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                        
+                        // NEW: Default Browser Website
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Default Browser Website")
+                                .foregroundColor(.primary)
+                            
+                            HStack {
+                                TextField("Enter website URL", text: $browserWebsiteInput)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .keyboardType(.URL)
+                                    .autocapitalization(.none)
+                                    .disableAutocorrection(true)
+                                    .onAppear {
+                                        // Initialize the input field with the stored value
+                                        browserWebsiteInput = formatWebsiteForDisplay(defaultBrowserWebsite)
+                                    }
+                                
+                                Button("Save") {
+                                    saveBrowserWebsite()
+                                }
+                                .buttonStyle(.bordered)
+                                .disabled(browserWebsiteInput.isEmpty)
+                            }
+                            
+                            if showInvalidURLError {
+                                Text("Please enter a valid website (e.g., google.com or https://website.com)")
+                                    .font(.caption)
+                                    .foregroundColor(.red)
                             }
                         }
                         .padding(.vertical, 4)
@@ -339,6 +373,70 @@ struct SettingsView: View {
         formatter.allowedUnits = [.useMB, .useGB]
         formatter.countStyle = .file
         return formatter.string(fromByteCount: size)
+    }
+    
+    // MARK: - Browser Website Methods
+    
+    private func formatWebsiteForDisplay(_ website: String) -> String {
+        // Remove https:// and trailing slash for display in text field
+        var displayText = website
+        if displayText.hasPrefix("https://") {
+            displayText = String(displayText.dropFirst(8))
+        }
+        if displayText.hasSuffix("/") {
+            displayText = String(displayText.dropLast())
+        }
+        return displayText
+    }
+    
+    private func formatWebsiteForStorage(_ input: String) -> String {
+        var formatted = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Remove any existing http:// or https://
+        if formatted.hasPrefix("http://") {
+            formatted = String(formatted.dropFirst(7))
+        } else if formatted.hasPrefix("https://") {
+            formatted = String(formatted.dropFirst(8))
+        }
+        
+        // Remove trailing slash
+        if formatted.hasSuffix("/") {
+            formatted = String(formatted.dropLast())
+        }
+        
+        // Add https:// and ensure it's a valid URL format
+        return "https://\(formatted)"
+    }
+    
+    private func saveBrowserWebsite() {
+        let input = browserWebsiteInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Basic validation - should not be empty and should look like a domain
+        guard !input.isEmpty else {
+            showInvalidURLError = true
+            return
+        }
+        
+        // Check if it looks like a valid domain (contains a dot or is localhost)
+        let isValidDomain = input.contains(".") || input == "localhost" || input.hasPrefix("localhost:")
+        
+        guard isValidDomain else {
+            showInvalidURLError = true
+            return
+        }
+        
+        showInvalidURLError = false
+        
+        // Format and save the website
+        let formattedWebsite = formatWebsiteForStorage(input)
+        defaultBrowserWebsite = formattedWebsite
+        
+        // Show success feedback
+        let feedback = UINotificationFeedbackGenerator()
+        feedback.notificationOccurred(.success)
+        
+        // Reset the text field to display format
+        browserWebsiteInput = formatWebsiteForDisplay(formattedWebsite)
     }
 }
 

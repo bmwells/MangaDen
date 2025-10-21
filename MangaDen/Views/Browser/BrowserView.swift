@@ -33,6 +33,7 @@ struct BrowserView: View {
 
     private let webView = WKWebView()
     private let coordinator: WebViewCoordinator
+    @AppStorage("defaultBrowserWebsite") private var defaultBrowserWebsite: String = "https://google.com"
 
     init() {
         let coord = WebViewCoordinator()
@@ -181,9 +182,9 @@ struct BrowserView: View {
             // Clear both JSON files when browser is opened
             clearJSONCache()
             
-            // Load a default page if no URL is specified
+            // Load a default webpage from settings
             if urlString.isEmpty {
-                urlString = "https://google.com"
+                urlString = defaultBrowserWebsite
                 loadURL()
             }
             // Load existing chapter data if available
