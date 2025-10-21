@@ -23,6 +23,7 @@ struct DownloadsView: View {
                             Text("Downloading")
                                 .font(.headline)
                                 .foregroundColor(.primary)
+                                .padding(.top, 8)
                             
                             Spacer()
                             
@@ -584,5 +585,5 @@ struct FailedDownloadRow: View {
 
 
 #Preview {
-    DownloadsHelpView()
+    ContentView()
 }
