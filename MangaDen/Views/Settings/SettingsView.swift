@@ -10,7 +10,7 @@ import SwiftUI
 struct SettingsView: View {
     @AppStorage("isDarkMode") private var isDarkMode = true
     @AppStorage("defaultReadingDirection") private var defaultReadingDirection: ReadingDirection = .rightToLeft
-    @AppStorage("defaultBrowserWebsite") private var defaultBrowserWebsite: String = "https://google.com"
+    @AppStorage("defaultBrowserWebsite") private var defaultBrowserWebsite: String = "https://google.com/"
     @AppStorage("accentColor") private var accentColor: String = "systemBlue"
     @AppStorage("defaultRefreshPeriod") private var refreshPeriod: String = RefreshPeriod.sevenDays.rawValue
     @StateObject private var autoRefreshManager = AutoRefreshManager.shared
@@ -120,6 +120,8 @@ struct SettingsView: View {
                                             // Initialize the input field with the stored value
                                             browserWebsiteInput = formatWebsiteForDisplay(defaultBrowserWebsite)
                                         }
+                                    
+                                    Spacer()
                                     
                                     Button("Save") {
                                         saveBrowserWebsite()
@@ -233,7 +235,7 @@ struct SettingsView: View {
                             .frame(width: 24, height: 24)
                             .foregroundColor(currentAccentColor)
                             .padding(20)
-                            .background(Circle().fill(Color.gray.opacity(0.2)))
+                            .background(Circle().fill(currentAccentColor.opacity(0.2)))
                     }
                     Spacer()
                 }
