@@ -179,9 +179,13 @@ struct LibraryView: View {
                     
                     ScrollView {
                         if isLoading {
-                            ProgressView("Loading Library...")
-                                .scaleEffect(1.5)
-                                .padding(.top, 100)
+                            VStack {
+                                ProgressView("Loading Library...")
+                                    .scaleEffect(1.5)
+                                    .padding(.horizontal)
+                                    .padding(.top, 100)
+                            }
+                            .frame(maxWidth: .infinity)
                         } else if filteredTitles.isEmpty {
                             VStack(spacing: 20) {
                                 Image(systemName: emptyStateIcon)
