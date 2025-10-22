@@ -43,6 +43,10 @@ struct TitleView: View {
     @State private var hasAutoRefreshed = false
     @Environment(\.dismiss) private var dismiss
     
+    // ADD: State for handling chapter navigation from ReaderView
+    @State private var chapterToOpenInReader: Chapter?
+    @State private var showReaderView = false
+    
     // Scrollbar state
     @State private var scrollProxy: ScrollViewProxy?
     @State private var scrollViewContentSize: CGFloat = 0
@@ -171,7 +175,7 @@ struct TitleView: View {
                                     }
 
                                     Spacer()
-                                    
+    
                                     ReadingDirectionSelector(
                                         readingDirection: $readingDirection,
                                         onDirectionChanged: saveReadingDirection
@@ -328,6 +332,51 @@ struct TitleView: View {
         // Listen for bookmark updates
         .onReceive(NotificationCenter.default.publisher(for: .titleUpdated)) { _ in
             loadCurrentBookmark()
+        }
+        // ADD: Listen for chapter navigation notifications
+        .onReceive(NotificationCenter.default.publisher(for: .openChapterInReader)) { notification in
+            handleOpenChapterNotification(notification)
+        }
+        // ADD: Navigation to ReaderView - using fullScreenCover instead of navigationDestination
+        // to maintain the existing navigation stack
+        .fullScreenCover(isPresented: $showReaderView) {
+            NavigationStack {
+                if let chapter = chapterToOpenInReader {
+                    ReaderView(chapter: chapter, readingDirection: readingDirection, titleID: title.id)
+                }
+            }
+        }
+    }
+    
+    // MARK: - Chapter Navigation Notification Handler
+    
+    private func handleOpenChapterNotification(_ notification: Notification) {
+        print("TitleView: Received openChapterInReader notification")
+        
+        guard let userInfo = notification.userInfo,
+              let chapter = userInfo["chapter"] as? Chapter,
+              let titleID = userInfo["titleID"] as? UUID,
+              let readingDirectionRaw = userInfo["readingDirection"] as? String,
+              let readingDirection = ReadingDirection(rawValue: readingDirectionRaw) else {
+            print("TitleView: Invalid notification data")
+            return
+        }
+        
+        // Verify this notification is for our current title
+        guard titleID == title.id else {
+            print("TitleView: Notification not for current title, ignoring")
+            return
+        }
+        
+        print("TitleView: Opening chapter \(chapter.formattedChapterNumber) in reader")
+        
+        // Set the chapter to open and trigger navigation
+        self.chapterToOpenInReader = chapter
+        self.readingDirection = readingDirection
+        
+        // Use a small delay to ensure the current ReaderView is fully dismissed
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.showReaderView = true
         }
     }
     
