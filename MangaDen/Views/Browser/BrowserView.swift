@@ -190,7 +190,8 @@ struct BrowserView: View {
             WebViewWrapper(webView: webView)
                 .edgesIgnoringSafeArea(.bottom)
         }
-        .frame(width: isiPad ? 800 : nil, height: isiPad ? 1200 : nil)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .edgesIgnoringSafeArea(.all)
         .onAppear {
             // Clear both JSON files when browser is opened
             clearJSONCache()
