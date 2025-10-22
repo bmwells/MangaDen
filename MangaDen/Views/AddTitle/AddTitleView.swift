@@ -17,10 +17,15 @@ struct AddTitleView: View {
     @State private var alertMessage = ""
     @State private var alertTitle = ""
     @AppStorage("accentColor") private var accentColor: String = "systemBlue"
-        
+    
     // Get current accent color
     private var currentAccentColor: Color {
         Color.fromStorage(accentColor)
+    }
+    
+    // Check if device is iPad
+    private var isiPad: Bool {
+        UIDevice.current.userInterfaceIdiom == .pad
     }
     
     var body: some View {
@@ -123,11 +128,21 @@ struct AddTitleView: View {
         }
         // Browser sheet
         .sheet(isPresented: $showBrowser) {
-            BrowserView()
+            if isiPad {
+                BrowserView()
+                    .presentationSizing(.page)
+            } else {
+                BrowserView()
+            }
         }
         // Help sheet
         .sheet(isPresented: $showHelp) {
-            AddTitleHelpView()
+            if isiPad {
+                AddTitleHelpView()
+                    .presentationSizing(.page)
+            } else {
+                AddTitleHelpView()
+            }
         }
         .alert(alertTitle, isPresented: $showAlert) {
             Button("OK", role: .cancel) { }
@@ -313,6 +328,13 @@ struct AddTitleView: View {
         alertTitle = title
         alertMessage = message
         showAlert = true
+    }
+}
+
+// MARK: - Custom Sheet Sizing for iPad
+struct CustomSheetSizing: PresentationSizing {
+    func proposedSize(for root: PresentationSizingRoot, context: PresentationSizingContext) -> ProposedViewSize {
+        .init(width: 700, height: 900)
     }
 }
 
