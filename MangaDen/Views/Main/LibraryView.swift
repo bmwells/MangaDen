@@ -43,7 +43,7 @@ struct LibraryView: View {
         // Apply search filter if searching
         if !searchText.isEmpty {
             let searched = filtered.filter { title in
-                title.title.lowercased().hasPrefix(searchText.lowercased())
+                title.title.lowercased().contains(searchText.lowercased())
             }
             // Sort searched results alphabetically
             return searched.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
