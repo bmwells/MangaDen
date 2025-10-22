@@ -27,7 +27,6 @@ class ReaderViewJava: NSObject, ObservableObject {
     
     override init() {
         super.init()
-        print("ReaderViewJava: Initializing with navigation delegate")
         // Set self as navigation delegate for webViewManager
         webViewManager.navigationDelegate = self
         

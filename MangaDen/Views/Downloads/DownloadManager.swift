@@ -56,7 +56,6 @@ class DownloadManager: ObservableObject {
         for chapter in chapters {
             // Skip hidden chapters
             if hiddenChapterURLs.contains(chapter.url) {
-                print("Skipping hidden chapter: \(chapter.title ?? "Chapter \(chapter.formattedChapterNumber)")")
                 continue
             }
             
@@ -148,8 +147,6 @@ class DownloadManager: ObservableObject {
         isDownloading = false
         isPaused = false
         saveDownloadState()
-        
-        print("Download queue cleared")
     }
     
     // MARK: - Progress Text Access
@@ -190,7 +187,6 @@ class DownloadManager: ObservableObject {
         NotificationCenter.default.post(name: .downloadsPaused, object: nil)
         
         saveDownloadState()
-        print("Downloads stopped")
     }
     
     func resumeAllDownloads() {
@@ -204,7 +200,6 @@ class DownloadManager: ObservableObject {
         if !downloadQueue.isEmpty && !isDownloading {
             startNextDownload()
         }
-        print("Downloads resumed")
     }
     
     func toggleDownloads() {
@@ -261,7 +256,6 @@ class DownloadManager: ObservableObject {
     private func downloadChapter(task: DownloadTask) async {
         // Check for cancellation at the start
         if Task.isCancelled || isPaused {
-            print("Download task cancelled before starting")
             return
         }
         
@@ -281,7 +275,6 @@ class DownloadManager: ObservableObject {
             while readerJava.isLoading && attempts < 180 {
                 // Check for cancellation
                 if Task.isCancelled || isPaused {
-                    print("Download cancelled during image loading for chapter \(task.chapter.formattedChapterNumber)")
                     readerJava.stopLoading()
                     return
                 }
@@ -293,14 +286,12 @@ class DownloadManager: ObservableObject {
                 attempts += 1
                 
                 if readerJava.images.count > 0 && attempts > 30 {
-                    print("Proceeding with \(readerJava.images.count) images despite loading state for chapter \(task.chapter.formattedChapterNumber)")
                     break
                 }
             }
             
             // Check for cancellation after loading
             if Task.isCancelled || isPaused {
-                print("Download cancelled after image loading for chapter \(task.chapter.formattedChapterNumber)")
                 readerJava.stopLoading()
                 return
             }
@@ -312,7 +303,6 @@ class DownloadManager: ObservableObject {
             }
             
             let totalImages = readerJava.images.count
-            print("Starting download of \(totalImages) images for chapter \(task.chapter.formattedChapterNumber)")
             
             // Download images with cancellation support
             var downloadedImages: [UIImage] = []
@@ -322,7 +312,6 @@ class DownloadManager: ObservableObject {
             for (index, image) in readerJava.images.enumerated() {
                 // Check for cancellation frequently
                 if Task.isCancelled || isPaused {
-                    print("Download cancelled during image processing for chapter \(task.chapter.formattedChapterNumber)")
                     return
                 }
                 
@@ -335,7 +324,6 @@ class DownloadManager: ObservableObject {
                 
                 // Check cancellation again after sleep
                 if Task.isCancelled || isPaused {
-                    print("Download cancelled after sleep for chapter \(task.chapter.formattedChapterNumber)")
                     return
                 }
                 
@@ -354,7 +342,6 @@ class DownloadManager: ObservableObject {
             
             // Final cancellation check before saving
             if Task.isCancelled || isPaused {
-                print("Download cancelled before saving for chapter \(task.chapter.formattedChapterNumber)")
                 return
             }
             
@@ -364,17 +351,12 @@ class DownloadManager: ObservableObject {
                 return
             }
             
-            if failedDownloads > 0 {
-                print("Downloaded \(downloadedImages.count)/\(totalImages) images (\(failedDownloads) failed) for chapter \(task.chapter.formattedChapterNumber)")
-            }
-            
             // Save chapter to storage
             saveDownloadedChapter(task: task, images: downloadedImages, totalSize: totalSize)
             
         } catch {
             // If the error is cancellation, don't mark as failed
             if error is CancellationError || isPaused {
-                print("Download task was cancelled for chapter \(task.chapter.formattedChapterNumber)")
                 return
             }
             markDownloadFailed(task: task, error: error.localizedDescription)
@@ -442,7 +424,6 @@ class DownloadManager: ObservableObject {
                     // Use sequential numbering: 0.jpg, 1.jpg, 2.jpg, etc.
                     let imagePath = chapterDirectory.appendingPathComponent("\(index).jpg")
                     try imageData.write(to: imagePath)
-                    print("Saved image \(index) to: \(imagePath.lastPathComponent)")
                 }
             }
             

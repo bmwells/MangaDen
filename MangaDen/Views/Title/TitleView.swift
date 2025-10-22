@@ -351,7 +351,6 @@ struct TitleView: View {
     // MARK: - Chapter Navigation Notification Handler
     
     private func handleOpenChapterNotification(_ notification: Notification) {
-        print("TitleView: Received openChapterInReader notification")
         
         guard let userInfo = notification.userInfo,
               let chapter = userInfo["chapter"] as? Chapter,
@@ -367,9 +366,7 @@ struct TitleView: View {
             print("TitleView: Notification not for current title, ignoring")
             return
         }
-        
-        print("TitleView: Opening chapter \(chapter.formattedChapterNumber) in reader")
-        
+                
         // Set the chapter to open and trigger navigation
         self.chapterToOpenInReader = chapter
         self.readingDirection = readingDirection
