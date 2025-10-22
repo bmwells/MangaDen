@@ -358,6 +358,13 @@ struct EditTitleView: View {
     let onSave: () -> Void
     @Environment(\.dismiss) private var dismiss
     
+    // Local state to track original values
+    @State private var originalTitle: String = ""
+    @State private var originalAuthor: String = ""
+    @State private var originalStatus: String = ""
+    @State private var originalCoverImage: UIImage? = nil
+    @State private var originalCoverImageItem: PhotosPickerItem? = nil
+    
     let statusOptions = [
         ("Releasing", "releasing", Color.blue),
         ("Completed", "completed", Color.green),
@@ -484,7 +491,7 @@ struct EditTitleView: View {
                     }
                 }
                 
-                Section(header: Text("Title Information")) {
+                Section(header: Text("Title")) {
                     HStack {
                         TextField("Title", text: $editedTitle)
                             .focused($isTitleFocused)
@@ -498,7 +505,7 @@ struct EditTitleView: View {
                     }
                     
                     HStack {
-                        TextField("Author (optional)", text: $editedAuthor)
+                        TextField("Author", text: $editedAuthor)
                             .focused($isAuthorFocused)
                         if !editedAuthor.isEmpty && isAuthorFocused {
                             Button(action: { editedAuthor = "" }) {
@@ -525,6 +532,12 @@ struct EditTitleView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
+                        // Reset all bindings to original values
+                        editedTitle = originalTitle
+                        editedAuthor = originalAuthor
+                        editedStatus = originalStatus
+                        selectedCoverImage = originalCoverImage
+                        coverImageItem = originalCoverImageItem
                         dismiss()
                     }
                 }
@@ -546,6 +559,14 @@ struct EditTitleView: View {
                 }
             }
             .onAppear {
+                // Store original values when the view appears
+                originalTitle = editedTitle.isEmpty ? title.title : editedTitle
+                originalAuthor = editedAuthor.isEmpty ? title.author : editedAuthor
+                originalStatus = editedStatus.isEmpty ? title.status.lowercased() : editedStatus
+                originalCoverImage = selectedCoverImage
+                originalCoverImageItem = coverImageItem
+                
+                // Set initial values if empty
                 if editedTitle.isEmpty {
                     editedTitle = title.title
                 }
