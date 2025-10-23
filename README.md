@@ -2,7 +2,7 @@
 
 <div align="center">
   
-  ![MangaDen Banner](screens/icon.png)
+  ![MangaDen Banner](screens/icon.png){: width="400px"}
 
   **Your personal manga and comic library in your pocket**
 
@@ -51,7 +51,6 @@ MangaDen is the ultimate manga reader and comic reader app that brings your favo
 
 </div>
 
----
 
 ## 🚀 Getting Started
 
