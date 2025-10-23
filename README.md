@@ -2,7 +2,7 @@
 
 <div align="center">
   
-  ![MangaDen Banner](images/banner.png)
+  ![MangaDen Banner](screens/icon.png)
 
   **Your personal manga and comic library in your pocket**
 
@@ -12,11 +12,11 @@
 
 </div>
 
-## 📱 About MangaDen
+## About MangaDen
 
 MangaDen is the ultimate manga reader and comic reader app that brings your favorite stories to life. Discover thousands of titles from across the web and build your personal digital library. Download chapters for offline enjoyment and experience seamless reading with customizable settings perfect for both manga enthusiasts and comic book lovers.
 
-### ✨ Key Features
+### Key Features
 
 - **📚 Smart Library Management** - Organize your collection with reading and archive sections
 - **🌐 Built-in Web Browser** - Discover new titles with automatic content detection
@@ -25,6 +25,8 @@ MangaDen is the ultimate manga reader and comic reader app that brings your favo
 - **🔄 Auto-Refresh** - Automatic chapter updates with customizable periods
 - **🎨 Personalization** - Dark/light mode with accent colors and tailored settings
 
+---
+
 ## 🖼️ Screenshots
 
 ### iPhone
@@ -32,14 +34,24 @@ MangaDen is the ultimate manga reader and comic reader app that brings your favo
 
 | | | | |
 |:---:|:---:|:---:|:---:|
-| <img src="screens/screen1.png" width="200"> | <img src="screens/screen2.png" width="200"> | <img src="screens/screen3.png" width="200"> | <img src="screens/screen4.png" width="200"> | <img src="screens/screen5.png" width="200"> | <img src="screens/screen6.png" width="200"> | <img src="screens/screen7.png" width="200"> | <img src="screens/screen8.png" width="200"> |
+| <img src="screens/screen1.png" width="200"> | <img src="screens/screen2.png" width="200"> | <img src="screens/screen3.png" width="200"> | <img src="screens/screen4.png" width="200"> |
+| <img src="screens/screen5.png" width="200"> | <img src="screens/screen6.png" width="200"> | <img src="screens/screen7.png" width="200"> | <img src="screens/screen8.png" width="200"> |
+
+</div>
+
+---
 
 ### iPad
 <div align="center">
 
 | | | | |
 |:---:|:---:|:---:|:---:|
-| <img src="screens/screens1.png" width="200"> | <img src="screens/screens2.png" width="200"> | <img src="screens/screens3.png" width="200"> | <img src="screens/screens4.png" width="200"> | <img src="screens/screens5.png" width="200"> | <img src="screens/screens6.png" width="200"> | <img src="screens/screens7.png" width="200"> | <img src="screens/screens8.png" width="200"> |
+| <img src="screens/screens1.png" width="250"> | <img src="screens/screens2.png" width="250"> | <img src="screens/screens3.png" width="250"> | <img src="screens/screens4.png" width="250"> |
+| <img src="screens/screens5.png" width="250"> | <img src="screens/screens6.png" width="250"> | <img src="screens/screens7.png" width="250"> | <img src="screens/screens8.png" width="250"> |
+
+</div>
+
+---
 
 ## 🚀 Getting Started
 
@@ -49,10 +61,6 @@ MangaDen is the ultimate manga reader and comic reader app that brings your favo
 - Swift 5.0
 
 ### Installation
-Clone the repository
-```bash
-git clone https://github.com/your-username/mangaden.git
-Open the project in Xcode
-Build and run on your device or simulator
-
-
+1. Clone the repository
+2. Open the project in Xcode
+3. Build and run on your device or simulator
