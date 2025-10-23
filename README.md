@@ -27,7 +27,9 @@ MangaDen is the ultimate manga reader and comic reader app that brings your favo
 
 ## 🖼️ Screenshots
 
-### Iphone
+### iPhone
 <div align="center">
 
+| | | | |
+|:---:|:---:|:---:|:---:|
 | <img src="screens/screen1.png" width="200"> | <img src="screens/screen2.png" width="200"> | <img src="screens/screen3.png" width="200"> | <img src="screens/screen4.png" width="200"> |
