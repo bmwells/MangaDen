@@ -32,4 +32,27 @@ MangaDen is the ultimate manga reader and comic reader app that brings your favo
 
 | | | | |
 |:---:|:---:|:---:|:---:|
-| <img src="screens/screen1.png" width="200"> | <img src="screens/screen2.png" width="200"> | <img src="screens/screen3.png" width="200"> | <img src="screens/screen4.png" width="200"> |
+| <img src="screens/screen1.png" width="200"> | <img src="screens/screen2.png" width="200"> | <img src="screens/screen3.png" width="200"> | <img src="screens/screen4.png" width="200"> | <img src="screens/screen5.png" width="200"> | <img src="screens/screen6.png" width="200"> | <img src="screens/screen7.png" width="200"> | <img src="screens/screen8.png" width="200"> |
+
+### iPad
+<div align="center">
+
+| | | | |
+|:---:|:---:|:---:|:---:|
+| <img src="screens/screens1.png" width="200"> | <img src="screens/screens2.png" width="200"> | <img src="screens/screens3.png" width="200"> | <img src="screens/screens4.png" width="200"> | <img src="screens/screens5.png" width="200"> | <img src="screens/screens6.png" width="200"> | <img src="screens/screens7.png" width="200"> | <img src="screens/screens8.png" width="200"> |
+
+## 🚀 Getting Started
+
+### Prerequisites
+- iOS 17.0 or later
+- Xcode 15.0 or later
+- Swift 5.0
+
+### Installation
+Clone the repository
+```bash
+git clone https://github.com/your-username/mangaden.git
+Open the project in Xcode
+Build and run on your device or simulator
+
+
