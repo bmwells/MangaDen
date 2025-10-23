@@ -2,7 +2,7 @@
 
 <div align="center">
   
-<img src="screens/icon.png" width="400">
+<img src="screens/icon.png" width="400" style="clip-path: polygon(0 0, 100% 0, 100% 100%, 0 70%);"> 
 
   **Your personal manga and comic library in your pocket**
 
