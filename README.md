@@ -2,7 +2,7 @@
 
 <div align="center">
   
-  !<img src="screens/icon.png" width="400">
+<img src="screens/icon.png" width="400">
 
   **Your personal manga and comic library in your pocket**
 
