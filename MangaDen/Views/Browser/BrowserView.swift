@@ -31,22 +31,12 @@ struct BrowserView: View {
     @State private var isSwitchingToMobile = false
     @State private var jsonCheckTimer: Timer?
 
-    private let webView = WKWebView()
-    private let coordinator: WebViewCoordinator
+    @StateObject private var webViewManager = BrowserViewManager()
+    
     @AppStorage("defaultBrowserWebsite") private var defaultBrowserWebsite: String = "https://google.com"
     
     private var isiPad: Bool {
         UIDevice.current.userInterfaceIdiom == .pad
-    }
-
-    init() {
-        let coord = WebViewCoordinator()
-        self.coordinator = coord
-        webView.navigationDelegate = coord
-        coord.attachObservers(to: webView)
-        
-        // Set mobile user agent by default for display
-        WebViewUserAgentManager.setMobileUserAgent(for: webView)
     }
 
     var body: some View {
@@ -54,7 +44,10 @@ struct BrowserView: View {
             // MARK: Navigation Bar
             HStack {
                 // Back Button
-                Button(action: { webView.goBack() }) {
+                Button(action: {
+                    print("Back button tapped")
+                    webViewManager.goBack()
+                }) {
                     Image(systemName: "arrow.left")
                         .font(.system(size: isiPad ? 30 : 20))
                         .foregroundColor(canGoBack ? .blue : .gray)
@@ -62,7 +55,10 @@ struct BrowserView: View {
                 .disabled(!canGoBack)
 
                 // Refresh Button
-                Button(action: { webView.reload() }) {
+                Button(action: {
+                    print("Refresh button tapped")
+                    webViewManager.reload()
+                }) {
                     if isLoading {
                         ProgressView()
                             .scaleEffect(0.8)
@@ -74,7 +70,10 @@ struct BrowserView: View {
                 }
 
                 // Forward Button
-                Button(action: { webView.goForward() }) {
+                Button(action: {
+                    print("Forward button tapped")
+                    webViewManager.goForward()
+                }) {
                     Image(systemName: "arrow.right")
                         .font(.system(size: isiPad ? 30 : 20))
                         .foregroundColor(canGoForward ? .blue : .gray)
@@ -140,11 +139,15 @@ struct BrowserView: View {
                 
                 // Refresh, Chapter Range and JSON Viewer (Right)
                 HStack(spacing: 12) {
-                    // Refresh Button
+                    // Refresh JSON Button
                     Button(action: {
-                        // Refresh JSON data for current page
-                        findChapters()
-                        findMetadata()
+                        print("Refresh JSON button tapped")
+                        // Force a complete reload and re-scrape
+                        webViewManager.reload()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                            findChapters()
+                            findMetadata()
+                        }
                     }) {
                         Image(systemName: "arrow.clockwise")
                             .font(.system(size: isiPad ? 30 : 20))
@@ -187,7 +190,7 @@ struct BrowserView: View {
             Divider()
 
             // MARK: WebView
-            WebViewWrapper(webView: webView)
+            WebViewWrapper(webView: webViewManager.webView)
                 .edgesIgnoringSafeArea(.bottom)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -309,19 +312,19 @@ struct BrowserView: View {
         }
         
         // Set desktop user agent BEFORE loading the URL for scraping
-        WebViewUserAgentManager.setDesktopUserAgent(for: webView)
+        WebViewUserAgentManager.setDesktopUserAgent(for: webViewManager.webView)
         
         // Check if it's a valid URL
         if let url = URL(string: input), UIApplication.shared.canOpenURL(url) {
-            webView.load(URLRequest(url: url))
+            webViewManager.loadURL(url)
         } else if let url = URL(string: "https://" + input), UIApplication.shared.canOpenURL(url) {
             urlString = "https://" + input
-            webView.load(URLRequest(url: url))
+            webViewManager.loadURL(url)
         } else {
             let searchQuery = input.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? input
             if let searchURL = URL(string: "https://www.google.com/search?q=\(searchQuery)") {
                 urlString = searchURL.absoluteString
-                webView.load(URLRequest(url: searchURL))
+                webViewManager.loadURL(searchURL)
             } else {
                 errorMessage = "Invalid URL or search terms"
                 showError = true
@@ -333,7 +336,7 @@ struct BrowserView: View {
     
     private func findChapters() {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            ChapterExtractionManager.findChapterLinks(in: webView) { chapterDict in
+            ChapterExtractionManager.findChapterLinks(in: self.webViewManager.webView) { chapterDict in
                 if let chapters = chapterDict {
                     let urlDict = ChapterExtractionManager.extractURLs(from: chapters)
                     self.updateChapterRange(from: urlDict)
@@ -345,7 +348,7 @@ struct BrowserView: View {
     private func findMetadata() {
         // Wait a moment for the desktop transformation to complete
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            MetadataExtractionManager.findMangaMetadata(in: self.webView) { metadata in
+            MetadataExtractionManager.findMangaMetadata(in: self.webViewManager.webView) { metadata in
                 if let metadata = metadata {
                     self.mangaMetadata = metadata
                 }
@@ -355,7 +358,7 @@ struct BrowserView: View {
                     // Set flag to prevent infinite loop
                     self.isSwitchingToMobile = true
                     
-                    WebViewUserAgentManager.setMobileUserAgent(for: self.webView)
+                    WebViewUserAgentManager.setMobileUserAgent(for: self.webViewManager.webView)
                     
                     // Use JavaScript to apply mobile styling instead of reloading
                     let mobileViewportJS = """
@@ -374,7 +377,7 @@ struct BrowserView: View {
                     document.body.style.overflowX = 'hidden';
                     """
                     
-                    self.webView.evaluateJavaScript(mobileViewportJS) { _, error in
+                    self.webViewManager.webView.evaluateJavaScript(mobileViewportJS) { _, error in
                         if let error = error {
                             print("Error applying mobile styling: \(error)")
                         }
@@ -498,8 +501,6 @@ struct BrowserView: View {
                 do {
                     let chaptersData = try Data(contentsOf: chaptersFile)
                     chaptersHasContent = !chaptersData.isEmpty
-                    if !chaptersHasContent {
-                    }
                 } catch {
                     print("Error reading chapters.json: \(error)")
                 }
@@ -509,8 +510,6 @@ struct BrowserView: View {
                 do {
                     let metadataData = try Data(contentsOf: metadataFile)
                     metadataHasContent = !metadataData.isEmpty
-                    if !metadataHasContent {
-                    }
                 } catch {
                     print("Error reading manga_metadata.json: \(error)")
                 }
@@ -688,6 +687,42 @@ struct BrowserView: View {
     }
 }
 
+// MARK: - WebView Manager
+class BrowserViewManager: ObservableObject {
+    let webView: WKWebView
+    private let coordinator: WebViewCoordinator
+    
+    init() {
+        self.webView = WKWebView()
+        self.coordinator = WebViewCoordinator()
+        webView.navigationDelegate = coordinator
+        coordinator.attachObservers(to: webView)
+        
+        // Set mobile user agent by default for display
+        WebViewUserAgentManager.setMobileUserAgent(for: webView)
+    }
+    
+    func loadURL(_ url: URL) {
+        webView.load(URLRequest(url: url))
+    }
+    
+    func goBack() {
+        if webView.canGoBack {
+            webView.goBack()
+        }
+    }
+    
+    func goForward() {
+        if webView.canGoForward {
+            webView.goForward()
+        }
+    }
+    
+    func reload() {
+        webView.reload()
+    }
+}
+
 // MARK: WebView Wrapper
 struct WebViewWrapper: UIViewRepresentable {
     let webView: WKWebView
@@ -703,42 +738,51 @@ struct WebViewWrapper: UIViewRepresentable {
 
 // MARK: Coordinator with Chapter Detection
 class WebViewCoordinator: NSObject, WKNavigationDelegate {
-    private var backObserver: NSKeyValueObservation?
-    private var forwardObserver: NSKeyValueObservation?
-    private var loadingObserver: NSKeyValueObservation?
+    private var observers: [NSKeyValueObservation] = []
 
     func attachObservers(to webView: WKWebView) {
+        // Clear existing observers first
+        observers.removeAll()
+        
         // Observe navigation state
-        backObserver = webView.observe(\.canGoBack, options: [.new]) { webView, _ in
+        let backObserver = webView.observe(\.canGoBack, options: [.new]) { webView, _ in
             self.postNavigationUpdate(webView: webView)
         }
         
-        forwardObserver = webView.observe(\.canGoForward, options: [.new]) { webView, _ in
+        let forwardObserver = webView.observe(\.canGoForward, options: [.new]) { webView, _ in
             self.postNavigationUpdate(webView: webView)
         }
         
-        loadingObserver = webView.observe(\.isLoading, options: [.new]) { webView, _ in
+        let loadingObserver = webView.observe(\.isLoading, options: [.new]) { webView, _ in
             self.postNavigationUpdate(webView: webView)
         }
+        
+        observers.append(contentsOf: [backObserver, forwardObserver, loadingObserver])
+    }
+    
+    deinit {
+        observers.forEach { $0.invalidate() }
     }
 
     private func postNavigationUpdate(webView: WKWebView, error: String? = nil) {
-        var userInfo: [String: Any] = [
-            "canGoBack": webView.canGoBack,
-            "canGoForward": webView.canGoForward,
-            "currentURL": webView.url as Any,
-            "isLoading": webView.isLoading
-        ]
-        
-        if let error = error {
-            userInfo["error"] = error
+        DispatchQueue.main.async {
+            var userInfo: [String: Any] = [
+                "canGoBack": webView.canGoBack,
+                "canGoForward": webView.canGoForward,
+                "currentURL": webView.url as Any,
+                "isLoading": webView.isLoading
+            ]
+            
+            if let error = error {
+                userInfo["error"] = error
+            }
+            
+            NotificationCenter.default.post(
+                name: .didUpdateWebViewNav,
+                object: nil,
+                userInfo: userInfo
+            )
         }
-        
-        NotificationCenter.default.post(
-            name: .didUpdateWebViewNav,
-            object: nil,
-            userInfo: userInfo
-        )
     }
 
     func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
@@ -788,28 +832,6 @@ class WebViewCoordinator: NSObject, WKNavigationDelegate {
         decisionHandler(.allow)
     }
 }
-
-// Optional: Create a helper function for user agent switching
-extension WebViewUserAgentManager {
-    static func withDesktopUserAgent<T>(webView: WKWebView, operation: @escaping (@escaping (T?) -> Void) -> Void, completion: @escaping (T?) -> Void) {
-        let originalUserAgent = webView.customUserAgent
-        setDesktopUserAgent(for: webView)
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            operation { result in
-                // Restore user agent
-                if let originalUserAgent = originalUserAgent {
-                    webView.customUserAgent = originalUserAgent
-                } else {
-                    setMobileUserAgent(for: webView)
-                }
-                completion(result)
-            }
-        }
-    }
-}
-
-// BrowserView
 
 #Preview {
     ContentView()

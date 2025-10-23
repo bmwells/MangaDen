@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @AppStorage("isDarkMode") private var isDarkMode = true
+    @AppStorage("isDarkMode") private var isDarkMode = false
     @AppStorage("defaultReadingDirection") private var defaultReadingDirection: ReadingDirection = .rightToLeft
     @AppStorage("defaultBrowserWebsite") private var defaultBrowserWebsite: String = "https://google.com/"
     @AppStorage("accentColor") private var accentColor: String = "systemBlue"
