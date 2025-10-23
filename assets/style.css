@@ -109,10 +109,6 @@ h1, h2 {
   }
 }
 
-.tobi-zoom__icon {
-  display: none;
-}
-
 .app__header {
   display: flex;
   flex-direction: row;
