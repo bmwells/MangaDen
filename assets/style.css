@@ -269,6 +269,75 @@ html[dir=rtl] .app__logo-wrapper {
   margin: auto;
 }
 
+.features-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-top: 2rem;
+  align-items: stretch;
+}
+
+.feature-column {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.feature-card {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 1.5rem;
+  border-left: 4px solid #007AFF;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.feature-title {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #1d1d1f;
+}
+
+.feature-description {
+  color: #666;
+  line-height: 1.5;
+  flex: 1;
+}
+
+/* Ensure all cards in the same row have equal height */
+.feature-column:nth-child(1) .feature-card:nth-child(1),
+.feature-column:nth-child(2) .feature-card:nth-child(1) {
+  min-height: 180px;
+}
+
+.feature-column:nth-child(1) .feature-card:nth-child(2),
+.feature-column:nth-child(2) .feature-card:nth-child(2) {
+  min-height: 180px;
+}
+
+.feature-column:nth-child(1) .feature-card:nth-child(3),
+.feature-column:nth-child(2) .feature-card:nth-child(3) {
+  min-height: 180px;
+}
+
+@media (max-width: 768px) {
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .feature-column {
+    gap: 1.5rem;
+  }
+  
+  .feature-card {
+    min-height: auto !important;
+  }
+}
+
 .footer {
   padding: 16px 0;
   font-size: var(--font-xs) !important;
@@ -350,15 +419,6 @@ html[dir=rtl] .app__logo-wrapper {
 
 .copy-email-btn.copied {
   background: #4CAF50;
-}
-
-.faq-item {
-  margin-bottom: 1.5rem;
-}
-
-.faq-question {
-  font-weight: bold;
-  margin-bottom: 0.5rem;
 }
 
 .contact-info {
