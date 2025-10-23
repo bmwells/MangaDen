@@ -26,6 +26,9 @@ struct SettingsView: View {
     @State private var selectedAccentColor: String = "systemBlue"
     @State private var showSavedAlert = false
     
+    // Keyboard state
+    @State private var isKeyboardVisible = false
+    
     // Get current accent color
     private var currentAccentColor: Color {
         Color.fromStorage(accentColor)
@@ -33,7 +36,7 @@ struct SettingsView: View {
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 0) {
+            ZStack(alignment: .bottom) {
                 ScrollViewReader { proxy in
                     Form {
                         // User Preferences
@@ -117,6 +120,11 @@ struct SettingsView: View {
                                         .keyboardType(.URL)
                                         .autocapitalization(.none)
                                         .disableAutocorrection(true)
+                                        .submitLabel(.done) // Change return key to "Done"
+                                        .onSubmit {
+                                            // Handle Done button press
+                                            saveBrowserWebsite()
+                                        }
                                         .onAppear {
                                             // Initialize the input field with the stored value
                                             browserWebsiteInput = formatWebsiteForDisplay(defaultBrowserWebsite)
@@ -224,34 +232,39 @@ struct SettingsView: View {
                     }
                 }
                 
-                // Help Button
-                HStack {
-                    Spacer()
-                    Button(action: {
-                        showHelp = true
-                    }) {
-                        Image(systemName: "questionmark")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 24, height: 24)
-                            .foregroundColor(currentAccentColor)
-                            .padding(20)
-                            .background(Circle().fill(currentAccentColor.opacity(0.2)))
+                // Bottom section with help button and version - only show when keyboard is hidden
+                if !isKeyboardVisible {
+                    VStack(spacing: 0) {
+                        // Help Button
+                        HStack {
+                            Spacer()
+                            Button(action: {
+                                showHelp = true
+                            }) {
+                                Image(systemName: "questionmark")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 24, height: 24)
+                                    .foregroundColor(currentAccentColor)
+                                    .padding(20)
+                                    .background(Circle().fill(currentAccentColor.opacity(0.2)))
+                            }
+                            Spacer()
+                        }
+                        .padding(.bottom, 10)
+                        .background(Color(.systemGroupedBackground))
+                        
+                        // Version at bottom of page
+                        VStack {
+                            Text("Version 1.0")
+                                .font(.title3)
+                                .foregroundColor(.primary)
+                                .padding(.bottom, 55)
+                                .frame(maxWidth: .infinity)
+                        }
+                        .background(Color(.systemGroupedBackground))
                     }
-                    Spacer()
                 }
-                .padding(.bottom, 10)
-                .background(Color(.systemGroupedBackground))
-                
-                // Version at bottom of page
-                VStack {
-                    Text("Version 1.0")
-                        .font(.title3)
-                        .foregroundColor(.primary)
-                        .padding(.bottom, 55)
-                        .frame(maxWidth: .infinity)
-                }
-                .background(Color(.systemGroupedBackground))
             }
             .toolbar {
                 // Page title
@@ -293,6 +306,16 @@ struct SettingsView: View {
                         UISegmentedControl.appearance().setTitleTextAttributes([.foregroundColor: UIColor(currentAccentColor)], for: .normal)
                     }
                 )
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+                withAnimation(.easeOut(duration: 0.25)) {
+                    isKeyboardVisible = true
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+                withAnimation(.easeOut(duration: 0.25)) {
+                    isKeyboardVisible = false
+                }
             }
         }
         .navigationViewStyle(StackNavigationViewStyle())
@@ -510,6 +533,9 @@ struct SettingsView: View {
         DispatchQueue.main.async {
             showSavedAlert = true
         }
+        
+        // Dismiss keyboard
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
     
     // MARK: Settings Help View
