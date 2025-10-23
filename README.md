@@ -2,7 +2,7 @@
 
 <div align="center">
   
-  ![MangaDen Banner](screens/icon.png){: width="400px"}
+  !<img src="screens/icon.png" width="400">
 
   **Your personal manga and comic library in your pocket**
 
@@ -25,7 +25,6 @@ MangaDen is the ultimate manga reader and comic reader app that brings your favo
 - **🔄 Auto-Refresh** - Automatic chapter updates with customizable periods
 - **🎨 Personalization** - Dark/light mode with accent colors and tailored settings
 
----
 
 ## 🖼️ Screenshots
 
