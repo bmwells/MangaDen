@@ -15,35 +15,69 @@
 	<link rel="stylesheet" href="../assets/style.css" />
 
 </head>
-	<body>
-		<main>
-<article class="page">
-	<header class="page__header">
-		<h1 class="page__title">Support</h1>
-	</header>
-	<div class="page__content">
-		<p>Your privacy policy here Use this to generate one for free: <a href="https://www.freeprivacypolicy.com/free-privacy-policy-generator.php">https://www.freeprivacypolicy.com/free-privacy-policy-generator.php</a></p>
-
-	</div>
-</article>
-
-
-
-		</main>
-		<footer class="footer">
-			<div class="container">
-				<div class="footer__container">
-					<p class="footer__love">
-						<script>document.write('&copy;' + (new Date()).getFullYear());</script><noscript>&copy;2025</noscript> All rights reserved
-					</p>
-					<ul class="footer__links">
-							<li class="footer__link">
-								<a href="../">Home</a>
-							</li>
-					</ul>
+<body>
+	<main>
+		<article class="page">
+			<header class="page__header">
+				<h1 class="page__title">MangaDen Support</h1>
+			</header>
+			<div class="page__content">
+				
+				<div class="support-section">
+					<h2>Contact Us</h2>
+					<p>If you have any questions or concerns, please don't hesitate to contact our support team directly.</p>
+					
+					<div class="contact-info">
+						<h3>Email Support</h3>
+						<p>Click the button below to copy our email address:</p>
+						<div class="contact-option">
+							<button class="copy-email-btn" onclick="copyEmail()">Copy Email Address</button>
+						</div>
+						<p>We typically respond to all emails within 24-48 hours.</p>
+					</div>
 				</div>
 			</div>
-		</footer>
+		</article>
+	</main>
+	
+	<footer class="footer">
+		<div class="container">
+			<div class="footer__container">
+				<p class="footer__love">
+					<script>document.write('&copy;' + (new Date()).getFullYear());</script><noscript>&copy;2025</noscript> All rights reserved
+				</p>
+				<ul class="footer__links">
+					<li class="footer__link">
+						<a href="../">Home</a>
+					</li>
+				</ul>
+			</div>
+		</div>
+	</footer>
 
-  </body>
+	<script>
+		function copyEmail() {
+			const email = 'brwe47@gmail.com';
+			const button = document.querySelector('.copy-email-btn');
+			
+			// Create a temporary textarea element to copy from
+			const textArea = document.createElement('textarea');
+			textArea.value = email;
+			document.body.appendChild(textArea);
+			textArea.select();
+			document.execCommand('copy');
+			document.body.removeChild(textArea);
+			
+			// Change button text temporarily to indicate success
+			const originalText = button.textContent;
+			button.textContent = 'Copied!';
+			button.classList.add('copied');
+			
+			setTimeout(() => {
+				button.textContent = originalText;
+				button.classList.remove('copied');
+			}, 2000);
+		}
+	</script>
+</body>
 </html>

@@ -310,6 +310,64 @@ html[dir=rtl] .app__logo-wrapper {
   margin: auto;
 }
 
+/* Additional styles for the enhanced support page */
+.support-section {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+}
+
+.support-section:last-child {
+  border-bottom: none;
+}
+
+.support-section h2 {
+  color: #5A51FE;
+  margin-bottom: 1rem;
+}
+
+.contact-option {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.copy-email-btn {
+  background: #5A51FE;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: var(--font-xxs);
+  margin-left: 10px;
+  transition: background-color 0.3s;
+}
+
+.copy-email-btn:hover {
+  background: #8751FE;
+}
+
+.copy-email-btn.copied {
+  background: #4CAF50;
+}
+
+.faq-item {
+  margin-bottom: 1.5rem;
+}
+
+.faq-question {
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.contact-info {
+  background: rgba(245, 245, 245, 0.7);
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-top: 1rem;
+}
+
 .darkmode-toggle {
   z-index: 500;
 }
