@@ -39,15 +39,15 @@ MangaDen is the ultimate manga reader and comic reader app that brings your favo
 
 </div>
 
----
-
 ### iPad
 <div align="center">
 
-| | | | |
-|:---:|:---:|:---:|:---:|
-| <img src="screens/screens1.png" width="250"> | <img src="screens/screens2.png" width="250"> | <img src="screens/screens3.png" width="250"> | <img src="screens/screens4.png" width="250"> |
-| <img src="screens/screens5.png" width="250"> | <img src="screens/screens6.png" width="250"> | <img src="screens/screens7.png" width="250"> | <img src="screens/screens8.png" width="250"> |
+| | |
+|:---:|:---:|
+| <img src="screens/screens1.png" width="400"> | <img src="screens/screens2.png" width="400"> |
+| <img src="screens/screens3.png" width="400"> | <img src="screens/screens4.png" width="400"> |
+| <img src="screens/screens5.png" width="400"> | <img src="screens/screens6.png" width="400"> |
+| <img src="screens/screens7.png" width="400"> | <img src="screens/screens8.png" width="400"> |
 
 </div>
 
