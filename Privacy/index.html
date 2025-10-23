@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html dir="auto" lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<title>Privacy Policy - MangaDen</title>
+
+	<meta name="description" content="Privacy Policy - MangaDen" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<link rel="icon" href="../assets/favicon.ico" />
+
+	<meta property="og:title" content="Privacy Policy - MangaDen" />
+	<meta property="og:description" content="Privacy Policy - MangaDen" />
+	<meta property="og:image" content="../assets/og-image.png" />
+
+	<link rel="stylesheet" href="../assets/style.css" />
+
+</head>
+<body>
+	<main>
+		<article class="page">
+			<header class="page__header">
+				<h1 class="page__title">MangaDen Privacy Policy</h1>
+			</header>
+			<div class="page__content">
+				
+				<div class="last-updated">
+					<strong>Last Updated:</strong> October 2025
+				</div>
+
+				<div class="privacy-content">
+					<div class="privacy-section">
+						<h2>Introduction</h2>
+						<p>MangaDen ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we handle information in our manga and comic reader application.</p>
+					</div>
+
+					<div class="privacy-section">
+						<h2>Information We Collect</h2>
+						<h3>Personal Information</h3>
+						<p>MangaDen does not collect, store, or transmit any personally identifiable information. We do not require account creation or personal details to use the app.</p>
+
+						<h3>Local Data Storage</h3>
+						<p>The app stores the following data locally on your device:</p>
+						<ul>
+							<li>Your manga and comic library information</li>
+							<li>Downloaded chapters and reading progress</li>
+							<li>App preferences and settings</li>
+							<li>Reading history and bookmarks</li>
+						</ul>
+						<p>This data remains on your device and is not transmitted to our servers.</p>
+					</div>
+
+					<div class="privacy-section">
+						<h2>Web Browsing</h2>
+						<p>When using the built-in browser to discover new content:</p>
+						<ul>
+							<li>We do not track your browsing history</li>
+							<li>We do not collect URLs you visit</li>
+							<li>Browser sessions are temporary and not stored</li>
+							<li>We only process page content locally to extract manga/comic information when you choose to add titles to your library</li>
+						</ul>
+					</div>
+
+					<div class="privacy-section">
+						<h2>Downloads</h2>
+						<p>When you download chapters for offline reading:</p>
+						<ul>
+							<li>Downloaded content is stored locally on your device</li>
+							<li>We do not track what content you download</li>
+							<li>Downloaded files are accessible only within the app</li>
+							<li>You can delete downloaded content at any time through the app</li>
+						</ul>
+					</div>
+
+					<div class="privacy-section">
+						<h2>Third-Party Services</h2>
+						<p>MangaDen may access third-party websites through the built-in browser to help you discover content. We are not responsible for the privacy practices of these external sites.</p>
+					</div>
+
+					<div class="privacy-section">
+						<h2>Data Security</h2>
+						<p>Since all your data is stored locally on your device, its security depends on your device's security measures. We recommend keeping your device updated and using appropriate security features.</p>
+					</div>
+
+					<div class="privacy-section">
+						<h2>Children's Privacy</h2>
+						<p>MangaDen does not knowingly collect any personal information from children under 13. The app is designed to operate without collecting user data.</p>
+					</div>
+
+					<div class="privacy-section">
+						<h2>Changes to This Policy</h2>
+						<p>We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last Updated" date.</p>
+					</div>
+
+					<div class="privacy-section">
+						<h2>Your Rights</h2>
+						<p>Since we don't collect personal data, you have full control over:</p>
+						<ul>
+							<li>All content stored in the app</li>
+							<li>Your reading preferences and history</li>
+							<li>Downloaded chapters</li>
+							<li>App settings and configurations</li>
+						</ul>
+						<p>You can delete all app data by uninstalling the app from your device.</p>
+					</div>
+				</div>
+
+				<div class="support-section">
+					<h2>Contact Us</h2>
+					<p>If you have any questions or concerns about this Privacy Policy, please don't hesitate to contact our support team directly.</p>
+					
+					<div class="contact-info">
+						<h3>Email Support</h3>
+						<p>Click the button below to copy our email address:</p>
+						<div class="contact-option">
+							<button class="copy-email-btn" onclick="copyEmail()">Copy Email Address</button>
+						</div>
+						<p>We typically respond to all emails within 24-48 hours.</p>
+					</div>
+				</div>
+			</div>
+		</article>
+	</main>
+	
+	<footer class="footer">
+		<div class="container">
+			<div class="footer__container">
+				<p class="footer__love">
+					<script>document.write('&copy;' + (new Date()).getFullYear());</script><noscript>&copy;2025</noscript> All rights reserved
+				</p>
+				<ul class="footer__links">
+					<li class="footer__link">
+						<a href="../">Home</a>
+					</li>
+					<li class="footer__link">
+						<a href="../Support/">Support</a>
+					</li>
+				</ul>
+			</div>
+		</div>
+	</footer>
+
+	<script>
+		function copyEmail() {
+			const email = 'brwe47@gmail.com';
+			const button = document.querySelector('.copy-email-btn');
+			
+			// Create a temporary textarea element to copy from
+			const textArea = document.createElement('textarea');
+			textArea.value = email;
+			document.body.appendChild(textArea);
+			textArea.select();
+			document.execCommand('copy');
+			document.body.removeChild(textArea);
+			
+			// Change button text temporarily to indicate success
+			const originalText = button.textContent;
+			button.textContent = 'Copied!';
+			button.classList.add('copied');
+			
+			setTimeout(() => {
+				button.textContent = originalText;
+				button.classList.remove('copied');
+			}, 2000);
+		}
+	</script>
+</body>
+</html>

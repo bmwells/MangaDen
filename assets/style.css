@@ -454,6 +454,38 @@ html[dir=rtl] .app__logo-wrapper {
   margin-top: 1rem;
 }
 
+.privacy-content {
+  line-height: 1.6;
+  margin-bottom: 2rem;
+}
+.privacy-section {
+  margin-bottom: 2rem;
+}
+.privacy-section h2 {
+  color: #333;
+  border-bottom: 2px solid #007AFF;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+.privacy-section h3 {
+  color: #555;
+  margin: 1.5rem 0 0.5rem 0;
+}
+.privacy-section ul {
+  margin-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+.privacy-section li {
+  margin-bottom: 0.5rem;
+}
+.last-updated {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  border-left: 4px solid #007AFF;
+}
+
 .darkmode-toggle {
   z-index: 500;
 }
