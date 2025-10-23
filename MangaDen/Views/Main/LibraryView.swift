@@ -261,6 +261,7 @@ struct LibraryView: View {
                                     }
                                     .buttonStyle(PlainButtonStyle())
                                 }
+                                .contentShape(Rectangle())
                             }
                             .padding(16)
                         }
