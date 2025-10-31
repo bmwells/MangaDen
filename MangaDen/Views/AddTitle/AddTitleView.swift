@@ -17,6 +17,7 @@ struct AddTitleView: View {
     @State private var alertMessage = ""
     @State private var alertTitle = ""
     @AppStorage("accentColor") private var accentColor: String = "systemBlue"
+    @Environment(\.presentationMode) private var presentationMode
     
     // Get current accent color
     private var currentAccentColor: Color {
@@ -27,6 +28,10 @@ struct AddTitleView: View {
     private var isiPad: Bool {
         UIDevice.current.userInterfaceIdiom == .pad
     }
+    // Check if device is iPhone
+        private var isiPhone: Bool {
+            UIDevice.current.userInterfaceIdiom == .phone
+        }
     
     var body: some View {
         NavigationView {
@@ -125,6 +130,21 @@ struct AddTitleView: View {
 
                 Spacer()
             }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                // Add X button only on iPhone
+                if isiPhone {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button(action: {
+                            presentationMode.wrappedValue.dismiss()
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.title2)
+                                .foregroundColor(.gray)
+                        }
+                    }
+                }
+            }
         }
         // Browser sheet
         .sheet(isPresented: $showBrowser) {
@@ -150,6 +170,8 @@ struct AddTitleView: View {
             Text(alertMessage)
         }
     }
+    
+    
     
     // MARK: - URL Processing Logic
     
@@ -368,9 +390,16 @@ private class TitleExtractionNavigationDelegate: NSObject, WKNavigationDelegate 
 // MARK: - Help View
 struct AddTitleHelpView: View {
     @State private var showCopiedAlert = false
+    @Environment(\.presentationMode) private var presentationMode
     
+    // Check if device is iPad
     private var isiPad: Bool {
         UIDevice.current.userInterfaceIdiom == .pad
+    }
+    
+    // Check if device is iPhone
+    private var isiPhone: Bool {
+        UIDevice.current.userInterfaceIdiom == .phone
     }
     
     var body: some View {
@@ -490,42 +519,59 @@ struct AddTitleHelpView: View {
                 .padding()
             }
             .padding(10)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                // Add X button only on iPhone
+                if isiPhone {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button(action: {
+                            presentationMode.wrappedValue.dismiss()
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.title2)
+                                .foregroundColor(.gray)
+                        }
+                    }
+                }
+            }
         }
         .frame(height: isiPad ? 900 : nil)
     }
+}
     
-    struct WebsiteButton: View {
-        let url: String
-        let name: String
-        @State private var showCopiedAlert = false
-        
-        var body: some View {
-            Button(action: {
-                UIPasteboard.general.string = url
-                showCopiedAlert = true
-            }) {
-                Text(name)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.blue)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(Color.blue.opacity(0.1))
-                    .cornerRadius(8)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color.blue.opacity(0.3), lineWidth: 1)
-                    )
-            }
-            .buttonStyle(PlainButtonStyle())
-            .alert("Copied to Clipboard", isPresented: $showCopiedAlert) {
-                Button("OK", role: .cancel) { }
-            } message: {
-                Text("\(url) has been copied to your clipboard.")
-            }
+    
+struct WebsiteButton: View {
+    let url: String
+    let name: String
+    @State private var showCopiedAlert = false
+    
+    var body: some View {
+        Button(action: {
+            UIPasteboard.general.string = url
+            showCopiedAlert = true
+        }) {
+            Text(name)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(.blue)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(Color.blue.opacity(0.1))
+                .cornerRadius(8)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.blue.opacity(0.3), lineWidth: 1)
+                )
+        }
+        .buttonStyle(PlainButtonStyle())
+        .alert("Copied to Clipboard", isPresented: $showCopiedAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("\(url) has been copied to your clipboard.")
         }
     }
 }
+    
 
 #Preview {
     ContentView()

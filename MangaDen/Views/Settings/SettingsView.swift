@@ -538,112 +538,134 @@ struct SettingsView: View {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
     
-    // MARK: Settings Help View
-    struct SettingsHelpView: View {
-        @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-        @State private var showCopiedAlert = false
-        
-        private var isiPad: Bool {
-            UIDevice.current.userInterfaceIdiom == .pad
-        }
-        
-        var body: some View {
-            NavigationView {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
-                        // Settings Guide
-                        Text("Settings Guide")
-                            .font(.title)
-                            .bold()
-                            .padding(.bottom, 20)
-                        
-                        Text("**User Preferences**")
-                            .font(.title2)
-                            .underline()
-                            .frame(maxWidth: .infinity, alignment: .center)
-                        
-                        Text("**Dark Mode**").font(.system(size: 20)).italic() + Text(": Toggle between light and dark app appearance.")
-                            .font(.system(size: 20))
-                        
-                        Text("**Default Reading Direction**").font(.system(size: 20)).italic() + Text(": Choose between Left to Right (L to R) or Right to Left (L to R) reading direction.")
-                            .font(.system(size: 20))
-                        
-                        Text("**Default Title Refresh Period**").font(.system(size: 20)).italic() + Text(": Set how frequently titles should automatically check for new chapters. Options range from everytime the title is opened to monthly updates.")
-                            .font(.system(size: 20))
-                        
-                        Text("**Default Browser Website**").font(.system(size: 20)).italic() + Text(": Set your preferred default website that will open when using the in-app browser. Enter any valid website URL.")
-                            .font(.system(size: 20))
-                        
-                        Text("**Accent Color**").font(.system(size: 20)).italic() + Text(": Customize the app's accent color to match your personal style. Choose from a variety of color options.")
-                            .font(.system(size: 20))
-                        
-                        //Divider
-                        Rectangle()
-                            .frame(height: 1)
-                            .foregroundColor(.gray.opacity(0.3))
-                            .frame(maxWidth: 400)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
-                        
-                        Text("**Manage Storage**")
-                            .font(.title2)
-                            .underline()
-                            .frame(maxWidth: .infinity, alignment: .center)
-                        Text("**Uninstall All Downloads**").font(.system(size: 20)).italic() + Text(": Remove all downloaded chapters from your device to free up storage space.")
-                            .font(.system(size: 20))
-                        
-                        //Divider
-                        Rectangle()
-                            .frame(height: 1)
-                            .foregroundColor(.gray.opacity(0.3))
-                            .frame(maxWidth: 400)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
-                            .padding(.bottom, 20)
-                        
-                        // Tip
-                        Text("Tips:")
-                            .padding(-4)
-                            .font(.title3)
-                            .bold()
-                            .underline()
-                            .tracking(1.5)
-                        Text("• Swipe down from the top of the page to exit pages such as this one or the In-App browser")
-                            .font(.system(size: 18))
-                            .tracking(1.0)
-                        Text("• For any questions or concerns feel free to email our team by copying the email below")
-                            .font(.system(size: 18))
-                            .tracking(1.0)
-                        
-                        HStack {
-                            Spacer()
-                            Button(action: {
-                                UIPasteboard.general.string = "brwe47@gmail.com"
-                                showCopiedAlert = true
-                            }) {
-                                Text("Copy Team Email Here")
-                                    .foregroundColor(.blue)
-                                    .underline()
-                                    .font(.title)
-                                    .padding(.top, 4)
-                            }
-                            Spacer()
+// MARK: Settings Help View
+struct SettingsHelpView: View {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.presentationMode) private var presentationMode
+    @State private var showCopiedAlert = false
+    
+    // Check if device is iPad
+    private var isiPad: Bool {
+        UIDevice.current.userInterfaceIdiom == .pad
+    }
+    
+    // Check if device is iPhone
+    private var isiPhone: Bool {
+        UIDevice.current.userInterfaceIdiom == .phone
+    }
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    // Settings Guide
+                    Text("Settings Guide")
+                        .font(.title)
+                        .bold()
+                        .padding(.bottom, 20)
+                    
+                    Text("**User Preferences**")
+                        .font(.title2)
+                        .underline()
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    
+                    Text("**Dark Mode**").font(.system(size: 20)).italic() + Text(": Toggle between light and dark app appearance.")
+                        .font(.system(size: 20))
+                    
+                    Text("**Default Reading Direction**").font(.system(size: 20)).italic() + Text(": Choose between Left to Right (L to R) or Right to Left (L to R) reading direction.")
+                        .font(.system(size: 20))
+                    
+                    Text("**Default Title Refresh Period**").font(.system(size: 20)).italic() + Text(": Set how frequently titles should automatically check for new chapters. Options range from everytime the title is opened to monthly updates.")
+                        .font(.system(size: 20))
+                    
+                    Text("**Default Browser Website**").font(.system(size: 20)).italic() + Text(": Set your preferred default website that will open when using the in-app browser. Enter any valid website URL.")
+                        .font(.system(size: 20))
+                    
+                    Text("**Accent Color**").font(.system(size: 20)).italic() + Text(": Customize the app's accent color to match your personal style. Choose from a variety of color options.")
+                        .font(.system(size: 20))
+                    
+                    //Divider
+                    Rectangle()
+                        .frame(height: 1)
+                        .foregroundColor(.gray.opacity(0.3))
+                        .frame(maxWidth: 400)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                    
+                    Text("**Manage Storage**")
+                        .font(.title2)
+                        .underline()
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    Text("**Uninstall All Downloads**").font(.system(size: 20)).italic() + Text(": Remove all downloaded chapters from your device to free up storage space.")
+                        .font(.system(size: 20))
+                    
+                    //Divider
+                    Rectangle()
+                        .frame(height: 1)
+                        .foregroundColor(.gray.opacity(0.3))
+                        .frame(maxWidth: 400)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .padding(.bottom, 20)
+                    
+                    // Tip
+                    Text("Tips:")
+                        .padding(-4)
+                        .font(.title3)
+                        .bold()
+                        .underline()
+                        .tracking(1.5)
+                    Text("• For any questions or concerns feel free to email our team by copying the email below")
+                        .font(.system(size: 18))
+                        .tracking(1.0)
+                    
+                    HStack {
+                        Spacer()
+                        Button(action: {
+                            UIPasteboard.general.string = "brwe47@gmail.com"
+                            showCopiedAlert = true
+                        }) {
+                            Text("Copy Team Email Here")
+                                .foregroundColor(.blue)
+                                .underline()
+                                .font(.title)
+                                .padding(.top, 4)
                         }
-                        .alert("Copied to Clipboard", isPresented: $showCopiedAlert) {
-                            Button("OK", role: .cancel) { }
-                        } message: {
-                            Text("Team email has been copied to your clipboard.")
+                        Spacer()
+                    }
+                    .alert("Copied to Clipboard", isPresented: $showCopiedAlert) {
+                        Button("OK", role: .cancel) { }
+                    } message: {
+                        Text("Team email has been copied to your clipboard.")
+                    }
+                }
+                .padding()
+                .frame(maxWidth: .infinity)
+            }
+            .padding(.horizontal, horizontalSizeClass == .regular ? 20 : 15)
+            .frame(maxWidth: horizontalSizeClass == .regular ? 800 : .infinity)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                // Add X button only on iPhone
+                if isiPhone {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button(action: {
+                            presentationMode.wrappedValue.dismiss()
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.title2)
+                                .foregroundColor(.gray)
                         }
                     }
-                    .padding()
-                    .frame(maxWidth: .infinity)
                 }
-                .padding(.horizontal, horizontalSizeClass == .regular ? 20 : 15)
-                .frame(maxWidth: horizontalSizeClass == .regular ? 800 : .infinity)
             }
-            .frame(height: isiPad ? 920 : nil) // Help frame size on iPad
         }
+        .frame(height: isiPad ? 920 : nil) // Help frame size on iPad
     }
+}
+    
+    
+    
 }
 
 #Preview {

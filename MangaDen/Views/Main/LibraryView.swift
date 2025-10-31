@@ -107,7 +107,7 @@ struct LibraryView: View {
                                         .font(.system(size: 16, weight: .medium))
                                         .foregroundColor(selectedTab == tab ? .white : currentAccentColor)
                                         .frame(width: 100, height: 36)
-                                        .background(selectedTab == tab ? currentAccentColor : Color.clear)
+                                        .background(selectedTab == tab ? currentAccentColor : currentAccentColor.opacity(0.2))
                                         .cornerRadius(8)
                                 }
                                 .buttonStyle(PlainButtonStyle())

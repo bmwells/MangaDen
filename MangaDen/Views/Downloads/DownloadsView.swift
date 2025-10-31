@@ -230,9 +230,16 @@ struct DownloadsView: View {
 // MARK: Downloads Help View
 struct DownloadsHelpView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.presentationMode) private var presentationMode
     
+    // Check if device is iPad
     private var isiPad: Bool {
         UIDevice.current.userInterfaceIdiom == .pad
+    }
+    
+    // Check if device is iPhone
+    private var isiPhone: Bool {
+        UIDevice.current.userInterfaceIdiom == .phone
     }
     
     var body: some View {
@@ -308,15 +315,27 @@ struct DownloadsHelpView: View {
                     Text("• If recently downloaded chapter is uninstalled, it must be cleared from the completed section in order to be downloaded again")
                         .font(.system(size: 18))
                         .tracking(1.0)
-                    Text("• Swipe down from the top of the page to exit pages such as this one or the In-App browser")
-                        .font(.system(size: 18))
-                        .tracking(1.0)
                 }
                 .padding()
                 .frame(maxWidth: .infinity) // Ensure content uses available width
             }
             .padding(.horizontal, horizontalSizeClass == .regular ? 20 : 15) // Only horizontal padding
             .frame(maxWidth: horizontalSizeClass == .regular ? 800 : .infinity) // Wider on iPad
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                // Add X button only on iPhone
+                if isiPhone {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button(action: {
+                            presentationMode.wrappedValue.dismiss()
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.title2)
+                                .foregroundColor(.gray)
+                        }
+                    }
+                }
+            }
         }
         .frame(height: isiPad ? 820 : nil) // Add this line
     }

@@ -647,6 +647,12 @@ struct OptionsMenu: View {
 // MARK: - Title Help View
 struct TitleHelpView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.presentationMode) private var presentationMode
+    
+    // Check if device is iPhone
+    private var isiPhone: Bool {
+        UIDevice.current.userInterfaceIdiom == .phone
+    }
     
     var body: some View {
         NavigationView {
@@ -656,15 +662,18 @@ struct TitleHelpView: View {
                     Text("Title Guide")
                         .font(.title)
                         .bold()
+                        .foregroundColor(.primary)
                         .padding(.bottom, 20)
                     
                     Text("**Refresh Title**")
                         .font(.title3)
                         .italic()
+                        .foregroundColor(.primary)
                         .frame(maxWidth: .infinity, alignment: .center)
                     Text("Checks for new chapters.")
                         .frame(maxWidth: .infinity, alignment: .center)
                         .font(.system(size: 20))
+                        .foregroundColor(.primary)
                     
                     //Divider
                     Rectangle()
@@ -677,11 +686,13 @@ struct TitleHelpView: View {
                     Text("**Manage Title**")
                         .font(.title3)
                         .italic()
+                        .foregroundColor(.primary)
                         .frame(maxWidth: .infinity, alignment: .center)
                     Text("Modify the title, author, status, or cover image.")
                         .frame(maxWidth: .infinity, alignment: .center)
                         .multilineTextAlignment(.center)
                         .font(.system(size: 18))
+                        .foregroundColor(.primary)
                     
                     //Divider
                     Rectangle()
@@ -694,11 +705,13 @@ struct TitleHelpView: View {
                     Text("**Download Chapters**")
                         .font(.title3)
                         .italic()
+                        .foregroundColor(.primary)
                         .frame(maxWidth: .infinity, alignment: .center)
                     Text("Download multiple chapters for offline reading.")
                         .frame(maxWidth: .infinity, alignment: .center)
                         .multilineTextAlignment(.center)
                         .font(.system(size: 18))
+                        .foregroundColor(.primary)
                     
                     //Divider
                     Rectangle()
@@ -711,11 +724,13 @@ struct TitleHelpView: View {
                     Text("**Manage Chapters**")
                         .font(.title3)
                         .italic()
+                        .foregroundColor(.primary)
                         .frame(maxWidth: .infinity, alignment: .center)
                     Text("Uninstall downloaded chapters or hide chapters from the list.")
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: .infinity)
                         .font(.system(size: 18))
+                        .foregroundColor(.primary)
                     
                     //Divider
                     Rectangle()
@@ -728,11 +743,13 @@ struct TitleHelpView: View {
                     Text("**Archive Title**")
                         .font(.title3)
                         .italic()
+                        .foregroundColor(.primary)
                         .frame(maxWidth: .infinity, alignment: .center)
                     Text("Moves the title from the Reading section to the Archive section.")
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: .infinity)
                         .font(.system(size: 18))
+                        .foregroundColor(.primary)
                     
                     //Divider
                     Rectangle()
@@ -745,11 +762,13 @@ struct TitleHelpView: View {
                     Text("**Delete Title**")
                         .font(.title3)
                         .italic()
+                        .foregroundColor(.primary)
                         .frame(maxWidth: .infinity, alignment: .center)
                     Text("Permanently removes the title from your library.")
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: .infinity, alignment: .center)
                         .font(.system(size: 18))
+                        .foregroundColor(.primary)
                     
                     //Divider
                     Rectangle()
@@ -764,11 +783,13 @@ struct TitleHelpView: View {
                     Text("Reader Guide")
                         .font(.title)
                         .bold()
+                        .foregroundColor(.primary)
                         .padding(.bottom, 20)
                     
                     HStack(spacing: 8) {
                         Text("**Zoom Button**")
                             .font(.title3)
+                            .foregroundColor(.primary)
                             .italic()
                         Image(systemName: "plus.magnifyingglass")
                             .font(.title3)
@@ -780,6 +801,7 @@ struct TitleHelpView: View {
                         .frame(maxWidth: .infinity, alignment: .center)
                         .multilineTextAlignment(.center)
                         .font(.system(size: 20))
+                        .foregroundColor(.primary)
                         .padding(.top, 4)
                     
                     //Divider
@@ -794,6 +816,7 @@ struct TitleHelpView: View {
                         Text("**Download Image Button**")
                             .font(.title3)
                             .italic()
+                            .foregroundColor(.primary)
                         Image(systemName: "square.and.arrow.down")
                             .font(.title3)
                             .foregroundColor(.primary)
@@ -805,6 +828,7 @@ struct TitleHelpView: View {
                         .multilineTextAlignment(.center)
                         .font(.system(size: 20))
                         .padding(.top, 4)
+                        .foregroundColor(.primary)
                     
                     //Divider
                     Rectangle()
@@ -817,6 +841,7 @@ struct TitleHelpView: View {
                     // Tip
                     Text("Tips:")
                         .padding(-4)
+                        .foregroundColor(.primary)
                         .font(.title3)
                         .bold()
                         .underline()
@@ -824,9 +849,7 @@ struct TitleHelpView: View {
                     Text("• Clean up bad chapter links by hiding them within the 'Manage Chapters' option")
                         .font(.system(size: 18))
                         .tracking(1.0)
-                    Text("• Swipe down from the top of the page to exit pages such as this one or the In-App browser")
-                        .font(.system(size: 18))
-                        .tracking(1.0)
+                        .foregroundColor(.primary)
                 }
                 .padding()
                 .frame(maxWidth: .infinity)
@@ -834,6 +857,20 @@ struct TitleHelpView: View {
             .padding(.horizontal, horizontalSizeClass == .regular ? 20 : 15)
             .frame(maxWidth: horizontalSizeClass == .regular ? 800 : .infinity)
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar { // ADDED
+                // Add X button only on iPhone
+                if isiPhone {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button(action: {
+                            presentationMode.wrappedValue.dismiss()
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.title2)
+                                .foregroundColor(.gray)
+                        }
+                    }
+                }
+            }
         }
     }
 }

@@ -9,7 +9,6 @@ import SwiftUI
 @preconcurrency import WebKit
 
 struct BrowserView: View {
-    
     @State private var showJSONViewer = false
     @State private var bothJSONsExist = false
     @State private var isAddingTitle = false
@@ -32,169 +31,194 @@ struct BrowserView: View {
     @State private var jsonCheckTimer: Timer?
 
     @StateObject private var webViewManager = BrowserViewManager()
+    @Environment(\.presentationMode) private var presentationMode
     
     @AppStorage("defaultBrowserWebsite") private var defaultBrowserWebsite: String = "https://google.com"
     
+    // Check if device is iPad
     private var isiPad: Bool {
         UIDevice.current.userInterfaceIdiom == .pad
     }
+    
+    // Check if device is iPhone
+    private var isiPhone: Bool {
+        UIDevice.current.userInterfaceIdiom == .phone
+    }
 
     var body: some View {
-        VStack(spacing: 0) {
-            // MARK: Navigation Bar
-            HStack {
-                // Back Button
-                Button(action: {
-                    print("Back button tapped")
-                    webViewManager.goBack()
-                }) {
-                    Image(systemName: "arrow.left")
-                        .font(.system(size: isiPad ? 30 : 20))
-                        .foregroundColor(canGoBack ? .blue : .gray)
-                }
-                .disabled(!canGoBack)
-
-                // Refresh Button
-                Button(action: {
-                    print("Refresh button tapped")
-                    webViewManager.reload()
-                }) {
-                    if isLoading {
-                        ProgressView()
-                            .scaleEffect(0.8)
-                    } else {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.system(size: isiPad ? 30 : 20))
-                            .foregroundColor(.blue)
-                    }
-                }
-
-                // Forward Button
-                Button(action: {
-                    print("Forward button tapped")
-                    webViewManager.goForward()
-                }) {
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: isiPad ? 30 : 20))
-                        .foregroundColor(canGoForward ? .blue : .gray)
-                }
-                .disabled(!canGoForward)
-
-                // URL Bar
-                TextField("Enter URL or search terms", text: $urlString, onCommit: {
-                    loadURL()
-                })
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .keyboardType(.webSearch)
-                .autocapitalization(.none)
-                .disableAutocorrection(true)
-                .focused($isURLFieldFocused)
-                .submitLabel(.go)
-                .onChange(of: isURLFieldFocused) {
-                    if isURLFieldFocused {
-                        // Select all text when field becomes focused
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                            UIApplication.shared.sendAction(#selector(UIResponder.selectAll(_:)), to: nil, from: nil, for: nil)
-                        }
-                    }
-                }
-                .onSubmit {
-                    loadURL()
-                }
-
-                // Go Button
-                Button(action: {
-                    loadURL()
-                }) {
-                    Image(systemName: "arrow.right.circle.fill")
-                        .font(.system(size: isiPad ? 30 : 20))
-                        .foregroundColor(.blue)
-                }
-            }
-            .padding(.horizontal)
-            .padding(.vertical, 6)
-            .background(Color(.systemGray6))
-
-            // MARK: Controls Row
-            HStack {
-                Spacer()
-                // Add Title Button (Center)
-                Button(action: addTitleToLibrary) {
-                    if isAddingTitle {
-                        ProgressView()
-                            .scaleEffect(0.8)
-                    } else {
-                        Text("Add Title")
-                            .font(.system(size: isiPad ? 27 : 18))
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 6)
-                            .background(bothJSONsExist ? Color.green : Color.red)
-                            .foregroundColor(.white)
-                            .cornerRadius(8)
-                    }
-                }
-                .disabled(!bothJSONsExist || isAddingTitle)
-                
-                Spacer()
-                
-                // Refresh, Chapter Range and JSON Viewer (Right)
-                HStack(spacing: 12) {
-                    // Refresh JSON Button
+        NavigationView {
+            VStack(spacing: 0) {
+                // MARK: Navigation Bar
+                HStack {
+                    // Back Button
                     Button(action: {
-                        print("Refresh JSON button tapped")
-                        // Force a complete reload and re-scrape
+                        print("Back button tapped")
+                        webViewManager.goBack()
+                    }) {
+                        Image(systemName: "arrow.left")
+                            .font(.system(size: isiPad ? 30 : 20))
+                            .foregroundColor(canGoBack ? .blue : .gray)
+                    }
+                    .disabled(!canGoBack)
+
+                    // Refresh Button
+                    Button(action: {
+                        print("Refresh button tapped")
                         webViewManager.reload()
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                            findChapters()
-                            findMetadata()
+                    }) {
+                        if isLoading {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                        } else {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: isiPad ? 30 : 20))
+                                .foregroundColor(.blue)
                         }
-                    }) {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.system(size: isiPad ? 30 : 20))
-                            .foregroundColor(.blue)
                     }
-                    
-                    // Chapter Range
-                    Text(chapterRange)
-                        .font(.system(size: isiPad ? 25 : 16))
-                        .foregroundColor(.secondary)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.gray.opacity(0.1))
-                        .cornerRadius(3)
-                    
-                    // JSON Viewer Button
+
+                    // Forward Button
                     Button(action: {
-                        showJSONViewer.toggle()
+                        print("Forward button tapped")
+                        webViewManager.goForward()
                     }) {
-                        Image(systemName: "list.bullet")
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: isiPad ? 30 : 20))
+                            .foregroundColor(canGoForward ? .blue : .gray)
+                    }
+                    .disabled(!canGoForward)
+
+                    // URL Bar
+                    TextField("Enter URL or search terms", text: $urlString, onCommit: {
+                        loadURL()
+                    })
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .keyboardType(.webSearch)
+                    .autocapitalization(.none)
+                    .disableAutocorrection(true)
+                    .focused($isURLFieldFocused)
+                    .submitLabel(.go)
+                    .onChange(of: isURLFieldFocused) {
+                        if isURLFieldFocused {
+                            // Select all text when field becomes focused
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                UIApplication.shared.sendAction(#selector(UIResponder.selectAll(_:)), to: nil, from: nil, for: nil)
+                            }
+                        }
+                    }
+                    .onSubmit {
+                        loadURL()
+                    }
+
+                    // Go Button
+                    Button(action: {
+                        loadURL()
+                    }) {
+                        Image(systemName: "arrow.right.circle.fill")
                             .font(.system(size: isiPad ? 30 : 20))
                             .foregroundColor(.blue)
                     }
                 }
-                .padding(.trailing)
+                .padding(.horizontal)
+                .padding(.vertical, 6)
+                .background(Color(.systemGray6))
+
+                // MARK: Controls Row
+                HStack {
+                    Spacer()
+                    // Add Title Button (Center)
+                    Button(action: addTitleToLibrary) {
+                        if isAddingTitle {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                        } else {
+                            Text("Add Title")
+                                .font(.system(size: isiPad ? 27 : 18))
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 6)
+                                .background(bothJSONsExist ? Color.green : Color.red)
+                                .foregroundColor(.white)
+                                .cornerRadius(8)
+                        }
+                    }
+                    .disabled(!bothJSONsExist || isAddingTitle)
+                    
+                    Spacer()
+                    
+                    // Refresh, Chapter Range and JSON Viewer (Right)
+                    HStack(spacing: 12) {
+                        // Refresh JSON Button
+                        Button(action: {
+                            print("Refresh JSON button tapped")
+                            // Force a complete reload and re-scrape
+                            webViewManager.reload()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                                findChapters()
+                                findMetadata()
+                            }
+                        }) {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: isiPad ? 30 : 20))
+                                .foregroundColor(.blue)
+                        }
+                        
+                        // Chapter Range
+                        Text(chapterRange)
+                            .font(.system(size: isiPad ? 25 : 16))
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.gray.opacity(0.1))
+                            .cornerRadius(3)
+                        
+                        // JSON Viewer Button
+                        Button(action: {
+                            showJSONViewer.toggle()
+                        }) {
+                            Image(systemName: "list.bullet")
+                                .font(.system(size: isiPad ? 30 : 20))
+                                .foregroundColor(.blue)
+                        }
+                    }
+                    .padding(.trailing)
+                }
+                .padding(.vertical, 8)
+                .background(Color(.systemGray5))
+
+                // Error message
+                if showError {
+                    Text(errorMessage)
+                        .font(.caption)
+                        .foregroundColor(.red)
+                        .padding(.horizontal)
+                        .padding(.vertical, 4)
+                        .background(Color.red.opacity(0.1))
+                }
+
+                Divider()
+
+                // MARK: WebView
+                WebViewWrapper(webView: webViewManager.webView)
+                    .edgesIgnoringSafeArea(.bottom)
             }
-            .padding(.vertical, 8)
-            .background(Color(.systemGray5))
-
-            // Error message
-            if showError {
-                Text(errorMessage)
-                    .font(.caption)
-                    .foregroundColor(.red)
-                    .padding(.horizontal)
-                    .padding(.vertical, 4)
-                    .background(Color.red.opacity(0.1))
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .edgesIgnoringSafeArea(.all)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                // Add X button only on iPhone
+                if isiPhone {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button(action: {
+                            presentationMode.wrappedValue.dismiss()
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.title)
+                                .foregroundColor(.gray)
+                        }
+                    }
+                }
             }
-
-            Divider()
-
-            // MARK: WebView
-            WebViewWrapper(webView: webViewManager.webView)
-                .edgesIgnoringSafeArea(.bottom)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .edgesIgnoringSafeArea(.all)
+        .navigationViewStyle(StackNavigationViewStyle())
         .onAppear {
             // Clear both JSON files when browser is opened
             clearJSONCache()
