@@ -48,6 +48,23 @@ struct BrowserView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
+                // MARK: X Button Row (iPhone only)
+                if isiPhone {
+                    HStack {
+                        Button(action: {
+                            presentationMode.wrappedValue.dismiss()
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 35))
+                                .foregroundColor(.gray)
+                        }
+                        .padding(.top, 8)
+                        .padding(.bottom, 12)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .background(Color(.systemGray6))
+                }
+                
                 // MARK: Navigation Bar
                 HStack {
                     // Back Button
@@ -202,21 +219,6 @@ struct BrowserView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .edgesIgnoringSafeArea(.all)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                // Add X button only on iPhone
-                if isiPhone {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button(action: {
-                            presentationMode.wrappedValue.dismiss()
-                        }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.title)
-                                .foregroundColor(.gray)
-                        }
-                    }
-                }
-            }
         }
         .navigationViewStyle(StackNavigationViewStyle())
         .onAppear {
