@@ -13,19 +13,50 @@ class ChapterExtractionManager {
     
     // Function to find chapter links with enhanced pattern matching and table date detection
     static func findChapterLinks(in webView: WKWebView, completion: @escaping ([String: [String: String]]?) -> Void) {
+        findChapterLinksWithRetry(in: webView, retryCount: 0, completion: completion)
+    }
+
+    private static func findChapterLinksWithRetry(in webView: WKWebView, retryCount: Int, completion: @escaping ([String: [String: String]]?) -> Void) {
+        
+        let maxRetries = 3
         let javascript = ChapterExtractionJavaScript.getChapterExtractionScript()
         
         webView.evaluateJavaScript(javascript) { result, error in
             DispatchQueue.main.async {
                 if let error = error {
-                    print("Error finding chapter links: \(error.localizedDescription)")
+                    print("Error finding chapter links (attempt \(retryCount + 1)/\(maxRetries + 1)): \(error.localizedDescription)")
+                    
+                    if retryCount < maxRetries {
+                        let delay = Double(retryCount + 1) * 2.0 // Exponential backoff
+                        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                            findChapterLinksWithRetry(in: webView, retryCount: retryCount + 1, completion: completion)
+                        }
+                        return
+                    }
+                    completion(nil)
+                    return
+                }
+                
+                // Handle different result types
+                if result == nil {
+                    print("JavaScript returned nil result (attempt \(retryCount + 1)/\(maxRetries + 1))")
+                    
+                    if retryCount < maxRetries {
+                        let delay = Double(retryCount + 1) * 2.0
+                        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                            findChapterLinksWithRetry(in: webView, retryCount: retryCount + 1, completion: completion)
+                        }
+                        return
+                    }
                     completion(nil)
                     return
                 }
                 
                 if let chapterDict = result as? [String: [String: String]] {
+                    print("Successfully extracted \(chapterDict.count) chapters")
                     self.processAndSaveChapters(chapterDict, completion: completion)
                 } else {
+                    print("JavaScript returned unexpected type: \(type(of: result))")
                     completion(nil)
                 }
             }

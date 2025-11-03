@@ -495,7 +495,6 @@ struct TitleView: View {
         
     // MARK: - Refresh Title Function
     private func refreshTitle() {
-        // Don't allow refresh in offline mode
         guard !isOfflineMode else {
             refreshResultMessage = "Cannot refresh while offline"
             showRefreshResult = true
@@ -507,33 +506,43 @@ struct TitleView: View {
         // Mark refresh attempt immediately when starting
         autoRefreshManager.markRefreshAttempt(title)
         
-        let webView = WKWebView()
+        // Create a PROPERLY CONFIGURED WebView
+        let config = WKWebViewConfiguration()
+        config.websiteDataStore = .default()
+        config.processPool = WKProcessPool() // Important: Use shared process pool
+        
+        let webView = WKWebView(frame: .zero, configuration: config)
+        
+        // Set desktop user agent immediately
         WebViewUserAgentManager.setDesktopUserAgent(for: webView)
         
         if let sourceURL = title.sourceURL, let url = URL(string: sourceURL) {
-            webView.load(URLRequest(url: url))
             
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                TitleRefreshManager.refreshTitle(in: webView, for: title) { result in
+            // Add a navigation delegate to track loading state
+            let navigationDelegate = RefreshNavigationDelegate()
+            webView.navigationDelegate = navigationDelegate
+            
+            webView.load(URLRequest(url: url, timeoutInterval: 30.0)) // Increased timeout
+            
+            // Use the enhanced refresh manager
+            DispatchQueue.main.asyncAfter(deadline: .now() + 6.0) { // Increased delay
+                
+                TitleRefreshManager.refreshTitle(in: webView, for: self.title) { result in
                     DispatchQueue.main.async {
-                        isRefreshing = false
+                        self.isRefreshing = false
                         
                         switch result {
                         case .success(let newChapters):
-                            newChaptersCount = newChapters.count
-                            refreshResultMessage = newChaptersCount > 0 ?
+                            self.newChaptersCount = newChapters.count
+                            self.refreshResultMessage = newChaptersCount > 0 ?
                                 "Title Refresh Successful. \(newChaptersCount) new Chapter\(newChaptersCount == 1 ? "" : "s") found." :
                                 "No new Chapters found."
                             
-                            // Note: Refresh timestamp was already updated when the attempt started
-                            
                         case .failure(let error):
-                            refreshResultMessage = "\(error)"
-                            // Refresh timestamp was already updated when the attempt started
-                            // This prevents immediate retries on failure
+                            self.refreshResultMessage = "Refresh failed: \(error)"
                         }
                         
-                        showRefreshResult = true
+                        self.showRefreshResult = true
                         NotificationCenter.default.post(name: .titleUpdated, object: nil)
                     }
                 }
@@ -542,8 +551,22 @@ struct TitleView: View {
             isRefreshing = false
             refreshResultMessage = "Invalid source URL for refresh"
             showRefreshResult = true
-            // NEW: Even for immediate failures, mark the attempt
             autoRefreshManager.markRefreshAttempt(title)
+        }
+    }
+
+    // Add this helper class
+    private class RefreshNavigationDelegate: NSObject, WKNavigationDelegate {
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            print("WebView finished loading: \(webView.url?.absoluteString ?? "unknown")")
+        }
+        
+        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+            print("WebView load failed: \(error.localizedDescription)")
+        }
+        
+        func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+            print("WebView provisional load failed: \(error.localizedDescription)")
         }
     }
     

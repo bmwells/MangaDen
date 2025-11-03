@@ -348,7 +348,7 @@ class ImageExtractionStrategies {
                                               completion: @escaping ([EnhancedImageInfo]) -> Void) {
         
         var allImages: [EnhancedImageInfo] = []
-        let maxPagesToExtract = min(30, pageLinks.count) // Max 30 pages to click
+        let maxPagesToExtract = min(60, pageLinks.count) // Max 60 pages to click
         var consecutiveSameImageCount = 0
         var lastImageCount = 0
         
