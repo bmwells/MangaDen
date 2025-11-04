@@ -34,7 +34,7 @@ class ReaderCoordinator: ObservableObject {
     
     static func onDisappearAction(
         isDownloaded: Bool,
-        stopLoading: @escaping () -> Void, // ADD THIS PARAMETER
+        stopLoading: @escaping () -> Void,
         updateBookmark: @escaping () -> Void,
         tabBarManager: TabBarManager
     ) {

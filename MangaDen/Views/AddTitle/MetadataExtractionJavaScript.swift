@@ -403,7 +403,7 @@ class MetadataExtractionJavaScript {
 
             metadata.status = findStatus();
             
-            // Add title extraction from page as fallback
+            // Title extraction from page as fallback
             metadata.title = findTitleInPage();
             
             return Object.keys(metadata).some(key => metadata[key] !== null) ? metadata : null;

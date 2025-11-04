@@ -52,7 +52,7 @@ class MetadataExtractionManager {
         }
     }
     
-    // Add this function to extract title from URL
+    // Function to extract title from URL
     static func extractTitleFromURL(_ url: String) -> String? {
         guard let urlComponents = URLComponents(string: url),
               urlComponents.host != nil else {

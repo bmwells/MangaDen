@@ -18,12 +18,12 @@ class ReaderViewJava: NSObject, ObservableObject {
     private let webViewManager = WebViewManager()
     private let extractionCoordinator = ImageExtractionCoordinator()
     
-    // Add cancellation support
+    // Cancellation support
     private var currentExtractionTask: Task<Void, Never>?
-    private var isStopping = false // Add this flag
-    private var isPaused = false // Add pause state
-    private var hasExtractionStarted = false // ADD THIS FLAG
-    private var extractionFallbackTask: Task<Void, Never>? // ADD THIS
+    private var isStopping = false
+    private var isPaused = false
+    private var hasExtractionStarted = false
+    private var extractionFallbackTask: Task<Void, Never>?
     
     override init() {
         super.init()
@@ -235,7 +235,7 @@ class ReaderViewJava: NSObject, ObservableObject {
         
         // Stop the WebView and clear its content
         webViewManager.stopLoading()
-        webViewManager.clearContent() // ADD THIS METHOD CALL
+        webViewManager.clearContent()
         
         // Reset state
         isLoading = false
@@ -259,7 +259,7 @@ class ReaderViewJava: NSObject, ObservableObject {
         
         // Stop WebView first
         webViewManager.stopLoading()
-        webViewManager.clearContent() // ADD THIS
+        webViewManager.clearContent() 
         
         // Clear extraction coordinator
         extractionCoordinator.cancelAllOperations()
@@ -305,7 +305,6 @@ extension ReaderViewJava: WKNavigationDelegate {
         startExtractionProcess(webView: webView)
     }
     
-    // ADD THIS NEW METHOD:
     private func startExtractionProcess(webView: WKWebView) {
         // Mark extraction as started
         hasExtractionStarted = true

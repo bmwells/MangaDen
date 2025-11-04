@@ -337,7 +337,7 @@ struct DownloadsHelpView: View {
                 }
             }
         }
-        .frame(height: isiPad ? 820 : nil) // Add this line
+        .frame(height: isiPad ? 820 : nil) // Custom height for iPad
     }
 }
 

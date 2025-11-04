@@ -8,7 +8,7 @@
 import WebKit
 
 class TitleRefreshManager {
-    // Add this to keep WebView references alive during refresh operations
+    // Keep WebView references alive during refresh operations
     private static var activeWebViews: [WKWebView] = []
     
     // MARK: - Refresh Title Logic

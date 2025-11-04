@@ -43,7 +43,7 @@ struct TitleView: View {
     @State private var hasAutoRefreshed = false
     @Environment(\.dismiss) private var dismiss
     
-    // ADD: State for handling chapter navigation from ReaderView
+    // State for handling chapter navigation from ReaderView
     @State private var chapterToOpenInReader: Chapter?
     @State private var showReaderView = false
     
@@ -333,11 +333,11 @@ struct TitleView: View {
         .onReceive(NotificationCenter.default.publisher(for: .titleUpdated)) { _ in
             loadCurrentBookmark()
         }
-        // ADD: Listen for chapter navigation notifications
+        // Listen for chapter navigation notifications
         .onReceive(NotificationCenter.default.publisher(for: .openChapterInReader)) { notification in
             handleOpenChapterNotification(notification)
         }
-        // ADD: Navigation to ReaderView - using fullScreenCover instead of navigationDestination
+        // Navigation to ReaderView - using fullScreenCover instead of navigationDestination
         // to maintain the existing navigation stack
         .fullScreenCover(isPresented: $showReaderView) {
             NavigationStack {
@@ -555,7 +555,6 @@ struct TitleView: View {
         }
     }
 
-    // Add this helper class
     private class RefreshNavigationDelegate: NSObject, WKNavigationDelegate {
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             print("WebView finished loading: \(webView.url?.absoluteString ?? "unknown")")
