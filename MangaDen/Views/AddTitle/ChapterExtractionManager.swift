@@ -16,7 +16,7 @@ class ChapterExtractionManager {
         findChapterLinksWithRetry(in: webView, retryCount: 0, completion: completion)
     }
 
-    private static func findChapterLinksWithRetry(in webView: WKWebView, retryCount: Int, completion: @escaping ([String: [String: String]]?) -> Void) {
+    public static func findChapterLinksWithRetry(in webView: WKWebView, retryCount: Int, completion: @escaping ([String: [String: String]]?) -> Void) {
         
         let maxRetries = 3
         let javascript = ChapterExtractionJavaScript.getChapterExtractionScript()

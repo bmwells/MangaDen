@@ -54,7 +54,7 @@ class TitleRefreshManager {
                     }
                                         
                     // Use enhanced chapter extraction with retry capability
-                    ChapterExtractionManager.findChapterLinksWithRetry(in: webView) { newChapterDict in
+                    ChapterExtractionManager.findChapterLinksWithRetry(in: webView, retryCount: 3) { newChapterDict in
                         DispatchQueue.main.async {
                             cleanup() // Clean up after extraction is complete
                             
@@ -92,7 +92,7 @@ class TitleRefreshManager {
         print("🔍 Checking WebView readiness...")
         
         webView.evaluateJavaScript(readinessScript) { result, error in
-            if let error = error {
+            if error != nil {
                 completion(false)
                 return
             }

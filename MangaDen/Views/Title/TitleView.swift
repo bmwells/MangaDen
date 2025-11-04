@@ -535,7 +535,7 @@ struct TitleView: View {
                         case .success(let newChapters):
                             self.newChaptersCount = newChapters.count
                             self.refreshResultMessage = newChaptersCount > 0 ?
-                                "Title Refresh Successful. \(newChaptersCount) new Chapter\(newChaptersCount == 1 ? "" : "s") found." :
+                                "\(newChaptersCount) new Chapter\(newChaptersCount == 1 ? "" : "s") found." :
                                 "No new Chapters found."
                             
                         case .failure(let error):
