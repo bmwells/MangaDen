@@ -284,7 +284,7 @@ extension ReaderViewJava: WKNavigationDelegate {
             return
         }
         
-        print("ReaderViewJava: Page loaded successfully, starting multi-strategy image extraction...")
+        print("ReaderViewJava: Page loaded successfully, waiting for content to render before extraction...")
         
         // Make sure we have a valid web view
         guard let webView = webViewManager.webView else {
@@ -302,8 +302,20 @@ extension ReaderViewJava: WKNavigationDelegate {
             return
         }
         
-        print("ReaderViewJava: Starting extraction strategies on web view")
-        startExtractionProcess(webView: webView)
+        // Wait a bit longer before starting extraction to ensure DOM is fully populated
+        // This gives time for JavaScript to execute and lazy-loaded images to appear
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+            guard let self = self else { return }
+            
+            // Double-check cancellation state after delay
+            if self.extractionCoordinator.isCancelled || self.isStopping || self.isPaused {
+                print("ReaderViewJava: Extraction cancelled/paused after initial delay")
+                return
+            }
+            
+            print("ReaderViewJava: Starting multi-strategy image extraction after render delay...")
+            self.startExtractionProcess(webView: webView)
+        }
     }
     
     private func startExtractionProcess(webView: WKWebView) {
@@ -317,7 +329,7 @@ extension ReaderViewJava: WKNavigationDelegate {
         // Store the extraction task for potential cancellation
         currentExtractionTask = Task { [weak self] in
             // Add a small delay to ensure the page is fully rendered
-            try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+            try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 second
             
             // Check for cancellation/pause after delay
             if Task.isCancelled || self?.extractionCoordinator.isCancelled == true || self?.isStopping == true || self?.isPaused == true {
