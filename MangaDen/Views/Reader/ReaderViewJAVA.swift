@@ -248,7 +248,7 @@ class ReaderViewJava: NSObject, ObservableObject {
         print("ReaderViewJava: All operations stopped")
     }
     
-    func clearCache() {
+    func clearCache() {        
         isStopping = true
         isPaused = false
         hasExtractionStarted = false
@@ -257,21 +257,22 @@ class ReaderViewJava: NSObject, ObservableObject {
         extractionFallbackTask?.cancel()
         extractionFallbackTask = nil
         
-        // Stop WebView first
+        // Stop WebView and clear its content ONLY (temporary web data)
         webViewManager.stopLoading()
-        webViewManager.clearContent() 
+        webViewManager.clearContent()
+        webViewManager.clearCache()
         
-        // Clear extraction coordinator
-        extractionCoordinator.cancelAllOperations()
+        // Clear extraction coordinator cache (temporary extraction images)
         extractionCoordinator.clearCache()
+        extractionCoordinator.cancelAllOperations()
         extractionCoordinator.resetCancellation()
         
-        // Clear local state
-        images = []
+        // Clear local temporary state but DON'T clear downloaded chapter data
+        images = [] // Clear only the in-memory images from online reading
         currentExtractionTask = nil
         isStopping = false
         
-        print("ReaderViewJava: Cache cleared and all processes stopped")
+        print("ReaderViewJava: Temporary online reading cache cleared - downloaded chapters preserved")
     }
 }
 

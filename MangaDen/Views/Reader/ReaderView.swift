@@ -108,6 +108,11 @@ struct ReaderView: View {
             onAppearAction()
         }
         .onDisappear {
+            // Clear cache when leaving reader for ANY reason if reading online
+            if !isDownloaded {
+                readerJava.clearCache()
+            }
+            
             ReaderCoordinator.onDisappearAction(
                 isDownloaded: isDownloaded,
                 stopLoading: { readerJava.stopLoading() },
@@ -555,7 +560,7 @@ struct ReaderView: View {
     
     private var backButton: some View {
         Button(action: {
-            // Stop all loading processes BEFORE dismissing
+            // Stop all loading processes and clear cache BEFORE dismissing
             readerJava.stopLoading()
             readerJava.clearCache()
             dismiss()

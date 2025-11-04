@@ -48,8 +48,6 @@ class WebViewManager: NSObject, ObservableObject {
     }
     
     func clearContent() {
-        print("WebViewManager: Clearing WebView content")
-        
         // Stop any ongoing loading
         webView?.stopLoading()
         
@@ -66,8 +64,6 @@ class WebViewManager: NSObject, ObservableObject {
         isLoading = false
         error = nil
         downloadProgress = ""
-        
-        print("WebViewManager: WebView content cleared")
     }
     
     func clearCache() {
@@ -76,6 +72,7 @@ class WebViewManager: NSObject, ObservableObject {
         currentURL = nil
         isLoading = false
         
+        // Clear website data store
         WKWebsiteDataStore.default().removeData(
             ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(),
             modifiedSince: Date.distantPast,

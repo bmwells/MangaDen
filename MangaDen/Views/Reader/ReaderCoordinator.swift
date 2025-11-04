@@ -38,7 +38,6 @@ class ReaderCoordinator: ObservableObject {
         updateBookmark: @escaping () -> Void,
         tabBarManager: TabBarManager
     ) {
-        // Stop ALL processes when leaving the reader, regardless of download status
         stopLoading() // Stop WebView and extraction
         
         updateBookmark()
