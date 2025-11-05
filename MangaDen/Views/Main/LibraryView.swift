@@ -112,6 +112,10 @@ struct LibraryView: View {
                                 }
                                 .buttonStyle(PlainButtonStyle())
                                 
+                                if tab != LibraryTab.allCases.last {
+                                    Spacer().frame(width: 4)
+                                }
+                                
                             }
                         }
                         .background(currentAccentColor.opacity(0.1))
