@@ -59,7 +59,6 @@ class ImageExtractionCoordinator: ObservableObject {
         imageCache.removeAll()
     }
     
-    
     // MARK: - Progress Updates
     private func updateProgress(_ message: String) {
         Task { @MainActor in
@@ -67,7 +66,6 @@ class ImageExtractionCoordinator: ObservableObject {
             print("EXTRACTION PROGRESS: \(message)")
         }
     }
-    
     
     // MARK: - Execute All Strategies
         
@@ -126,7 +124,6 @@ class ImageExtractionCoordinator: ObservableObject {
                 return
             }
             
-            updateProgress("All strategies completed - processing results...")
             print("EXTRACTION: ALL STRATEGIES 1-3 COMPLETED")
             let totalImages = strategyResults.reduce(0) { $0 + $1.images.count }
             let maxImagesFromSingleStrategy = strategyResults.map { $0.images.count }.max() ?? 0
@@ -153,32 +150,40 @@ class ImageExtractionCoordinator: ObservableObject {
                         return
                     }
                     
-                    self?.extractionStrategies.attemptExtractionStrategy0(webView: webView, isCancelled: { [weak self] in
-                        return self?.isCancelled == true
-                    }) { strategy0Images in
-                        // Check for cancellation before processing Strategy 0 results
-                        if let self = self, !self.isCancelled {
-                            self.updateProgress("Extraction completed - found \(strategy0Images.count) images")
-                            print("EXTRACTION: Strategy 0 COMPLETED - Found \(strategy0Images.count) images")
-                            strategyResults.append(ExtractionResult(strategy: 0, images: strategy0Images))
-                            
-                            let allImages = strategyResults.flatMap { $0.images }
-                            print("EXTRACTION: FINAL RESULTS - \(allImages.count) total images after Strategy 0")
-                            
-                            if allImages.isEmpty {
-                                self.updateProgress("No images found")
-                                print("EXTRACTION: No images found after all strategies")
-                                onComplete(false)
+                    self?.extractionStrategies.attemptExtractionStrategy0(
+                        webView: webView,
+                        isCancelled: { [weak self] in
+                            return self?.isCancelled == true
+                        },
+                        progressUpdate: { [weak self] progress in
+                            // Forward progress updates to the coordinator's updateProgress method
+                            self?.updateProgress(progress)
+                        },
+                        completion: { strategy0Images in
+                            // Check for cancellation before processing Strategy 0 results
+                            if let self = self, !self.isCancelled {
+                                self.updateProgress("Extraction completed - found \(strategy0Images.count) images")
+                                print("EXTRACTION: Strategy 0 COMPLETED - Found \(strategy0Images.count) images")
+                                strategyResults.append(ExtractionResult(strategy: 0, images: strategy0Images))
+                                
+                                let allImages = strategyResults.flatMap { $0.images }
+                                print("EXTRACTION: FINAL RESULTS - \(allImages.count) total images after Strategy 0")
+                                
+                                if allImages.isEmpty {
+                                    self.updateProgress("No images found")
+                                    print("EXTRACTION: No images found after all strategies")
+                                    onComplete(false)
+                                } else {
+                                    self.updateProgress("Processing \(allImages.count) images...")
+                                    print("EXTRACTION: Processing and downloading \(allImages.count) images")
+                                    self.processAndDownloadImages(allImages, onComplete: onComplete)
+                                }
                             } else {
-                                self.updateProgress("Processing \(allImages.count) images...")
-                                print("EXTRACTION: Processing and downloading \(allImages.count) images")
-                                self.processAndDownloadImages(allImages, onComplete: onComplete)
+                                print("EXTRACTION: Strategy 0 results ignored due to cancellation")
+                                onComplete(false)
                             }
-                        } else {
-                            print("EXTRACTION: Strategy 0 results ignored due to cancellation")
-                            onComplete(false)
                         }
-                    }
+                    )
                 }
             } else {
                 let allImages = strategyResults.flatMap { $0.images }

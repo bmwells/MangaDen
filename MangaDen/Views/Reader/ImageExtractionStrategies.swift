@@ -235,7 +235,10 @@ class ImageExtractionStrategies {
     }
     
     // MARK: - Strategy 0 (Page Navigation)
-    func attemptExtractionStrategy0(webView: WKWebView, isCancelled: @escaping () -> Bool = { false }, completion: @escaping ([EnhancedImageInfo]) -> Void) {
+    func attemptExtractionStrategy0(webView: WKWebView,
+                                  isCancelled: @escaping () -> Bool = { false },
+                                  progressUpdate: ((String) -> Void)? = nil,
+                                  completion: @escaping ([EnhancedImageInfo]) -> Void) {
         print("Strategy 0: Starting simplified page menu extraction")
         
         // Check for cancellation before starting
@@ -335,6 +338,7 @@ class ImageExtractionStrategies {
                 self?.extractWithSimulatedPagination(webView: webView,
                                                    pageLinks: pageLinks,
                                                    isCancelled: isCancelled,
+                                                   progressUpdate: progressUpdate,
                                                    completion: completion)
             } else {
                 completion([])
@@ -345,6 +349,7 @@ class ImageExtractionStrategies {
     private func extractWithSimulatedPagination(webView: WKWebView,
                                               pageLinks: [[String: Any]],
                                               isCancelled: @escaping () -> Bool,
+                                              progressUpdate: ((String) -> Void)? = nil,
                                               completion: @escaping ([EnhancedImageInfo]) -> Void) {
         
         var allImages: [EnhancedImageInfo] = []
@@ -369,6 +374,8 @@ class ImageExtractionStrategies {
                 return
             }
             
+            // Progress update for current page being processed - USE the callback
+            progressUpdate?("Processing page \(pageIndex + 1) of \(maxPagesToExtract)...")
             
             let clickScript = """
             (function() {

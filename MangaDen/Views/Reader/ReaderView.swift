@@ -33,6 +33,9 @@ struct ReaderView: View {
     @State private var showChapterNavigationAlert = false
     @State private var chapterNavigationType: ChapterNavigationType = .next
     
+    // Debouncer for progress updates
+    @State private var progressDebounceTask: Task<Void, Never>?
+    
     // Computed property to get images in correct order based on reading direction
     private var displayImages: [UIImage] {
         if readingDirection == .rightToLeft {
@@ -141,10 +144,24 @@ struct ReaderView: View {
             handleLoadedImagesChange(oldValue: oldValue, newValue: newValue)
         }
         .onChange(of: readerJava.downloadProgress) { oldValue, newValue in
-            updateDownloadProgress(progress: newValue)
+            debounceProgressUpdate(progress: newValue)
         }
         .onChange(of: currentPageIndex) { oldValue, newValue in
             handlePageChange(oldValue: oldValue, newValue: newValue)
+        }
+    }
+    
+    // MARK: - Debounced Progress Update
+    private func debounceProgressUpdate(progress: String) {
+        progressDebounceTask?.cancel()
+        
+        progressDebounceTask = Task {
+            try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds debounce
+            guard !Task.isCancelled else { return }
+            
+            await MainActor.run {
+                updateDownloadProgress(progress: progress)
+            }
         }
     }
     
