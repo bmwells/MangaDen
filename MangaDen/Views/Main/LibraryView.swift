@@ -107,14 +107,11 @@ struct LibraryView: View {
                                         .font(.system(size: 16, weight: .medium))
                                         .foregroundColor(selectedTab == tab ? .white : currentAccentColor)
                                         .frame(width: 100, height: 36)
-                                        .background(selectedTab == tab ? currentAccentColor : currentAccentColor.opacity(0.2))
+                                        .background(selectedTab == tab ? currentAccentColor : Color.clear)
                                         .cornerRadius(8)
                                 }
                                 .buttonStyle(PlainButtonStyle())
                                 
-                                if tab != LibraryTab.allCases.last {
-                                    Spacer().frame(width: 4)
-                                }
                             }
                         }
                         .background(currentAccentColor.opacity(0.1))

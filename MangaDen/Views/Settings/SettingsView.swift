@@ -254,9 +254,9 @@ struct SettingsView: View {
                         .padding(.bottom, 10)
                         .background(Color(.systemGroupedBackground))
                         
-                        // Version at bottom of page
+                        //MARK: - Version
                         VStack {
-                            Text("Version 1.0")
+                            Text("Version 1.2")
                                 .font(.title3)
                                 .foregroundColor(.primary)
                                 .padding(.bottom, 55)
