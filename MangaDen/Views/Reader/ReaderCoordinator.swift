@@ -140,12 +140,43 @@ class ReaderCoordinator: ObservableObject {
         }
     }
     
-    static func markChapterAsRead(chapter: Chapter) {
-        NotificationCenter.default.post(
-            name: .chapterReadStatusChanged,
-            object: nil,
-            userInfo: ["chapterId": chapter.id]
-        )
+    static func markChapterAsRead(chapter: Chapter, titleID: UUID) {
+        do {
+            let fileManager = FileManager.default
+            guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+                return
+            }
+            
+            // Load the current title using titleID, not chapter ID
+            let titlesDirectory = documentsDirectory.appendingPathComponent("Titles")
+            let titleFile = titlesDirectory.appendingPathComponent("\(titleID.uuidString).json")
+            
+            guard fileManager.fileExists(atPath: titleFile.path) else {
+                print("Title file not found for title ID: \(titleID)")
+                return
+            }
+            
+            let titleData = try Data(contentsOf: titleFile)
+            var title = try JSONDecoder().decode(Title.self, from: titleData)
+            
+            // Update the chapter's read status
+            if let chapterIndex = title.chapters.firstIndex(where: { $0.id == chapter.id }) {
+                title.chapters[chapterIndex].isRead = true
+                
+                // Save the updated title
+                let updatedTitleData = try JSONEncoder().encode(title)
+                try updatedTitleData.write(to: titleFile)
+                
+                NotificationCenter.default.post(name: .chapterReadStatusChanged, object: nil)
+                NotificationCenter.default.post(name: .titleUpdated, object: nil)
+                
+                print("Successfully marked chapter \(chapter.formattedChapterNumber) as read")
+            } else {
+                print("Chapter not found in title: \(chapter.formattedChapterNumber)")
+            }
+        } catch {
+            print("Error marking chapter as read: \(error)")
+        }
     }
     
     static func downloadCurrentImage(
@@ -453,7 +484,8 @@ class ReaderCoordinator: ObservableObject {
         setInitialPageIndex: @escaping () -> Void,
         isChapterReady: Binding<Bool>,
         downloadProgress: Binding<String>,
-        readerJava: ReaderViewJava
+        readerJava: ReaderViewJava,
+        markChapterAsRead: @escaping () -> Void
     ) {
         if !isDownloaded {
             let imagesNowLoaded = !newValue.isEmpty
@@ -463,6 +495,10 @@ class ReaderCoordinator: ObservableObject {
                     originalImages.wrappedValue = newValue
                     setInitialPageIndex()
                     isChapterReady.wrappedValue = true
+                    
+                    // MARK CHAPTER AS READ WHEN SUCCESSFULLY LOADED
+                    markChapterAsRead()
+                    
                     // Don't clear progress immediately - show success message briefly
                     downloadProgress.wrappedValue = "Chapter loaded successfully!"
                     
@@ -485,13 +521,17 @@ class ReaderCoordinator: ObservableObject {
         isDownloaded: Bool,
         originalImages: Binding<[UIImage]>,
         setInitialPageIndex: @escaping () -> Void,
-        isChapterReady: Binding<Bool>
+        isChapterReady: Binding<Bool>,
+        markChapterAsRead: @escaping () -> Void
     ) {
         if isDownloaded && !newValue.isEmpty {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 originalImages.wrappedValue = newValue
                 setInitialPageIndex()
                 isChapterReady.wrappedValue = true
+                
+                // MARK CHAPTER AS READ WHEN SUCCESSFULLY LOADED FROM STORAGE
+                markChapterAsRead()
             }
         }
     }

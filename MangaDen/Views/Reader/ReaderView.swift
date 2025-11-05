@@ -630,6 +630,10 @@ struct ReaderView: View {
     
     // MARK: - Actions
     
+    private func markChapterAsRead() {
+        ReaderCoordinator.markChapterAsRead(chapter: chapter, titleID: titleID)
+    }
+    
     private func toggleZoomMode() {
         withAnimation(.easeInOut(duration: 0.2)) {
             if zoomModeEnabled {
@@ -662,7 +666,6 @@ struct ReaderView: View {
         }
         
         tabBarManager.isTabBarHidden = true
-        markChapterAsRead()
     }
     
     private func onDisappearAction() {
@@ -696,9 +699,6 @@ struct ReaderView: View {
         }
     }
     
-    private func markChapterAsRead() {
-        ReaderCoordinator.markChapterAsRead(chapter: chapter)
-    }
     
     private func downloadCurrentImage() {
         ReaderCoordinator.downloadCurrentImage(
@@ -813,7 +813,8 @@ struct ReaderView: View {
             setInitialPageIndex: setInitialPageIndex,
             isChapterReady: $isChapterReady,
             downloadProgress: $downloadProgress,
-            readerJava: readerJava
+            readerJava: readerJava,
+            markChapterAsRead: markChapterAsRead
         )
     }
     
@@ -824,7 +825,8 @@ struct ReaderView: View {
             isDownloaded: isDownloaded,
             originalImages: $originalImages,
             setInitialPageIndex: setInitialPageIndex,
-            isChapterReady: $isChapterReady
+            isChapterReady: $isChapterReady,
+            markChapterAsRead: markChapterAsRead
         )
     }
 }

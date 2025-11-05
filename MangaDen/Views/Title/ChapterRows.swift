@@ -15,7 +15,6 @@ struct ChapterRowView: View {
     let showManageMode: Bool
     let onDelete: () -> Void
     let onDownload: () -> Void
-    let onRead: () -> Void
     let titleID: UUID
     
     @StateObject private var downloadManager = DownloadManager.shared
@@ -69,7 +68,6 @@ struct ChapterRowView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(PlainButtonStyle())
-            .simultaneousGesture(TapGesture().onEnded(onRead))
             .id(chapter.id)
         }
         .padding(.leading, 20)

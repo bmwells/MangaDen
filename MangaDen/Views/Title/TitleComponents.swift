@@ -313,7 +313,6 @@ struct ChaptersListSection: View {
     let showDownloadMode: Bool
     let showManageMode: Bool
     let onDeleteChapter: (Chapter) -> Void
-    let onMarkAsRead: (Chapter) -> Void
     let titleID: UUID
     
     var body: some View {
@@ -332,7 +331,6 @@ struct ChaptersListSection: View {
                             showManageMode: showManageMode,
                             onDelete: { onDeleteChapter(chapter) },
                             onDownload: { DownloadManager.shared.addToDownloadQueue(chapter: chapter) },
-                            onRead: { onMarkAsRead(chapter) },
                             titleID: titleID
                         )
                         .id(chapter.id)

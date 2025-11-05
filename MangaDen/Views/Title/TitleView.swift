@@ -211,7 +211,6 @@ struct TitleView: View {
                                 showDownloadMode: showDownloadMode,
                                 showManageMode: showManageMode,
                                 onDeleteChapter: { chapterToDelete = $0; showDeleteChapterConfirmation = true },
-                                onMarkAsRead: markChapterAsRead,
                                 titleID: title.id
                             )
                             .background(
@@ -693,33 +692,6 @@ struct TitleView: View {
     private func saveReadingDirection() {
         let directionKey = "readingDirection_\(title.id.uuidString)"
         UserDefaults.standard.set(readingDirection.rawValue, forKey: directionKey)
-    }
-    
-    private func markChapterAsRead(chapter: Chapter) {
-        do {
-            let fileManager = FileManager.default
-            guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
-                return
-            }
-            
-            // Update the chapter's read status
-            var updatedTitle = title
-            if let chapterIndex = updatedTitle.chapters.firstIndex(where: { $0.id == chapter.id }) {
-                updatedTitle.chapters[chapterIndex].isRead = true
-                
-                // Save the updated title
-                let titlesDirectory = documentsDirectory.appendingPathComponent("Titles")
-                let titleFile = titlesDirectory.appendingPathComponent("\(title.id.uuidString).json")
-                
-                let titleData = try JSONEncoder().encode(updatedTitle)
-                try titleData.write(to: titleFile)
-                
-                NotificationCenter.default.post(name: .chapterReadStatusChanged, object: nil)
-                NotificationCenter.default.post(name: .titleUpdated, object: nil)
-            }
-        } catch {
-            print("Error marking chapter as read: \(error)")
-        }
     }
     
     private func toggleArchiveStatus() {
