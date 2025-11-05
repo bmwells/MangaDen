@@ -786,6 +786,22 @@ struct TitleHelpView: View {
                         .foregroundColor(.primary)
                         .padding(.bottom, 20)
                     
+
+                    Text("To navigate through a chapter simply swipe on the screen or click on the edges of the screen to change the page. Tap the center once to either hide or reveal the top and bottom UI.")
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .multilineTextAlignment(.center)
+                        .font(.system(size: 20))
+                        .foregroundColor(.primary)
+                        .padding(.top, 4)
+                    
+                    //Divider
+                    Rectangle()
+                        .frame(height: 1)
+                        .foregroundColor(.gray.opacity(0.3))
+                        .frame(maxWidth: 400)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                    
                     HStack(spacing: 8) {
                         Text("**Zoom Button**")
                             .font(.title3)
@@ -797,7 +813,7 @@ struct TitleHelpView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .center)
 
-                    Text("Enables zoom gestures for current page. Pinch page with two fingers to zoom in or out. Drag with one finger to move around image. To exit either double tap or zoom out (pinch in) till zoom mode is exited.")
+                    Text("Enables zoom gestures for current page. Pinch page with two fingers to zoom in or out. Drag with one finger to move around image. To exit zoom mode simply double tap the image.")
                         .frame(maxWidth: .infinity, alignment: .center)
                         .multilineTextAlignment(.center)
                         .font(.system(size: 20))
@@ -983,6 +999,6 @@ extension View {
 
 
 #Preview {
-    ContentView()
+    TitleHelpView()
 }
 
