@@ -69,7 +69,6 @@ struct BrowserView: View {
                 HStack {
                     // Back Button
                     Button(action: {
-                        print("Back button tapped")
                         webViewManager.goBack()
                     }) {
                         Image(systemName: "arrow.left")
@@ -80,7 +79,6 @@ struct BrowserView: View {
 
                     // Refresh Button
                     Button(action: {
-                        print("Refresh button tapped")
                         webViewManager.reload()
                     }) {
                         if isLoading {
@@ -95,7 +93,6 @@ struct BrowserView: View {
 
                     // Forward Button
                     Button(action: {
-                        print("Forward button tapped")
                         webViewManager.goForward()
                     }) {
                         Image(systemName: "arrow.right")
@@ -165,7 +162,6 @@ struct BrowserView: View {
                     HStack(spacing: 12) {
                         // Refresh JSON Button
                         Button(action: {
-                            print("Refresh JSON button tapped")
                             // Force a complete reload and re-scrape
                             webViewManager.reload()
                             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {

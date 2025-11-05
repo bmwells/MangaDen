@@ -169,8 +169,6 @@ class ReaderCoordinator: ObservableObject {
                 
                 NotificationCenter.default.post(name: .chapterReadStatusChanged, object: nil)
                 NotificationCenter.default.post(name: .titleUpdated, object: nil)
-                
-                print("Successfully marked chapter \(chapter.formattedChapterNumber) as read")
             } else {
                 print("Chapter not found in title: \(chapter.formattedChapterNumber)")
             }

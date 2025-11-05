@@ -88,9 +88,7 @@ class TitleRefreshManager {
             };
         })();
         """
-        
-        print("🔍 Checking WebView readiness...")
-        
+                
         webView.evaluateJavaScript(readinessScript) { result, error in
             if error != nil {
                 completion(false)

@@ -406,7 +406,7 @@ class ImageExtractionStrategies {
                 }
                 
                 // Wait for navigation
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { // Wait 1 seconds between page change
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { // Wait 0.5 seconds between page change
                     // Check for cancellation after delay
                     if isCancelled() {
                         let uniqueImages = self.removeDuplicateImages(allImages)
