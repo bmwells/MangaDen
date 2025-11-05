@@ -59,6 +59,7 @@ class ImageExtractionCoordinator: ObservableObject {
         imageCache.removeAll()
     }
     
+    
     // MARK: - Progress Updates
     private func updateProgress(_ message: String) {
         Task { @MainActor in
@@ -66,6 +67,7 @@ class ImageExtractionCoordinator: ObservableObject {
             print("EXTRACTION PROGRESS: \(message)")
         }
     }
+    
     
     // MARK: - Execute All Strategies
         
@@ -96,7 +98,6 @@ class ImageExtractionCoordinator: ObservableObject {
             }
             
             dispatchGroup.enter()
-            updateProgress("Starting Strategy \(index + 1)...")
             print("EXTRACTION: Starting Strategy \(index + 1)")
             
             strategy(webView) { images in
@@ -104,7 +105,6 @@ class ImageExtractionCoordinator: ObservableObject {
                 if !self.isCancelled {
                     strategyResults.append(ExtractionResult(strategy: index + 1, images: images))
                     completedStrategies += 1
-                    self.updateProgress("Strategy \(index + 1) completed - found \(images.count) images")
                     print("EXTRACTION: Strategy \(index + 1) completed with \(images.count) images (completed: \(completedStrategies)/3)")
                 } else {
                     print("EXTRACTION: Strategy \(index + 1) results ignored due to cancellation")

@@ -371,6 +371,7 @@ struct ReaderView: View {
         .padding(.horizontal)
     }
 
+    // MARK: - Loading Progress Text
     // Helper method to determine loading title based on progress
     private func getLoadingTitle() -> String {
         if downloadProgress.contains("Starting extraction") || downloadProgress.contains("Strategy") {

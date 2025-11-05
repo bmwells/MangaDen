@@ -272,7 +272,7 @@ class ReaderViewJava: NSObject, ObservableObject {
         currentExtractionTask = nil
         isStopping = false
         
-        print("ReaderViewJava: Temporary online reading cache cleared - downloaded chapters preserved")
+        print("ReaderViewJava: Temporary online reading cache cleared")
     }
 }
 
