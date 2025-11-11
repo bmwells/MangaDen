@@ -108,6 +108,7 @@ struct DownloadTask: Identifiable, Codable {
     }
 }
 
+// MARK: - Download Status Model
 enum DownloadStatus: String, Codable {
     case queued = "Queued"
     case downloading = "Downloading"
