@@ -48,9 +48,42 @@ struct LibraryView: View {
             // Sort searched results alphabetically
             return searched.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
         } else {
-            // Sort all results alphabetically
-            return filtered.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+            // Sort with pinned titles first, then alphabetical order
+            return sortTitlesWithPinnedFirst(filtered)
         }
+    }
+
+    // ADD THIS: Function to sort titles with pinned ones first
+    private func sortTitlesWithPinnedFirst(_ titles: [Title]) -> [Title] {
+        let pinnedTitleIds = UserDefaults.standard.array(forKey: "pinnedTitles") as? [String] ?? []
+        
+        // Separate pinned and unpinned titles
+        var pinnedTitles: [Title] = []
+        var unpinnedTitles: [Title] = []
+        
+        for title in titles {
+            if pinnedTitleIds.contains(title.id.uuidString) {
+                pinnedTitles.append(title)
+            } else {
+                unpinnedTitles.append(title)
+            }
+        }
+        
+        // Sort pinned titles in the order they were pinned
+        let sortedPinnedTitles = pinnedTitles.sorted { title1, title2 in
+            guard let index1 = pinnedTitleIds.firstIndex(of: title1.id.uuidString),
+                  let index2 = pinnedTitleIds.firstIndex(of: title2.id.uuidString) else {
+                return false
+            }
+            return index1 < index2
+        }
+        
+        // Sort unpinned titles alphabetically
+        let sortedUnpinnedTitles = unpinnedTitles.sorted {
+            $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
+        }
+        
+        return sortedPinnedTitles + sortedUnpinnedTitles
     }
     
     // Computed color scheme based on user preference
@@ -297,6 +330,12 @@ struct LibraryView: View {
                 loadTitles()
             }
             .onReceive(NotificationCenter.default.publisher(for: .chapterReadStatusChanged)) { _ in
+                loadTitles()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .titlePinned)) { _ in
+                loadTitles()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .titleUnpinned)) { _ in
                 loadTitles()
             }
         }

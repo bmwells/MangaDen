@@ -22,6 +22,8 @@ extension Notification.Name {
     static let titleAddedSuccess = Notification.Name("titleAddedSuccess")
     static let titleDeleted = Notification.Name("titleDeleted")
     static let titleUpdated = Notification.Name("titleUpdated")
+    static let titlePinned = Notification.Name("titlePinned")
+    static let titleUnpinned = Notification.Name("titleUnpinned")
     
     // MARK: - Download Operations
     static let downloadStarted = Notification.Name("downloadStarted")

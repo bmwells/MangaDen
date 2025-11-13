@@ -592,6 +592,12 @@ struct OptionsMenu: View {
     let onDelete: () -> Void
     @State private var showHelp = false
     
+    // ADD THIS: Check if title is pinned
+    private var isTitlePinned: Bool {
+        let pinnedTitles = UserDefaults.standard.array(forKey: "pinnedTitles") as? [String] ?? []
+        return pinnedTitles.contains(title.id.uuidString)
+    }
+    
     var body: some View {
         Menu {
             // Help button
@@ -616,6 +622,14 @@ struct OptionsMenu: View {
                 Label("Manage Chapters", systemImage: "list.dash")
             }
             
+            // ADD THIS: Pin/Unpin Title button
+            Button(action: togglePinStatus) {
+                Label(
+                    isTitlePinned ? "Unpin Title" : "Pin Title",
+                    systemImage: isTitlePinned ? "pin.slash" : "pin"
+                )
+            }
+            
             Button(action: onToggleArchive) {
                 Label(archiveButtonText(), systemImage: archiveButtonIcon())
             }
@@ -629,6 +643,24 @@ struct OptionsMenu: View {
         }
         .sheet(isPresented: $showHelp) {
             TitleHelpView()
+        }
+    }
+    
+    // ADD THIS: Toggle pin status function
+    private func togglePinStatus() {
+        var pinnedTitles = UserDefaults.standard.array(forKey: "pinnedTitles") as? [String] ?? []
+        let titleIdString = title.id.uuidString
+        
+        if isTitlePinned {
+            // Unpin: Remove from pinned list
+            pinnedTitles.removeAll { $0 == titleIdString }
+            UserDefaults.standard.set(pinnedTitles, forKey: "pinnedTitles")
+            NotificationCenter.default.post(name: .titleUnpinned, object: nil)
+        } else {
+            // Pin: Add to end of pinned list
+            pinnedTitles.append(titleIdString)
+            UserDefaults.standard.set(pinnedTitles, forKey: "pinnedTitles")
+            NotificationCenter.default.post(name: .titlePinned, object: nil)
         }
     }
     
