@@ -1,0 +1,24 @@
+Manga & Comics in Your Pocket
+The ultimate manga reader and comic reader app. Build your digital library and read offline with an elegantly simple, powerful design.
+
+MangaDen is the ultimate manga reader and comic reader app that brings your favorite stories to life. Discover thousands of titles from across the web and build your personal digital library. Download chapters for offline enjoyment and experience seamless reading with customizable settings perfect for both manga enthusiasts and comic book lovers.
+
+Smart Library Management
+Organize your manga and comics in a beautifully designed library with reading and archive sections. Search through your collection and keep track of your reading progress effortlessly.
+
+Built-in Web Browser
+Discover new titles using our integrated browser that automatically detects manga and comics from supported websites. The smart detection system identifies compatible content and makes adding to your library easy.
+
+Smart Downloads
+Queue and download multiple chapters from the title page, monitor real-time progress with detailed file sizes, and manage your downloads with pause/resume functionality. Perfect for commuting or areas with limited connectivity.
+
+Customizable Reader
+Enjoy reading with configurable reading directions (LTR/RTL), zoom functionality, and smooth page transitions. Bookmark your progress and navigate between chapters seamlessly.
+
+Auto-Refresh & Updates
+Automatically check for new chapters with customizable refresh periods. Stay up-to-date with your favorite series without manual checking.
+
+Personalization
+Customize your manga reader and comic reader experience with dark/light mode, accent colors, and customizable reading experience (LTR/RTL). Tailor the app to match your preferences and reading style.
+
+The perfect and totally free MangaDex, MangaPin, WEBTOON, Shonen Jump, MANGA Plus, Manga Reader, or Tapas alternative!
