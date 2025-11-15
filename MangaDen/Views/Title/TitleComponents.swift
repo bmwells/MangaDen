@@ -592,7 +592,7 @@ struct OptionsMenu: View {
     let onDelete: () -> Void
     @State private var showHelp = false
     
-    // ADD THIS: Check if title is pinned
+    // Check if title is pinned
     private var isTitlePinned: Bool {
         let pinnedTitles = UserDefaults.standard.array(forKey: "pinnedTitles") as? [String] ?? []
         return pinnedTitles.contains(title.id.uuidString)
@@ -622,7 +622,7 @@ struct OptionsMenu: View {
                 Label("Manage Chapters", systemImage: "list.dash")
             }
             
-            // ADD THIS: Pin/Unpin Title button
+            // Pin/Unpin Title button
             Button(action: togglePinStatus) {
                 Label(
                     isTitlePinned ? "Unpin Title" : "Pin Title",
@@ -646,7 +646,7 @@ struct OptionsMenu: View {
         }
     }
     
-    // ADD THIS: Toggle pin status function
+    // Toggle pin status function
     private func togglePinStatus() {
         var pinnedTitles = UserDefaults.standard.array(forKey: "pinnedTitles") as? [String] ?? []
         let titleIdString = title.id.uuidString
@@ -903,7 +903,7 @@ struct TitleHelpView: View {
             .padding(.horizontal, horizontalSizeClass == .regular ? 20 : 15)
             .frame(maxWidth: horizontalSizeClass == .regular ? 800 : .infinity)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { // ADDED
+            .toolbar {
                 // Add X button only on iPhone
                 if isiPhone {
                     ToolbarItem(placement: .navigationBarTrailing) {

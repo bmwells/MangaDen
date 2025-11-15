@@ -53,7 +53,7 @@ struct LibraryView: View {
         }
     }
 
-    // ADD THIS: Function to sort titles with pinned ones first
+    // Function to sort titles with pinned ones first
     private func sortTitlesWithPinnedFirst(_ titles: [Title]) -> [Title] {
         let pinnedTitleIds = UserDefaults.standard.array(forKey: "pinnedTitles") as? [String] ?? []
         

@@ -426,7 +426,7 @@ class ReaderCoordinator: ObservableObject {
     }
     
     // MARK: - Initial Page Setup
-            
+                            
     static func setInitialPageIndex(
         displayImages: [UIImage],
         readingDirection: ReadingDirection,
@@ -435,13 +435,17 @@ class ReaderCoordinator: ObservableObject {
         currentPageIndex: Binding<Int>,
         scrollToPage: @escaping (Int, Bool) -> Void,
         chapter: Chapter,
-        titleID: UUID
+        titleID: UUID,
+        wasOpenedFromAdjacentChapter: Bool
     ) {
         guard !displayImages.isEmpty else {
             return
         }
         
-        if let bookmarkedPage = loadBookmarkFromUserDefaults(chapter: chapter, titleID: titleID), !hasRestoredFromBookmark {
+        // MODIFIED: Only restore bookmark if NOT opened from adjacent chapter
+        if let bookmarkedPage = loadBookmarkFromUserDefaults(chapter: chapter, titleID: titleID),
+           !hasRestoredFromBookmark && !wasOpenedFromAdjacentChapter {
+            
             let targetIndex: Int
             if readingDirection == .rightToLeft {
                 targetIndex = displayImages.count - bookmarkedPage
@@ -456,18 +460,18 @@ class ReaderCoordinator: ObservableObject {
                 scrollToPage(currentPageIndex.wrappedValue, false)
             }
         } else {
+            // MODIFIED: Always start at appropriate beginning for adjacent chapters
+            let startingPage: Int
             if readingDirection == .rightToLeft {
-                currentPageIndex.wrappedValue = displayImages.count - 1
-                
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                    scrollToPage(currentPageIndex.wrappedValue, false)
-                }
+                startingPage = displayImages.count - 1
             } else {
-                currentPageIndex.wrappedValue = 0
-                
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                    scrollToPage(currentPageIndex.wrappedValue, false)
-                }
+                startingPage = 0
+            }
+            
+            currentPageIndex.wrappedValue = startingPage
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                scrollToPage(currentPageIndex.wrappedValue, false)
             }
         }
     }

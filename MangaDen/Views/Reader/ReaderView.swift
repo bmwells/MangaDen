@@ -12,6 +12,8 @@ struct ReaderView: View {
     let chapter: Chapter
     let readingDirection: ReadingDirection
     let titleID: UUID
+    let wasOpenedFromAdjacentChapter: Bool
+    
     @EnvironmentObject private var tabBarManager: TabBarManager
     @StateObject private var readerJava = ReaderViewJava()
     @Environment(\.dismiss) private var dismiss
@@ -35,6 +37,14 @@ struct ReaderView: View {
     
     // Debouncer for progress updates
     @State private var progressDebounceTask: Task<Void, Never>?
+    
+    // Initialize with default value
+    init(chapter: Chapter, readingDirection: ReadingDirection, titleID: UUID, wasOpenedFromAdjacentChapter: Bool = false) {
+        self.chapter = chapter
+        self.readingDirection = readingDirection
+        self.titleID = titleID
+        self.wasOpenedFromAdjacentChapter = wasOpenedFromAdjacentChapter
+    }
     
     // Computed property to get images in correct order based on reading direction
     private var displayImages: [UIImage] {
@@ -300,6 +310,15 @@ struct ReaderView: View {
         return allChapters.sorted { $0.chapterNumber < $1.chapterNumber }
     }
     
+    private func resetReaderState() {
+        currentPageIndex = 0
+        hasRestoredFromBookmark = false
+        zoomScale = 1.0
+        lastZoomScale = 1.0
+        isZooming = false
+        zoomModeEnabled = false
+    }
+
     private func navigateToAdjacentChapter() {
         let targetChapter: Chapter?
         
@@ -316,6 +335,9 @@ struct ReaderView: View {
         readerJava.stopLoading()
         readerJava.clearCache()
         
+        // Reset ALL state for the new chapter
+        resetReaderState()
+        
         // Post notification to open the new chapter
         NotificationCenter.default.post(
             name: .openChapterInReader,
@@ -323,7 +345,8 @@ struct ReaderView: View {
             userInfo: [
                 "chapter": nextChapter,
                 "titleID": titleID,
-                "readingDirection": readingDirection.rawValue
+                "readingDirection": readingDirection.rawValue,
+                "fromAdjacentChapter": true
             ]
         )
         
@@ -657,6 +680,11 @@ struct ReaderView: View {
     }
     
     private func onAppearAction() {
+        // MODIFIED: Reset state if this chapter was opened from adjacent chapter navigation
+        if wasOpenedFromAdjacentChapter {
+            resetReaderState()
+        }
+        
         hasRestoredFromBookmark = false
         
         if isDownloaded {
@@ -800,7 +828,8 @@ struct ReaderView: View {
             currentPageIndex: $currentPageIndex,
             scrollToPage: scrollToPage,
             chapter: chapter,
-            titleID: titleID
+            titleID: titleID,
+            wasOpenedFromAdjacentChapter: wasOpenedFromAdjacentChapter
         )
     }
     
