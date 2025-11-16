@@ -542,7 +542,7 @@ struct TitleView: View {
                                 "No new Chapters found."
                             
                         case .failure(let error):
-                            self.refreshResultMessage = "Refresh failed: \(error)"
+                            self.refreshResultMessage = "\(error)"
                         }
                         
                         self.showRefreshResult = true
