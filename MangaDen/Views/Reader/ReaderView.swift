@@ -13,7 +13,8 @@ struct ReaderView: View {
     let readingDirection: ReadingDirection
     let titleID: UUID
     let wasOpenedFromAdjacentChapter: Bool
-    
+    let shouldStartFromLastPage: Bool
+        
     @EnvironmentObject private var tabBarManager: TabBarManager
     @StateObject private var readerJava = ReaderViewJava()
     @Environment(\.dismiss) private var dismiss
@@ -34,17 +35,20 @@ struct ReaderView: View {
     @State private var zoomModeEnabled: Bool = false
     @State private var showChapterNavigationAlert = false
     @State private var chapterNavigationType: ChapterNavigationType = .next
+    @State private var initialPageSetFromAdjacentChapter: Bool = false
+
     
     // Debouncer for progress updates
     @State private var progressDebounceTask: Task<Void, Never>?
     
     // Initialize with default value
-    init(chapter: Chapter, readingDirection: ReadingDirection, titleID: UUID, wasOpenedFromAdjacentChapter: Bool = false) {
-        self.chapter = chapter
-        self.readingDirection = readingDirection
-        self.titleID = titleID
-        self.wasOpenedFromAdjacentChapter = wasOpenedFromAdjacentChapter
-    }
+    init(chapter: Chapter, readingDirection: ReadingDirection, titleID: UUID, wasOpenedFromAdjacentChapter: Bool = false, shouldStartFromLastPage: Bool = false) {
+            self.chapter = chapter
+            self.readingDirection = readingDirection
+            self.titleID = titleID
+            self.wasOpenedFromAdjacentChapter = wasOpenedFromAdjacentChapter
+            self.shouldStartFromLastPage = shouldStartFromLastPage
+        }
     
     // Computed property to get images in correct order based on reading direction
     private var displayImages: [UIImage] {
@@ -310,8 +314,7 @@ struct ReaderView: View {
         return allChapters.sorted { $0.chapterNumber < $1.chapterNumber }
     }
     
-    private func resetReaderState() {
-        currentPageIndex = 0
+    private func resetReaderState(shouldStartFromLastPage: Bool = false) {
         hasRestoredFromBookmark = false
         zoomScale = 1.0
         lastZoomScale = 1.0
@@ -336,7 +339,7 @@ struct ReaderView: View {
         readerJava.clearCache()
         
         // Reset ALL state for the new chapter
-        resetReaderState()
+        resetReaderState(shouldStartFromLastPage: chapterNavigationType == .previous)
         
         // Post notification to open the new chapter
         NotificationCenter.default.post(
@@ -346,7 +349,8 @@ struct ReaderView: View {
                 "chapter": nextChapter,
                 "titleID": titleID,
                 "readingDirection": readingDirection.rawValue,
-                "fromAdjacentChapter": true
+                "fromAdjacentChapter": true,
+                "shouldStartFromLastPage": chapterNavigationType == .previous
             ]
         )
         
@@ -680,7 +684,7 @@ struct ReaderView: View {
     }
     
     private func onAppearAction() {
-        // MODIFIED: Reset state if this chapter was opened from adjacent chapter navigation
+        // Reset state if this chapter was opened from adjacent chapter navigation
         if wasOpenedFromAdjacentChapter {
             resetReaderState()
         }
@@ -829,7 +833,8 @@ struct ReaderView: View {
             scrollToPage: scrollToPage,
             chapter: chapter,
             titleID: titleID,
-            wasOpenedFromAdjacentChapter: wasOpenedFromAdjacentChapter
+            wasOpenedFromAdjacentChapter: wasOpenedFromAdjacentChapter,
+            shouldStartFromLastPage: shouldStartFromLastPage
         )
     }
     

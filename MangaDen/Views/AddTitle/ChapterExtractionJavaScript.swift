@@ -23,10 +23,10 @@ class ChapterExtractionJavaScript {
                 /(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\\s+\\d{1,2},?\\s+\\d{4}/i,
                 /\\d{1,2}\\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\\s+\\d{4}/i,
                 /(?:today|yesterday)\\b/i,
-                /\\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\\s+\\d{1,2},\\s+\\d{4}\\b/i // NEW: "Oct 7, 2025" format
+                /\\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\\s+\\d{1,2},\\s+\\d{4}\\b/i // "Oct 7, 2025" format
             ];
         
-        // NEW: Time-based patterns to remove from titles (hours ago, days ago, etc.)
+        // Time-based patterns to remove from titles (hours ago, days ago, etc.)
                 const timePatterns = [
                     /\\s*\\d+\\s+hours?\\s+ago\\s*/i,
                     /\\s*\\d+\\s+hrs?\\s+ago\\s*/i,
@@ -38,7 +38,7 @@ class ChapterExtractionJavaScript {
                     /\\s*\\d+[hdwm]\\s+ago\\s*/i, // 1h ago, 2d ago, etc.
                 ];
                 
-                // NEW: Function to calculate actual date from relative time
+                // Function to calculate actual date from relative time
                 const calculateDateFromRelativeTime = (relativeTime) => {
                     const now = new Date();
                     const lowerTime = relativeTime.toLowerCase();
@@ -85,7 +85,7 @@ class ChapterExtractionJavaScript {
                     return formatDateWithoutTime(result);
                 };
                 
-                // NEW: Helper function to format date without time
+                // Helper function to format date without time
                 const formatDateWithoutTime = (date) => {
                     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
                     const month = months[date.getMonth()];
@@ -94,7 +94,7 @@ class ChapterExtractionJavaScript {
                     return `${month} ${day}, ${year}`;
                 };
         
-                // NEW: Function to extract relative time from text
+                // Function to extract relative time from text
                 const extractRelativeTime = (text) => {
                     const patterns = [
                         /(\\d+\\s+hours?\\s+ago)/i,
@@ -168,16 +168,16 @@ class ChapterExtractionJavaScript {
                 }
             }
             
-            // NEW: Special logic for readcomiconline.li site
+            // Special logic for readcomiconline.li site
             const isReadComicOnline = currentUrl.includes('readcomiconline.li');
             
             // First, check if there's a table with chapter/date structure
             const tableDateMap = findDatesInTables();
             
-            // NEW: Store links that might be title-only chapters
+            // Store links that might be title-only chapters
             const potentialTitleOnlyLinks = [];
             
-            // NEW: First try to find the specific site structure (div.flex.items-center with x-data)
+            // First try to find the specific site structure (div.flex.items-center with x-data)
             const chapterContainers = document.querySelectorAll('div.flex.items-center');
             let foundSpecificStructure = false;
             
@@ -249,7 +249,7 @@ class ChapterExtractionJavaScript {
                                 }
                             }
                             
-                            // NEW: Check for relative time patterns in the text
+                            // Check for relative time patterns in the text
                             if (!uploadDate) {
                                 const relativeTime = extractRelativeTime(text);
                                 if (relativeTime) {
@@ -286,7 +286,7 @@ class ChapterExtractionJavaScript {
                                finalTitle = finalTitle.replace(/^[\\s\\.,;:-]+|[\\s\\.,;:-]+$/g, '').trim();
                            }
                            
-                           // NEW: Remove time patterns from final title
+                           // Remove time patterns from final title
                            for (const timePattern of timePatterns) {
                                finalTitle = finalTitle.replace(timePattern, '').trim();
                            }
@@ -330,7 +330,7 @@ class ChapterExtractionJavaScript {
                         continue;
                     }
                     
-                    // NEW: Special filtering for readcomiconline.li
+                    // Special filtering for readcomiconline.li
                     if (isReadComicOnline) {
                         // Ensure we only add links for the current title
                         const currentTitleUrl = currentUrl.toLowerCase();
@@ -405,7 +405,7 @@ class ChapterExtractionJavaScript {
                     let chapterNumber = null;
                     let cleanTitle = text; // Start with original text
                     
-                    // NEW: Special numbering logic for readcomiconline.li
+                    // Special numbering logic for readcomiconline.li
                     if (isReadComicOnline) {
                         // Handle Annuals - numbered as 100000, 200000, etc.
                         const annualMatch = text.match(/_Annual\\s+(\\d+)/i);
@@ -574,7 +574,7 @@ class ChapterExtractionJavaScript {
                         }
                     }
                     
-                    // NEW: Check if this might be a title-only chapter (no numbers found)
+                    // Check if this might be a title-only chapter (no numbers found)
                     if (!chapterNumber) {
                         // Check if the URL structure suggests it's a chapter link
                         // For readcomiconline.li pattern: /Comic/Series-Name/Chapter-Title?id=number#page
@@ -609,7 +609,7 @@ class ChapterExtractionJavaScript {
                             }
                         }
 
-                        // NEW: Check for relative time patterns in the text
+                        // Check for relative time patterns in the text
                         if (!uploadDate) {
                             const relativeTime = extractRelativeTime(text);
                             if (relativeTime) {
@@ -638,7 +638,7 @@ class ChapterExtractionJavaScript {
                             finalTitle = finalTitle.replace(/^[\\s\\.,;:-]+|[\\s\\.,;:-]+$/g, '').trim();
                         }
 
-                        // NEW: Remove time patterns from final title
+                        // Remove time patterns from final title
                         for (const timePattern of timePatterns) {
                             finalTitle = finalTitle.replace(timePattern, '').trim();
                         }
@@ -653,7 +653,7 @@ class ChapterExtractionJavaScript {
                             chapterData["upload_date"] = uploadDate;
                         }
                         
-                        // NEW: Add special chapter type identifier
+                        // Add special chapter type identifier
                         if (hasSpecialChapterIdentifier) {
                             let chapterType = "normal";
                             
@@ -687,7 +687,7 @@ class ChapterExtractionJavaScript {
                 }
             }
             
-            // NEW: Process title-only chapters
+            // Process title-only chapters
             if (potentialTitleOnlyLinks.length > 0) {
                 // Use alphabetical ordering for title-only chapters
                 potentialTitleOnlyLinks.sort((a, b) => a.text.localeCompare(b.text));
@@ -710,7 +710,7 @@ class ChapterExtractionJavaScript {
                         }
                     }
 
-                    // NEW: Check for relative time patterns in the text
+                    // Check for relative time patterns in the text
                     if (!uploadDate) {
                         const relativeTime = extractRelativeTime(titleLink.text);
                         if (relativeTime) {
@@ -739,7 +739,7 @@ class ChapterExtractionJavaScript {
                         finalTitle = finalTitle.replace(/^[\\s\\.,;:-]+|[\\s\\.,;:-]+$/g, '').trim();
                     }
 
-                    // NEW: Remove time patterns from final title
+                    // Remove time patterns from final title
                     for (const timePattern of timePatterns) {
                         finalTitle = finalTitle.replace(timePattern, '').trim();
                     }

@@ -436,16 +436,38 @@ class ReaderCoordinator: ObservableObject {
         scrollToPage: @escaping (Int, Bool) -> Void,
         chapter: Chapter,
         titleID: UUID,
-        wasOpenedFromAdjacentChapter: Bool
+        wasOpenedFromAdjacentChapter: Bool,
+        shouldStartFromLastPage: Bool = false
     ) {
         guard !displayImages.isEmpty else {
             return
         }
         
-        // MODIFIED: Only restore bookmark if NOT opened from adjacent chapter
-        if let bookmarkedPage = loadBookmarkFromUserDefaults(chapter: chapter, titleID: titleID),
-           !hasRestoredFromBookmark && !wasOpenedFromAdjacentChapter {
+        // Adjacent chapter navigation with reading direction support
+        if wasOpenedFromAdjacentChapter {
+            // Determine starting position based on the flag AND reading direction
+            let startingPage: Int
+            if shouldStartFromLastPage {
+                // For previous chapter navigation:
+                // - RTL: start from first page (page 0) - beginning of the chapter
+                // - LTR: start from last page (page count - 1) - beginning of the chapter
+                startingPage = (readingDirection == .rightToLeft) ? 0 : displayImages.count - 1
+            } else {
+                // For next chapter navigation:
+                // - RTL: start from last page (page count - 1) - beginning of the chapter
+                // - LTR: start from first page (page 0) - beginning of the chapter
+                startingPage = (readingDirection == .rightToLeft) ? displayImages.count - 1 : 0
+            }
             
+            currentPageIndex.wrappedValue = startingPage
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                scrollToPage(currentPageIndex.wrappedValue, false)
+            }
+            
+        } else if let bookmarkedPage = loadBookmarkFromUserDefaults(chapter: chapter, titleID: titleID),
+                  !hasRestoredFromBookmark {
+            // Restore from bookmark (existing logic)
             let targetIndex: Int
             if readingDirection == .rightToLeft {
                 targetIndex = displayImages.count - bookmarkedPage
@@ -460,7 +482,7 @@ class ReaderCoordinator: ObservableObject {
                 scrollToPage(currentPageIndex.wrappedValue, false)
             }
         } else {
-            // MODIFIED: Always start at appropriate beginning for adjacent chapters
+            // Default starting position based on reading direction
             let startingPage: Int
             if readingDirection == .rightToLeft {
                 startingPage = displayImages.count - 1
@@ -476,7 +498,7 @@ class ReaderCoordinator: ObservableObject {
         }
     }
     
-    // MARK: - Modified Helper Methods
+    // MARK: - Helper Methods
 
     static func handleImagesChange(
         oldValue: [UIImage],

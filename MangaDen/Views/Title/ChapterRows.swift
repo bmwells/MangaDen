@@ -123,7 +123,7 @@ struct ChapterRowContent: View {
         return uploadDateString
     }
     
-    // NEW: Check if chapter is recently uploaded (within 10 days)
+    // Check if chapter is recently uploaded (within 10 days)
     private var isRecentlyUploaded: Bool {
         guard let uploadDateString = chapter.uploadDate else { return false }
         
@@ -141,7 +141,7 @@ struct ChapterRowContent: View {
                 let currentDate = Date()
                 
                 if let daysDifference = calendar.dateComponents([.day], from: uploadDate, to: currentDate).day {
-                    return daysDifference <= 10 && daysDifference >= 0
+                    return daysDifference <= 10 && daysDifference >= 0 // 10 DAYS for NEW
                 }
             }
         }

@@ -44,9 +44,9 @@ class AutoRefreshManager: ObservableObject {
         UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: lastRefreshKey)
     }
     
-    // NEW: Mark refresh attempt (regardless of success/failure)
+    // Mark refresh attempt (regardless of success/failure)
     func markRefreshAttempt(_ title: Title) {
-        markTitleRefreshed(title) // Same behavior - update the timestamp
+        markTitleRefreshed(title) 
     }
     
     func getRefreshPeriod() -> RefreshPeriod {

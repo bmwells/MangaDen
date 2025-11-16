@@ -46,7 +46,8 @@ struct TitleView: View {
     // State for handling chapter navigation from ReaderView
     @State private var chapterToOpenInReader: Chapter?
     @State private var showReaderView = false
-    @State private var wasOpenedFromAdjacentChapter = false // Track chapter navigation source
+    @State private var wasOpenedFromAdjacentChapter = false
+    @State private var shouldStartFromLastPage: Bool = false
     
     // Scrollbar state
     @State private var scrollProxy: ScrollViewProxy?
@@ -346,7 +347,8 @@ struct TitleView: View {
                         chapter: chapter,
                         readingDirection: readingDirection,
                         titleID: title.id,
-                        wasOpenedFromAdjacentChapter: wasOpenedFromAdjacentChapter // MODIFIED: Pass the flag
+                        wasOpenedFromAdjacentChapter: wasOpenedFromAdjacentChapter,
+                        shouldStartFromLastPage: shouldStartFromLastPage
                     )
                 }
             }
@@ -365,11 +367,13 @@ struct TitleView: View {
         
         // Check if this came from adjacent chapter navigation
         let fromAdjacentChapter = userInfo["fromAdjacentChapter"] as? Bool ?? false
+        let shouldStartFromLastPage = userInfo["shouldStartFromLastPage"] as? Bool ?? false // NEW
         
         // Set the chapter to open and trigger navigation
         self.chapterToOpenInReader = chapter
         self.readingDirection = readingDirection
-        self.wasOpenedFromAdjacentChapter = fromAdjacentChapter // MODIFIED: Store this flag
+        self.wasOpenedFromAdjacentChapter = fromAdjacentChapter
+        self.shouldStartFromLastPage = shouldStartFromLastPage
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             self.showReaderView = true
@@ -426,7 +430,7 @@ struct TitleView: View {
            let option = ChapterSortOption(rawValue: savedSort) {
             chapterSortOption = option
         } else {
-            chapterSortOption = .newToOld // Default
+            chapterSortOption = .newToOld // Default newest to oldest
         }
     }
 
@@ -458,7 +462,7 @@ struct TitleView: View {
            // Start network monitoring
            startNetworkMonitoring()
            
-           // NEW: Check for automatic refresh
+           // Check for automatic refresh
            checkForAutoRefresh()
        }
     
@@ -476,7 +480,7 @@ struct TitleView: View {
     }
     
     
-    // NEW: Automatic refresh check
+    // Automatic refresh check
         private func checkForAutoRefresh() {
             // Only auto-refresh if we haven't already done so in this session
             // and if we're not in offline mode
