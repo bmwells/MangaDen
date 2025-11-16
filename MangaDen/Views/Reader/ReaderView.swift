@@ -140,7 +140,7 @@ struct ReaderView: View {
         .statusBar(hidden: !showNavigationBars)
         .animation(.easeInOut(duration: 0.2), value: currentPageIndex)
         .animation(.easeInOut(duration: 0.2), value: showNavigationBars)
-        .alert("Download", isPresented: $showDownloadAlert) {
+        .alert("", isPresented: $showDownloadAlert) {
             Button("OK", role: .cancel) { }
         } message: {
             Text(downloadAlertMessage)
