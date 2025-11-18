@@ -180,8 +180,6 @@ class ReaderViewJava: NSObject, ObservableObject {
         }
     }
 
-    // ADD THESE NEW METHODS:
-
     private func setupExtractionFallbackTimer() {
         // Cancel any existing fallback task first
         extractionFallbackTask?.cancel()

@@ -18,11 +18,13 @@ class DownloadManager: ObservableObject {
     @Published var isPaused: Bool = false
     
     private var currentTask: DownloadTask?
-    private let maxConcurrentDownloads = 1 // One at a time for simplicity
     private var currentDownloadTask: Task<Void, Never>?
     
     // Add ReaderViewJava instance for progress tracking
     private var currentReaderJava: ReaderViewJava?
+    
+    // MINIMUM_IMAGES_REQUIRED for download
+    private let MINIMUM_IMAGES_REQUIRED = 11
     
     private init() {
         loadDownloadState()
@@ -304,6 +306,12 @@ class DownloadManager: ObservableObject {
             
             let totalImages = readerJava.images.count
             
+            // Check if we have minimum required images
+            if totalImages < MINIMUM_IMAGES_REQUIRED {
+                markDownloadFailed(task: task, error: "Insufficient images found (\(totalImages) of \(MINIMUM_IMAGES_REQUIRED) minimum required)")
+                return
+            }
+            
             // Download images with cancellation support
             var downloadedImages: [UIImage] = []
             var totalSize: Int64 = 0
@@ -315,8 +323,7 @@ class DownloadManager: ObservableObject {
                     return
                 }
                 
-                // Update progress based on image processing
-                let imageProgress = 0.1 + (Double(index + 1) / Double(totalImages)) * 0.9 // Scale from 10% to 100%
+                let imageProgress = 0.5 + (Double(index + 1) / Double(totalImages)) * 0.5
                 updateDownloadProgress(taskId: task.id, progress: imageProgress)
                 
                 // Add small delay to avoid overwhelming the system
@@ -345,9 +352,9 @@ class DownloadManager: ObservableObject {
                 return
             }
             
-            // Check if we have enough valid images
-            if downloadedImages.isEmpty {
-                markDownloadFailed(task: task, error: "No valid images could be downloaded for chapter \(task.chapter.formattedChapterNumber)")
+            // Check if we still have minimum required images after filtering
+            if downloadedImages.count < MINIMUM_IMAGES_REQUIRED {
+                markDownloadFailed(task: task, error: "Insufficient valid images after filtering (\(downloadedImages.count) of \(MINIMUM_IMAGES_REQUIRED) minimum required)")
                 return
             }
             
@@ -372,14 +379,18 @@ class DownloadManager: ObservableObject {
         if progressText.contains("DOWNLOAD") || progressText.contains("Downloading") {
             progress = 0.5
         } else if progressText.contains("Starting extraction") || progressText.contains("Strategy") {
-            progress = 0.6
-        } else if progressText.contains("Processing") || progressText.contains("Sorting") {
-            progress = 0.8
-        } else if progressText.contains("Attempt") || progressText.contains("RETRY") {
             progress = 0.2
-        } else if !readerJava.images.isEmpty {
-            // If we have images, progress should be higher
-            progress = max(0.1, Double(readerJava.images.count) / 100.0)
+        } else if progressText.contains("Processing") || progressText.contains("Sorting") {
+            progress = 0.3
+        } else if progressText.contains("Extraction completed") && !readerJava.images.isEmpty {
+            progress = 0.4 // Images found, ready to download
+        } else if progressText.contains("Attempt") || progressText.contains("RETRY") {
+            progress = 0.15
+        }
+        
+        // If we have images but progress is still low, bump it up to indicate progress
+        if !readerJava.images.isEmpty && progress < 0.4 && !progressText.contains("DOWNLOAD") && !progressText.contains("Downloading") {
+            progress = max(progress, 0.4)
         }
         
         updateDownloadProgress(taskId: task.id, progress: progress)
@@ -436,14 +447,13 @@ class DownloadManager: ObservableObject {
                 "url": task.chapter.url,
                 "totalImages": images.count,
                 "fileSize": totalSize,
-                "downloadDate": Date().timeIntervalSince1970
+                "downloadDate": Date().timeIntervalSince1970,
+                "minimumImagesRequired": MINIMUM_IMAGES_REQUIRED
             ]
             
             let infoData = try JSONSerialization.data(withJSONObject: chapterInfo)
             try infoData.write(to: infoPath)
-            
-            print("Successfully saved chapter \(task.chapter.formattedChapterNumber) with \(images.count) images")
-            
+                        
             // Mark as completed
             self.markDownloadCompleted(task: task, fileSize: totalSize)
             
@@ -469,6 +479,8 @@ class DownloadManager: ObservableObject {
             self.isDownloading = false
             self.saveDownloadState()
             
+            print("Download failed for chapter \(task.chapter.formattedChapterNumber): \(error)")
+            
             // Start next download only if not paused
             if !self.isPaused {
                 self.startNextDownload()
@@ -493,7 +505,7 @@ class DownloadManager: ObservableObject {
             self.currentReaderJava = nil
             self.isDownloading = false
             self.saveDownloadState()
-            
+                        
             // Start next download only if not paused
             if !self.isPaused {
                 self.startNextDownload()

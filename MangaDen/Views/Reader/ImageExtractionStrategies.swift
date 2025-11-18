@@ -436,8 +436,8 @@ class ImageExtractionStrategies {
                         lastImageCount = currentImageCount
                         allImages.append(contentsOf: images)
                         
-                        // Stop early if last two pages had same image count
-                        if consecutiveSameImageCount >= 2 {
+                        // Stop early if last 4 pages had same image count
+                        if consecutiveSameImageCount >= 4 {
                             let uniqueImages = self.removeDuplicateImages(allImages)
                             let filteredImages = self.filterLogoImages(uniqueImages)
                             completion(filteredImages)

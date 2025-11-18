@@ -39,8 +39,9 @@ class ImageExtractionCoordinator: ObservableObject {
     private let extractionStrategies = ImageExtractionStrategies()
     @Published var extractionProgress: String = ""
     
-    // MARK: - Cancellation Support
+    // MARK: - Cancellation & State Tracking
     var isCancelled = false
+    var isExtracting = false
     private var currentExtractionTask: Task<Void, Never>?
     private var currentDownloadTask: Task<Void, Never>?
     
@@ -72,6 +73,7 @@ class ImageExtractionCoordinator: ObservableObject {
     func executeAllExtractionStrategies(webView: WKWebView, onComplete: @escaping (Bool) -> Void) {
         // Reset cancellation state at start
         isCancelled = false
+        isExtracting = true
         
         let dispatchGroup = DispatchGroup()
         var strategyResults: [ExtractionResult] = []
@@ -91,6 +93,7 @@ class ImageExtractionCoordinator: ObservableObject {
             // Check for cancellation before starting each strategy
             if isCancelled {
                 print("EXTRACTION: Cancellation detected - stopping strategy execution")
+                self.isExtracting = false
                 onComplete(false)
                 return
             }
@@ -120,6 +123,7 @@ class ImageExtractionCoordinator: ObservableObject {
             // Check for cancellation before proceeding
             if self.isCancelled {
                 print("EXTRACTION: Cancellation detected after strategies 1-3")
+                self.isExtracting = false
                 onComplete(false)
                 return
             }
@@ -146,6 +150,7 @@ class ImageExtractionCoordinator: ObservableObject {
                     // Check for cancellation before starting Strategy 0
                     if Task.isCancelled || self?.isCancelled == true {
                         print("EXTRACTION: Strategy 0 cancelled before starting")
+                        self?.isExtracting = false
                         onComplete(false)
                         return
                     }
@@ -159,9 +164,14 @@ class ImageExtractionCoordinator: ObservableObject {
                             // Forward progress updates to the coordinator's updateProgress method
                             self?.updateProgress(progress)
                         },
-                        completion: { strategy0Images in
+                        completion: { [weak self] strategy0Images in
+                            guard let self = self else {
+                                onComplete(false)
+                                return
+                            }
+                            
                             // Check for cancellation before processing Strategy 0 results
-                            if let self = self, !self.isCancelled {
+                            if !self.isCancelled {
                                 self.updateProgress("Extraction completed - found \(strategy0Images.count) images")
                                 print("EXTRACTION: Strategy 0 COMPLETED - Found \(strategy0Images.count) images")
                                 strategyResults.append(ExtractionResult(strategy: 0, images: strategy0Images))
@@ -182,6 +192,8 @@ class ImageExtractionCoordinator: ObservableObject {
                                 print("EXTRACTION: Strategy 0 results ignored due to cancellation")
                                 onComplete(false)
                             }
+                            
+                            self.isExtracting = false
                         }
                     )
                 }
@@ -193,11 +205,15 @@ class ImageExtractionCoordinator: ObservableObject {
                 if allImages.isEmpty {
                     self.updateProgress("No images found")
                     print("EXTRACTION: No images found in strategies 1-3")
+                    self.isExtracting = false
                     onComplete(false)
                 } else {
                     self.updateProgress("Processing \(allImages.count) images...")
                     print("EXTRACTION: Processing and downloading \(allImages.count) images from strategies 1-3")
-                    self.processAndDownloadImages(allImages, onComplete: onComplete)
+                    self.processAndDownloadImages(allImages) { success in
+                        onComplete(success)
+                        self.isExtracting = false
+                    }
                 }
             }
         }
@@ -243,17 +259,26 @@ class ImageExtractionCoordinator: ObservableObject {
         print("After filtering: \(filteredImages.count) images (GIFs removed)")
         
         if filteredImages.isEmpty {
-            print("No images passed filtering, trying with all images...")
-            // If filtering removes everything, use the original images but still exclude GIFs
+            print("No images passed filtering, trying with non-GIF images only...")
             let nonGifImages = imageInfos.filter { !$0.src.lowercased().contains(".gif") }
-            downloadImages(from: nonGifImages, onComplete: onComplete)
+            
+            if nonGifImages.isEmpty {
+                print("No non-GIF images available either")
+                onComplete?(false)
+                return
+            }
+            
+            // Process non-GIF images directly
+            let sortedNonGifImages = intelligentImageSorting(nonGifImages)
+            downloadAndCacheImages(from: sortedNonGifImages, onComplete: onComplete)
             return
         }
         
         let sortedImages = intelligentImageSorting(filteredImages)
         print("Final order: \(sortedImages.count) images")
         
-        downloadImages(from: sortedImages, onComplete: onComplete)
+        // Call downloadAndCacheImages directly
+        downloadAndCacheImages(from: sortedImages, onComplete: onComplete)
     }
     
     private func intelligentImageSorting(_ images: [EnhancedImageInfo]) -> [EnhancedImageInfo] {
@@ -450,9 +475,9 @@ class ImageExtractionCoordinator: ObservableObject {
     // MARK: - Retry Logic
     
     func attemptImageExtraction(attempt: Int, maxAttempts: Int, webView: WKWebView, onComplete: ((Bool) -> Void)? = nil) {
-        // Check for cancellation before starting retry
-        if isCancelled {
-            print("RETRY: Cancellation detected - stopping retry logic")
+        // Check for cancellation AND if extraction is already running
+        if isCancelled || isExtracting {
+            print("RETRY: Cancellation detected or extraction already in progress - stopping retry logic")
             onComplete?(false)
             return
         }
@@ -461,7 +486,6 @@ class ImageExtractionCoordinator: ObservableObject {
         
         print("RETRY: Attempt \(attempt) of \(maxAttempts) - waiting \(delay) seconds")
         
-        // ADD PROGRESS UPDATE:
         updateProgress("Preparing extraction...")
         
         // Store the retry task for cancellation
@@ -469,8 +493,8 @@ class ImageExtractionCoordinator: ObservableObject {
             try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
             
             // Check for cancellation after sleep
-            if Task.isCancelled || self?.isCancelled == true {
-                print("RETRY: Cancellation detected during retry delay")
+            if Task.isCancelled || self?.isCancelled == true || self?.isExtracting == true {
+                print("RETRY: Cancellation detected or extraction in progress during retry delay")
                 onComplete?(false)
                 return
             }
@@ -499,6 +523,7 @@ class ImageExtractionCoordinator: ObservableObject {
     
     func cancelAllOperations() {
         isCancelled = true
+        isExtracting = false
         currentExtractionTask?.cancel()
         currentDownloadTask?.cancel()
         print("ImageExtractionCoordinator: All operations cancelled")
@@ -510,7 +535,8 @@ class ImageExtractionCoordinator: ObservableObject {
     }
     
     // MARK: - Download and Cache
-    private func downloadImages(from imageInfos: [EnhancedImageInfo], onComplete: ((Bool) -> Void)? = nil) {
+    
+    private func downloadAndCacheImages(from imageInfos: [EnhancedImageInfo], onComplete: ((Bool) -> Void)? = nil) {
         // Store the download task for cancellation
         currentDownloadTask = Task { [weak self] in
             guard let self = self else {
@@ -612,6 +638,10 @@ class ImageExtractionCoordinator: ObservableObject {
                     self.images = downloadedImages
                     onComplete?(true)
                 }
+                
+                // RESET extracting flag when download completes
+                self.isExtracting = false
+                print("DOWNLOAD: Extraction flag reset - isExtracting = false")
             }
         }
     }
