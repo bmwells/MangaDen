@@ -386,7 +386,7 @@ struct DownloadTaskRow: View {
     let isPaused: Bool
     @Environment(\.colorScheme) private var colorScheme
     @State private var seriesTitle: String = ""
-    @ObservedObject private var downloadManager = DownloadManager.shared // Use shared instance
+    @ObservedObject private var downloadManager = DownloadManager.shared
     
     var body: some View {
         HStack {

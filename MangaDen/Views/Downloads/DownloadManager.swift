@@ -94,13 +94,32 @@ class DownloadManager: ObservableObject {
             updateChapterDownloadStatus(chapterId: chapterId, isDownloaded: false)
         }
         
-        // If this was the current task, start next one
+        // If this was the current task, stop the extraction 
         if currentTask?.chapter.id == chapterId {
-            currentTask = nil
+            print("DownloadManager: Cancelling current download task for chapter \(chapterId)")
+            
+            // 1. Cancel the current download task
+            currentDownloadTask?.cancel()
+            currentDownloadTask = nil
+            
+            // 2. Stop ALL ReaderViewJava operations
             currentReaderJava?.stopLoading()
+            currentReaderJava?.clearCache()
             currentReaderJava = nil
-            if !isPaused {
-                startNextDownload()
+            
+            // 3. Reset downloading state
+            isDownloading = false
+            currentTask = nil
+            
+            print("DownloadManager: Current download task fully cancelled")
+            
+            // Only start next download if not paused and queue not empty
+            if !isPaused && !downloadQueue.isEmpty {
+                // Add a longer delay to ensure everything is fully stopped
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    print("DownloadManager: Starting next download after cancellation")
+                    self.startNextDownload()
+                }
             }
         }
     }
