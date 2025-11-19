@@ -528,7 +528,7 @@ struct TitleView: View {
             webView.load(URLRequest(url: url, timeoutInterval: 30.0)) // Increased timeout
             
             // Use the enhanced refresh manager
-            DispatchQueue.main.asyncAfter(deadline: .now() + 6.0) { // Increased delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { // Increased delay
                 
                 TitleRefreshManager.refreshTitle(in: webView, for: self.title) { result in
                     DispatchQueue.main.async {

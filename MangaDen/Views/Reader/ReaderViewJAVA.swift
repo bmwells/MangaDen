@@ -328,7 +328,7 @@ extension ReaderViewJava: WKNavigationDelegate {
         // Store the extraction task for potential cancellation
         currentExtractionTask = Task { [weak self] in
             // Add a small delay to ensure the page is fully rendered
-            try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 second
+            try? await Task.sleep(nanoseconds: 4_000_000_000) // 4 second
             
             // Check for cancellation/pause after delay
             if Task.isCancelled || self?.extractionCoordinator.isCancelled == true || self?.isStopping == true || self?.isPaused == true {
