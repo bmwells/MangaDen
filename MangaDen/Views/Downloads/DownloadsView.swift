@@ -72,7 +72,7 @@ struct DownloadsView: View {
                                     }
                                 }
                             }
-                            .frame(maxHeight: 256)
+                            .frame(maxHeight: UIDevice.current.userInterfaceIdiom == .pad ? 340 : 256)
                         }
                     }
                     .padding(.horizontal, 12)
@@ -112,7 +112,7 @@ struct DownloadsView: View {
                                     }
                                 }
                             }
-                            .frame(maxHeight: 150)
+                            .frame(maxHeight: UIDevice.current.userInterfaceIdiom == .pad ? 230 : 150)
                         }
                     }
                     .padding(.horizontal, 12)
@@ -145,7 +145,7 @@ struct DownloadsView: View {
                                     }
                                 }
                             }
-                            .frame(maxHeight: 65)
+                            .frame(maxHeight: 150)
                         }
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
