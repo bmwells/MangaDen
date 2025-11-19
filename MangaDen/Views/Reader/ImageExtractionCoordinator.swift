@@ -531,6 +531,7 @@ class ImageExtractionCoordinator: ObservableObject {
 
     func resetCancellation() {
         isCancelled = false
+        isExtracting = false 
         print("ImageExtractionCoordinator: Cancellation state reset")
     }
     

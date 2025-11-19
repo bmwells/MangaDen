@@ -445,45 +445,46 @@ struct ReaderView: View {
             readerContentView
         }
     }
-    
+
     private var storageLoadingView: some View {
         ProgressView("Loading from storage...")
             .scaleEffect(1.5)
             .foregroundColor(.white)
     }
-    
+
     private var onlineLoadingView: some View {
         ProgressView("Loading chapter...")
             .scaleEffect(1.5)
             .foregroundColor(.white)
     }
-    
+
     private func errorView(error: String) -> some View {
-        VStack {
-            Text("Error")
+        VStack(spacing: 20) {
+            Text("ERROR")
                 .font(.title)
+                .fontWeight(.bold)
                 .foregroundColor(.red)
             
-            Text(error)
-                .foregroundColor(.secondary)
+            Text("Chapter failed to load. Please exit and try again.")
+                .font(.body)
+                .foregroundColor(.white)
                 .multilineTextAlignment(.center)
-                .padding()
-            
-            Button("Retry") {
-                loadChapter()
-            }
-            .buttonStyle(.borderedProminent)
+                .padding(.horizontal)
         }
     }
-    
+
     private var emptyContentView: some View {
-        VStack {
-            Text("No Content")
+        VStack(spacing: 20) {
+            Text("NO CONTENT")
                 .font(.title)
-                .foregroundColor(.gray)
+                .fontWeight(.bold)
+                .foregroundColor(.red)
             
-            Text("Unable to load chapter content")
-                .foregroundColor(.secondary)
+            Text("Unable to load chapter content. Please exit and try again.")
+                .font(.body)
+                .foregroundColor(.white)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
         }
     }
     

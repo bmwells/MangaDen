@@ -93,9 +93,9 @@ class ReaderViewJava: NSObject, ObservableObject {
         // Stop the WebView
         webViewManager.stopLoading()
         
-        // Reset state
+        // Reset state without setting an error
         isLoading = false
-        error = "Download paused by user"
+        error = nil
         downloadProgress = ""
         
         // Clear images to ensure UI updates
@@ -108,7 +108,7 @@ class ReaderViewJava: NSObject, ObservableObject {
         // Reset pause state when starting new load
         isPaused = false
         isStopping = false
-        hasExtractionStarted = false // RESET EXTRACTION FLAG
+        hasExtractionStarted = false
         
         print("ReaderViewJava: Loading chapter from URL: \(url)")
         isLoading = true
@@ -216,9 +216,9 @@ class ReaderViewJava: NSObject, ObservableObject {
     
     func stopLoading() {
         print("ReaderViewJava: Stopping all loading and extraction")
-        isStopping = true // Set stopping flag first
-        isPaused = false // Reset pause state when explicitly stopping
-        hasExtractionStarted = false // RESET EXTRACTION FLAG
+        isStopping = true
+        isPaused = false
+        hasExtractionStarted = false
         
         // Cancel fallback timer FIRST
         extractionFallbackTask?.cancel()
@@ -228,16 +228,17 @@ class ReaderViewJava: NSObject, ObservableObject {
         currentExtractionTask?.cancel()
         currentExtractionTask = nil
         
-        // Cancel the extraction coordinator operations
+        // Cancel the extraction coordinator operations and reset state
         extractionCoordinator.cancelAllOperations()
+        extractionCoordinator.resetCancellation()
         
         // Stop the WebView and clear its content
         webViewManager.stopLoading()
         webViewManager.clearContent()
         
-        // Reset state
+        // Reset state without setting an error
         isLoading = false
-        error = "Download cancelled by user"
+        error = nil
         downloadProgress = ""
         
         // Clear images to ensure UI updates
@@ -339,7 +340,7 @@ extension ReaderViewJava: WKNavigationDelegate {
                 return
             }
             
-            self?.extractionCoordinator.attemptImageExtraction(attempt: 1, maxAttempts: 3, webView: webView) { [weak self] success in
+            self?.extractionCoordinator.attemptImageExtraction(attempt: 1, maxAttempts: 2, webView: webView) { [weak self] success in
                 print("ReaderViewJava: Extraction completed with success: \(success)")
                 
                 Task { @MainActor in
@@ -349,8 +350,12 @@ extension ReaderViewJava: WKNavigationDelegate {
                             print("ReaderViewJava: Extraction successful, updating loading state")
                             self?.isLoading = false
                             self?.downloadProgress = ""
+                            self?.error = nil
                         } else {
-                            self?.error = "Failed to extract images after multiple attempts"
+                            // Only set error if we don't already have images
+                            if self?.images.isEmpty == true {
+                                self?.error = "Failed to extract images after multiple attempts"
+                            }
                             self?.isLoading = false
                         }
                     } else {
