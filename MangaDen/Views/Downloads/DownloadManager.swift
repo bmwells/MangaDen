@@ -29,7 +29,7 @@ class DownloadManager: ObservableObject {
     private var currentReaderJava: ReaderViewJava?
     
     // MINIMUM_IMAGES_REQUIRED for download
-    private let MINIMUM_IMAGES_REQUIRED = 11
+    private let MINIMUM_IMAGES_REQUIRED = 10
     
     private init() {
         loadDownloadState()
