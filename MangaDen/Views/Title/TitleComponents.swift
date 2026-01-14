@@ -770,6 +770,25 @@ struct TitleHelpView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
                     
+                    Text("**Pin Title**")
+                        .font(.title3)
+                        .italic()
+                        .foregroundColor(.primary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    Text("Pins this title to the top of the library.")
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
+                        .font(.system(size: 18))
+                        .foregroundColor(.primary)
+                    
+                    //Divider
+                    Rectangle()
+                        .frame(height: 1)
+                        .foregroundColor(.gray.opacity(0.3))
+                        .frame(maxWidth: 400)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                    
                     Text("**Archive Title**")
                         .font(.title3)
                         .italic()

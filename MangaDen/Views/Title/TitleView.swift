@@ -173,11 +173,10 @@ struct TitleView: View {
                                         .background(ButtonBackground())
                                         .cornerRadius(8)
                                         .padding(.leading, UIDevice.current.userInterfaceIdiom == .pad ? 30 : 5)
-
                                     }
 
                                     Spacer()
-    
+                                    
                                     ReadingDirectionSelector(
                                         readingDirection: $readingDirection,
                                         onDirectionChanged: saveReadingDirection
@@ -209,11 +208,12 @@ struct TitleView: View {
                             
                             ChaptersListSection(
                                 displayChapters: chaptersWithBookmarks,
-                                readingDirection: readingDirection,
-                                showDownloadMode: showDownloadMode,
-                                showManageMode: showManageMode,
-                                onDeleteChapter: { chapterToDelete = $0; showDeleteChapterConfirmation = true },
-                                titleID: title.id
+                                    readingDirection: readingDirection,
+                                    showDownloadMode: showDownloadMode,
+                                    showManageMode: showManageMode,
+                                    onDeleteChapter: { chapterToDelete = $0; showDeleteChapterConfirmation = true },
+                                    titleID: title.id
+
                             )
                             .background(
                                 GeometryReader { geometry in
@@ -406,7 +406,10 @@ struct TitleView: View {
             return
         }
         
-        scrollToChapter(bookmarkedChapter)
+        // Scroll to the bookmarked chapter with .center anchor instead of .top
+        withAnimation {
+            scrollProxy?.scrollTo(bookmarkedChapter.id, anchor: .center)
+        }
     }
     
     // MARK: - Chapter Sorting

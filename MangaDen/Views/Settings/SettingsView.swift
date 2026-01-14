@@ -256,7 +256,7 @@ struct SettingsView: View {
                         
                         //MARK: - Version
                         VStack {
-                            Text("Version 1.3")
+                            Text("Version 1.3.5")
                                 .font(.title3)
                                 .foregroundColor(.primary)
                                 .padding(.bottom, 55)

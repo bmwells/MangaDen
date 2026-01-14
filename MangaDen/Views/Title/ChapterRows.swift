@@ -34,6 +34,11 @@ struct ChapterRowView: View {
         chapter.safeIsDownloaded
     }
     
+    // Check if navigation should be disabled
+    private var isNavigationDisabled: Bool {
+        showDownloadMode || showManageMode
+    }
+    
     var body: some View {
         HStack {
             if showDownloadMode {
@@ -57,9 +62,22 @@ struct ChapterRowView: View {
                 .buttonStyle(PlainButtonStyle())
             }
             
-            NavigationLink(
-                destination: ReaderView(chapter: chapter, readingDirection: readingDirection, titleID: titleID)
-            ) {
+            // Only show NavigationLink when not in download/manage mode
+            if !isNavigationDisabled {
+                NavigationLink(
+                    destination: ReaderView(chapter: chapter, readingDirection: readingDirection, titleID: titleID)
+                ) {
+                    ChapterRowContent(
+                        chapter: chapter,
+                        showDownloadButton: showDownloadMode,
+                        showManageMode: showManageMode
+                    )
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(PlainButtonStyle())
+                .id(chapter.id)
+            } else {
+                // When in download/manage mode, show content without NavigationLink
                 ChapterRowContent(
                     chapter: chapter,
                     showDownloadButton: showDownloadMode,
@@ -67,8 +85,6 @@ struct ChapterRowView: View {
                 )
                 .contentShape(Rectangle())
             }
-            .buttonStyle(PlainButtonStyle())
-            .id(chapter.id)
         }
         .padding(.leading, 20)
     }
@@ -226,12 +242,17 @@ struct ChapterRowContent: View {
                     .foregroundColor(.green)
             }
                         
-            Image(systemName: "chevron.right")
-                .font(.footnote)
-                .foregroundColor(.gray)
+            // Only show chevron when not in download/manage mode
+            if !showDownloadButton && !showManageMode {
+                Image(systemName: "chevron.right")
+                    .font(.footnote)
+                    .foregroundColor(.gray)
+            }
         }
         .padding()
         .contentShape(Rectangle())
+        // Apply reduced opacity when in download/manage mode to indicate disabled state
+        .opacity((showDownloadButton || showManageMode) ? 0.7 : 1.0)
     }
 }
 

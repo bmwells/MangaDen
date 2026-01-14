@@ -29,7 +29,7 @@ class DownloadManager: ObservableObject {
     private var currentReaderJava: ReaderViewJava?
     
     // MINIMUM_IMAGES_REQUIRED for download
-    private let MINIMUM_IMAGES_REQUIRED = 10
+    private let MINIMUM_IMAGES_REQUIRED = 9
     
     private init() {
         loadDownloadState()
@@ -63,7 +63,9 @@ class DownloadManager: ObservableObject {
         let hiddenChapterURLs = UserDefaults.standard.array(forKey: hiddenKey) as? [String] ?? []
         
         var chaptersAdded = 0
+        var eligibleChapters: [Chapter] = []
         
+        // First, collect eligible chapters
         for chapter in chapters {
             // Skip hidden chapters
             if hiddenChapterURLs.contains(chapter.url) {
@@ -82,6 +84,14 @@ class DownloadManager: ObservableObject {
                 continue
             }
             
+            eligibleChapters.append(chapter)
+        }
+        
+        // Sort chapters by chapter number (oldest first)
+        let sortedChapters = eligibleChapters.sorted { $0.chapterNumber < $1.chapterNumber }
+        
+        // Add sorted chapters to queue
+        for chapter in sortedChapters {
             let task = DownloadTask(chapter: chapter)
             downloadQueue.append(task)
             chaptersAdded += 1
