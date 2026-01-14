@@ -24,6 +24,8 @@ class ReaderViewJava: NSObject, ObservableObject {
     private var isPaused = false
     private var hasExtractionStarted = false
     private var extractionFallbackTask: Task<Void, Never>?
+    private var extractionRetryCount = 0
+    private let maxExtractionRetries = 3
     
     override init() {
         super.init()
@@ -109,6 +111,7 @@ class ReaderViewJava: NSObject, ObservableObject {
         isPaused = false
         isStopping = false
         hasExtractionStarted = false
+        extractionRetryCount = 0
         
         print("ReaderViewJava: Loading chapter from URL: \(url)")
         isLoading = true
@@ -130,13 +133,18 @@ class ReaderViewJava: NSObject, ObservableObject {
                 // Check if we're paused or in the process of stopping
                 if !self.isStopping && !self.isPaused {
                     print("ReaderViewJava: Received \(newImages.count) images from extraction coordinator")
-                    self.images = newImages
                     
-                    // If we have images and are still loading, update the state
-                    if !newImages.isEmpty && self.isLoading {
-                        print("ReaderViewJava: Images received, updating loading state to false")
-                        self.isLoading = false
-                        self.downloadProgress = "Chapter ready!"
+                    // Only update images if we actually got some
+                    if !newImages.isEmpty {
+                        self.images = newImages
+                        
+                        // If we have images and are still loading, update the state
+                        if self.isLoading {
+                            print("ReaderViewJava: Images received, updating loading state to false")
+                            self.isLoading = false
+                            self.downloadProgress = "Chapter ready (\(newImages.count) pages)!"
+                            self.error = nil
+                        }
                     }
                 } else {
                     print("ReaderViewJava: Ignoring images received during pause/stop process")
@@ -219,6 +227,7 @@ class ReaderViewJava: NSObject, ObservableObject {
         isStopping = true
         isPaused = false
         hasExtractionStarted = false
+        extractionRetryCount = 0
         
         // Cancel fallback timer FIRST
         extractionFallbackTask?.cancel()
@@ -247,10 +256,11 @@ class ReaderViewJava: NSObject, ObservableObject {
         print("ReaderViewJava: All operations stopped")
     }
     
-    func clearCache() {        
+    func clearCache() {
         isStopping = true
         isPaused = false
         hasExtractionStarted = false
+        extractionRetryCount = 0
         
         // Cancel fallback timer
         extractionFallbackTask?.cancel()
@@ -272,6 +282,41 @@ class ReaderViewJava: NSObject, ObservableObject {
         isStopping = false
         
         print("ReaderViewJava: Temporary online reading cache cleared")
+    }
+    
+    // MARK: - Enhanced Extraction with Retry Logic
+    
+    private func handleExtractionRetry(webView: WKWebView, reason: String) {
+        extractionRetryCount += 1
+        
+        if extractionRetryCount > maxExtractionRetries {
+            print("ReaderViewJava: Max extraction retries reached (\(maxExtractionRetries))")
+            Task { @MainActor in
+                self.isLoading = false
+                self.downloadProgress = "Failed to extract images"
+                self.error = "Could not load images after multiple attempts"
+            }
+            return
+        }
+        
+        print("ReaderViewJava: Retry \(extractionRetryCount)/\(maxExtractionRetries) - \(reason)")
+        
+        Task { @MainActor in
+            self.downloadProgress = "Retrying extraction (\(extractionRetryCount)/\(maxExtractionRetries))..."
+        }
+        
+        // Wait before retrying (longer delay for later retries)
+        let delay = Double(extractionRetryCount) * 3.0
+        
+        currentExtractionTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            
+            if Task.isCancelled || self?.isStopping == true || self?.isPaused == true {
+                return
+            }
+            
+            self?.performExtraction(webView: webView, isRetry: true)
+        }
     }
 }
 
@@ -325,13 +370,18 @@ extension ReaderViewJava: WKNavigationDelegate {
         extractionFallbackTask?.cancel()
         extractionFallbackTask = nil
         
+        performExtraction(webView: webView, isRetry: false)
+    }
+    
+    private func performExtraction(webView: WKWebView, isRetry: Bool) {
         // Store the extraction task for potential cancellation
         currentExtractionTask = Task { [weak self] in
             // Add a small delay to ensure the page is fully rendered
-            try? await Task.sleep(nanoseconds: 4_000_000_000) // 4 second
+            try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
             
             // Check for cancellation/pause after delay
-            if Task.isCancelled || self?.extractionCoordinator.isCancelled == true || self?.isStopping == true || self?.isPaused == true {
+            if Task.isCancelled || self?.extractionCoordinator.isCancelled == true ||
+               self?.isStopping == true || self?.isPaused == true {
                 print("ReaderViewJava: Extraction cancelled/paused during delay")
                 await MainActor.run {
                     self?.isLoading = false
@@ -340,23 +390,43 @@ extension ReaderViewJava: WKNavigationDelegate {
                 return
             }
             
+            print("ReaderViewJava: Starting extraction coordinator process")
+            
             self?.extractionCoordinator.attemptImageExtraction(attempt: 1, maxAttempts: 2, webView: webView) { [weak self] success in
                 print("ReaderViewJava: Extraction completed with success: \(success)")
                 
                 Task { @MainActor in
                     // Only update state if not cancelled, stopping, or paused
-                    if self?.extractionCoordinator.isCancelled != true && self?.isStopping != true && self?.isPaused != true {
+                    if self?.extractionCoordinator.isCancelled != true &&
+                       self?.isStopping != true &&
+                       self?.isPaused != true {
+                        
                         if success {
                             print("ReaderViewJava: Extraction successful, updating loading state")
                             self?.isLoading = false
                             self?.downloadProgress = ""
                             self?.error = nil
                         } else {
-                            // Only set error if we don't already have images
-                            if self?.images.isEmpty == true {
-                                self?.error = "Failed to extract images after multiple attempts"
+                            // Check if we have some images but extraction reported failure
+                            if let images = self?.images, !images.isEmpty {
+                                print("ReaderViewJava: Extraction reported failure but we have \(images.count) images - accepting partial success")
+                                self?.isLoading = false
+                                self?.downloadProgress = "Chapter ready (\(images.count) pages)!"
+                                self?.error = nil
+                            } else {
+                                // No images at all - retry if we haven't exceeded max retries
+                                let retryCount = self?.extractionRetryCount ?? 0
+                                let maxRetries = self?.maxExtractionRetries ?? 3
+                                
+                                if retryCount < maxRetries {
+                                    print("ReaderViewJava: No images found, scheduling retry")
+                                    self?.handleExtractionRetry(webView: webView, reason: "No images extracted")
+                                } else {
+                                    print("ReaderViewJava: Failed to extract images after all retries")
+                                    self?.error = "Failed to extract images after multiple attempts"
+                                    self?.isLoading = false
+                                }
                             }
-                            self?.isLoading = false
                         }
                     } else {
                         print("ReaderViewJava: Extraction was cancelled, paused, or stopping, ignoring results")

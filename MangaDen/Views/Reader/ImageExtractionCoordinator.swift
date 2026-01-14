@@ -138,9 +138,9 @@ class ImageExtractionCoordinator: ObservableObject {
             }
             
             // Only try Strategy 0 if no single strategy found more than 13 images
-            let shouldTrystrategy0 = maxImagesFromSingleStrategy <= 13
+            let shouldTryStrategy0 = maxImagesFromSingleStrategy <= 13
             
-            if shouldTrystrategy0 {
+            if shouldTryStrategy0 {
                 self.updateProgress("Starting page extraction...")
                 print("EXTRACTION: Strategy 0 TRIGGERED - No strategy found more than 13 images (max: \(maxImagesFromSingleStrategy))")
                 print("EXTRACTION: STARTING Strategy 0 - Page Menu Extraction")
@@ -270,15 +270,180 @@ class ImageExtractionCoordinator: ObservableObject {
             
             // Process non-GIF images directly
             let sortedNonGifImages = intelligentImageSorting(nonGifImages)
-            downloadAndCacheImages(from: sortedNonGifImages, onComplete: onComplete)
+            downloadImagesWithRetry(from: sortedNonGifImages, onComplete: onComplete)
             return
         }
         
         let sortedImages = intelligentImageSorting(filteredImages)
         print("Final order: \(sortedImages.count) images")
         
-        // Call downloadAndCacheImages directly
-        downloadAndCacheImages(from: sortedImages, onComplete: onComplete)
+        // Use new retry-based download system
+        downloadImagesWithRetry(from: sortedImages, onComplete: onComplete)
+    }
+    
+    // MARK: - Smart Download with Retry Logic
+    
+    private func downloadImagesWithRetry(from imageInfos: [EnhancedImageInfo], onComplete: ((Bool) -> Void)? = nil) {
+        updateProgress("Downloading \(imageInfos.count) images...")
+        print("DOWNLOAD: Starting download of \(imageInfos.count) images")
+        
+        retryFailedDownloads(imageInfos: imageInfos) { [weak self] downloadedImages in
+            guard let self = self else {
+                onComplete?(false)
+                return
+            }
+            
+            Task { @MainActor in
+                if downloadedImages.isEmpty {
+                    self.updateProgress("Download failed - no images")
+                    print("DOWNLOAD: No images could be downloaded after retries")
+                    onComplete?(false)
+                } else {
+                    self.updateProgress("Download completed - \(downloadedImages.count) images ready")
+                    print("DOWNLOAD: SUCCESS - Setting \(downloadedImages.count) images to display")
+                    self.images = downloadedImages
+                    onComplete?(true)
+                }
+                
+                // RESET extracting flag when download completes
+                self.isExtracting = false
+                print("DOWNLOAD: Extraction flag reset - isExtracting = false")
+            }
+        }
+    }
+    
+    private func retryFailedDownloads(imageInfos: [EnhancedImageInfo], attempt: Int = 1, maxAttempts: Int = 3, onComplete: @escaping ([UIImage]) -> Void) {
+        guard attempt <= maxAttempts else {
+            print("DOWNLOAD: Max retry attempts reached")
+            onComplete([])
+            return
+        }
+        
+        print("DOWNLOAD: Retry attempt \(attempt)/\(maxAttempts)")
+        
+        // Try different approaches based on attempt number
+        let useAlternativeHeaders = attempt > 1
+        let delay = attempt == 1 ? 0.0 : Double(attempt) * 2.0
+        
+        // Store download task for cancellation
+        currentDownloadTask = Task { [weak self] in
+            if Task.isCancelled || self?.isCancelled == true {
+                print("DOWNLOAD: Cancellation detected during retry")
+                onComplete([])
+                return
+            }
+            
+            if delay > 0 {
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                
+                if Task.isCancelled || self?.isCancelled == true {
+                    print("DOWNLOAD: Cancellation detected during retry delay")
+                    onComplete([])
+                    return
+                }
+            }
+            
+            var downloadedImages: [UIImage] = []
+            let totalImages = imageInfos.count
+            
+            for (index, imageInfo) in imageInfos.enumerated() {
+                if Task.isCancelled || self?.isCancelled == true {
+                    print("DOWNLOAD: Cancellation detected during image download")
+                    break
+                }
+                
+                // Update progress
+                self?.updateProgress("Downloading image \(index + 1) of \(totalImages)...")
+                
+                print("DOWNLOAD: [\(index + 1)/\(totalImages)] Attempting: \(imageInfo.src)")
+                
+                // Check cache first
+                if let cachedImage = self?.getCachedImage(for: imageInfo.src) {
+                    print("DOWNLOAD: [\(index + 1)] Using cached image")
+                    downloadedImages.append(cachedImage)
+                    continue
+                }
+                
+                // Attempt download with appropriate headers
+                if let image = await self?.attemptImageDownload(imageInfo: imageInfo, useAlternativeHeaders: useAlternativeHeaders) {
+                    downloadedImages.append(image)
+                }
+            }
+            
+            if downloadedImages.isEmpty && attempt < maxAttempts {
+                // Try again with different approach
+                self?.retryFailedDownloads(imageInfos: imageInfos, attempt: attempt + 1, maxAttempts: maxAttempts, onComplete: onComplete)
+            } else {
+                onComplete(downloadedImages)
+            }
+        }
+    }
+    
+    private func attemptImageDownload(imageInfo: EnhancedImageInfo, useAlternativeHeaders: Bool = false) async -> UIImage? {
+        guard let url = URL(string: imageInfo.src) else {
+            print("DOWNLOAD: Invalid URL: \(imageInfo.src)")
+            return nil
+        }
+        
+        do {
+            var request = URLRequest(url: url)
+            request.timeoutInterval = 30.0
+            request.cachePolicy = .reloadIgnoringLocalCacheData
+            
+            if useAlternativeHeaders {
+                // Alternative headers that might work better
+                request.setValue("text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8", forHTTPHeaderField: "Accept")
+                request.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36", forHTTPHeaderField: "User-Agent")
+            } else {
+                // Default iOS Safari headers
+                request.setValue("image/webp,image/apng,image/*,*/*;q=0.8", forHTTPHeaderField: "Accept")
+                request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
+            }
+            
+            // CRITICAL: Set referer to manga site to avoid 403 errors
+            request.setValue("https://mangafire.to", forHTTPHeaderField: "Referer")
+            request.setValue("en-US,en;q=0.9", forHTTPHeaderField: "Accept-Language")
+            request.setValue("keep-alive", forHTTPHeaderField: "Connection")
+            
+            print("DOWNLOAD: Downloading from: \(url)")
+            
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            // Check if we got a valid response
+            if let httpResponse = response as? HTTPURLResponse {
+                print("DOWNLOAD: HTTP Status: \(httpResponse.statusCode)")
+                
+                if httpResponse.statusCode == 200, let image = UIImage(data: data) {
+                    // FINAL SIZE FILTER - check actual downloaded image size
+                    if image.size.width <= 100.0 && image.size.height <= 100.0 {
+                        print("DOWNLOAD: FILTERED OUT - Logo sized image: \(image.size)")
+                        return nil // Skip this image
+                    }
+                    
+                    // Cache the downloaded image
+                    cacheImage(image, for: imageInfo.src)
+                    print("DOWNLOAD: SUCCESS - Image size: \(image.size)")
+                    return image
+                } else if httpResponse.statusCode == 403 {
+                    print("DOWNLOAD: 403 Forbidden - access denied")
+                    // Try alternative approach on next retry
+                    return nil
+                } else {
+                    print("DOWNLOAD: FAILED - Invalid status code")
+                }
+            } else {
+                print("DOWNLOAD: FAILED - No HTTP response")
+            }
+        } catch {
+            // Don't report cancellation as an error
+            if error is CancellationError {
+                print("DOWNLOAD: Cancelled")
+                return nil
+            }
+            print("DOWNLOAD: ERROR: \(error.localizedDescription)")
+        }
+        
+        return nil
     }
     
     private func intelligentImageSorting(_ images: [EnhancedImageInfo]) -> [EnhancedImageInfo] {
@@ -531,119 +696,7 @@ class ImageExtractionCoordinator: ObservableObject {
 
     func resetCancellation() {
         isCancelled = false
-        isExtracting = false 
+        isExtracting = false
         print("ImageExtractionCoordinator: Cancellation state reset")
-    }
-    
-    // MARK: - Download and Cache
-    
-    private func downloadAndCacheImages(from imageInfos: [EnhancedImageInfo], onComplete: ((Bool) -> Void)? = nil) {
-        // Store the download task for cancellation
-        currentDownloadTask = Task { [weak self] in
-            guard let self = self else {
-                onComplete?(false)
-                return
-            }
-            
-            var downloadedImages: [UIImage] = []
-            let totalImages = imageInfos.count
-            var successfulDownloads = 0
-            
-            self.updateProgress("Downloading \(totalImages) images...")
-            print("DOWNLOAD: Starting download of \(totalImages) images")
-            
-            for (index, imageInfo) in imageInfos.enumerated() {
-                // Check for cancellation before each image download
-                if Task.isCancelled || self.isCancelled {
-                    print("DOWNLOAD: Cancellation detected during image download")
-                    break
-                }
-                
-                // Update download progress
-                self.updateProgress("Downloading image \(index + 1) of \(totalImages)...")
-                
-                print("DOWNLOAD: [\(index + 1)/\(totalImages)] Attempting: \(imageInfo.src)")
-                
-                // Check cache first using merged cache functionality
-                if let cachedImage = self.getCachedImage(for: imageInfo.src) {
-                    print("DOWNLOAD: [\(index + 1)] Using cached image")
-                    downloadedImages.append(cachedImage)
-                    successfulDownloads += 1
-                    continue
-                }
-                
-                // Validate and create URL
-                guard let url = URL(string: imageInfo.src) else {
-                    print("DOWNLOAD: [\(index + 1)] Invalid URL: \(imageInfo.src)")
-                    continue
-                }
-                
-                print("DOWNLOAD: [\(index + 1)] Downloading from: \(url)")
-                
-                do {
-                    // Create a proper URLRequest with timeout
-                    var request = URLRequest(url: url)
-                    request.timeoutInterval = 30.0
-                    request.cachePolicy = .reloadIgnoringLocalCacheData
-                    
-                    let (data, response) = try await URLSession.shared.data(for: request)
-                    
-                    // Check for cancellation after network request
-                    if Task.isCancelled || self.isCancelled {
-                        print("DOWNLOAD: Cancellation detected after network request")
-                        break
-                    }
-                    
-                    // Check if we got a valid response
-                    if let httpResponse = response as? HTTPURLResponse {
-                        print("DOWNLOAD: [\(index + 1)] HTTP Status: \(httpResponse.statusCode)")
-                        
-                        if httpResponse.statusCode == 200, let image = UIImage(data: data) {
-                            // FINAL SIZE FILTER - check actual downloaded image size
-                            if image.size.width <= 100.0 && image.size.height <= 100.0 {
-                                print("DOWNLOAD: [\(index + 1)] FILTERED OUT - Logo sized image: \(image.size)")
-                                continue // Skip this image
-                            }
-                            // Cache the downloaded image using merged cache functionality
-                            self.cacheImage(image, for: imageInfo.src)
-                            downloadedImages.append(image)
-                            successfulDownloads += 1
-                            print("DOWNLOAD: [\(index + 1)] SUCCESS - Image size: \(image.size)")
-                        } else {
-                            print("DOWNLOAD: [\(index + 1)] FAILED - Invalid status code or image data")
-                        }
-                    } else {
-                        print("DOWNLOAD: [\(index + 1)] FAILED - No HTTP response")
-                    }
-                } catch {
-                    // Don't report cancellation as an error
-                    if error is CancellationError {
-                        print("DOWNLOAD: [\(index + 1)] Cancelled")
-                        break
-                    }
-                    print("DOWNLOAD: [\(index + 1)] ERROR: \(error.localizedDescription)")
-                }
-            }
-            
-            await MainActor.run {
-                print("DOWNLOAD: Completed - \(successfulDownloads)/\(totalImages) successful downloads")
-                
-                if downloadedImages.isEmpty {
-                    self.updateProgress("Download failed - no images")
-                    print("DOWNLOAD: CRITICAL - No images were successfully downloaded")
-                    onComplete?(false)
-                } else {
-                    self.updateProgress("Download completed - \(downloadedImages.count) images ready")
-                    print("DOWNLOAD: SUCCESS - Setting \(downloadedImages.count) images to display")
-                    // Set images
-                    self.images = downloadedImages
-                    onComplete?(true)
-                }
-                
-                // RESET extracting flag when download completes
-                self.isExtracting = false
-                print("DOWNLOAD: Extraction flag reset - isExtracting = false")
-            }
-        }
     }
 }
